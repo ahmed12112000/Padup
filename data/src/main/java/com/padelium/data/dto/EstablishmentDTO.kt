@@ -1,0 +1,1 @@
+package com.padelium.data.dto
