@@ -28,13 +28,11 @@ import retrofit2.Response
 
 class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
 
-    @Headers("Accept: application/json", "Content-Type: application/json")
 
     suspend fun  login(loginRequest: LoginRequestDto): Response<Void>{
         return endPoint.loginUser(loginRequest)
     }
 
-    @Headers("Accept: application/json", "Content-Type: application/json")
 
     suspend fun  signup(signupRequest: SignupRequestDTO): Response<Void>{
         return endPoint.signup(signupRequest)
@@ -44,7 +42,6 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
         return endPoint.getReservationKey(fetchKeyRequest)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun GetInit (key: String): Response<GetInitResponse> {
         val requestBody = key.toRequestBody("application/json".toMediaTypeOrNull())
@@ -52,7 +49,6 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
     }
 
 
-    @Headers("Content-Type: application/json")
 
     suspend fun SearchList (key: String): Response<List<SearchListResponse>> {
         val requestBody = key.toRequestBody("application/json".toMediaTypeOrNull())
@@ -60,44 +56,37 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
     }
 
 
-    @Headers("Content-Type: application/json")
 
     suspend fun InitBooking (initBookingRequest: InitBookingRequestDTO): Response<List<InitBookingResponse>> {
     return endPoint.InitBooking(initBookingRequest)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun GetBooking (key: String): Response<List<GetBookingResponse>> {
             val requestBody = key.toRequestBody("application/json".toMediaTypeOrNull())
             return endPoint.GetBooking(requestBody)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun SaveBooking (saveBookingRequest: List<SaveBookingRequestDTO>): Response<List<SaveBookingResponse>> {
         return endPoint.SaveBooking(saveBookingRequest)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun Extras (extrasRequest: List<ExtrasRequestDTO>): Response<List<ExtrasResponse>> {
         return endPoint.Extras(extrasRequest)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun Payment (paymentRequest: PaymentRequestDTO): Response<PaymentResponse> {
         return endPoint.Payment(paymentRequest)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun GetPayment (getPaymentRequest: GetPaymentRequestDTO): Response<List<GetPaymentResponse>> {
         return endPoint.GetPayment(getPaymentRequest)
     }
 
-    @Headers("Content-Type: application/json")
 
     suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequestDTO): Response<ConfirmBookingResponse> {
         return endPoint.ConfirmBooking(confirmBookingRequest)

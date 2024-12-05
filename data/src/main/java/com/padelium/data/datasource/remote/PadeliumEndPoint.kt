@@ -65,7 +65,7 @@ interface PadeliumEndPoint {
     @POST("api/extras")
     suspend fun Extras(@Body extrasRequest: List<ExtrasRequestDTO>): Response<List<ExtrasResponse>>
 
-        @Headers("Content-Type: application/json")
+    @Headers("Accept: application/json", "Content-Type: application/json","Accept: XSRF-TOKEN")
     @POST("api/payment")
     suspend fun Payment(@Body paymentRequest: PaymentRequestDTO): Response<PaymentResponse>
 
@@ -77,4 +77,5 @@ interface PadeliumEndPoint {
     @POST("api/establishments/search/confirm/booking")
     suspend fun ConfirmBooking (@Body confirmBookingRequest: ConfirmBookingRequestDTO): Response<ConfirmBookingResponse>
 
-}
+} // git remote add gitlab https://gitlab.com/nevadev/padelium-marhaba-android-app.git
+//git push -u -f gitlab NewArchAuthentication
