@@ -76,6 +76,7 @@ dependencies {
     implementation(libs.mediation.test.suite)
     implementation(libs.androidx.material3.android)
     implementation(libs.identity.jvm)
+    implementation(libs.androidx.preference.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -139,6 +140,14 @@ dependencies {
 
     implementation ("androidx.hilt:hilt-navigation-compose:1.1.0-alpha01")
     kapt("com.google.dagger:hilt-compiler:2.47")
+    implementation ("androidx.compose.runtime:runtime-livedata:1.4.0")
+    implementation ("androidx.compose.foundation:foundation:1.4.3" )
+    implementation ("androidx.compose.ui:ui:1.4.3")
+    implementation ("androidx.compose.ui:ui:1.4.0")
+    implementation ("androidx.compose.foundation:foundation:1.4.0" )
+    implementation ("androidx.compose.material3:material3:1.0.0")
+    implementation ("com.google.code.gson:gson:2.10.1")
+    implementation ("com.google.accompanist:accompanist-pager:0.28.0")
 
 
 }

@@ -1,7 +1,6 @@
 package com.padelium.data.dto
 
 
-import androidx.compose.runtime.MutableState
 import org.threeten.bp.Instant
 import java.io.Serializable
 import java.math.BigDecimal
@@ -14,10 +13,10 @@ data class EstablishmentDTO(
     val description: String,
     val email: String,
     val adress: String,
-    val latitude: BigDecimal,
-    val longitude: BigDecimal,
-    val created: Instant,
-    val updated: Instant,
+    val latitude: Number,
+    val longitude: Number,
+    val created: java.time.Instant,
+    val updated: java.time.Instant,
     val createdBy: Long,
     val updatedBy: Long,
     val cityId: Long,
@@ -55,12 +54,12 @@ data class EstablishmentDTO(
     val activityIcon: String,
     val isClient: Boolean = true,
     val establishmentId: Long,
-    val createdDate: Instant,
+    val createdDate: java.time.Instant,
     val amount: Double,
     val currencySymbol: String,
-    val plannings: MutableState<List<PlanningDTO>>,
-    val HappyHours: List<HappyHours> = emptyList()
-
+    val plannings: List<PlanningDTO>,
+    val HappyHours: List<HappyHours> = emptyList(),
+    val EstablishmentPictureDTO: List<EstablishmentPictureDTO>
     ): Serializable
 
 data class EstablishmentPacksDTO(
@@ -136,8 +135,8 @@ data class HappyHours (
 data class PlanningDTO(
     val fromStr: String,
     val toStr: String,
-    val from: Instant = Instant.now(), // Default value
-    val to: Instant = Instant.now(), // Default value
+    val from: String, // Default value
+    val to: String, // Default value
     val available: Int = 0, // Default value
     val openTime: Instant = Instant.now(), // Default value
     val closeTime: Instant = Instant.now(), // Default value

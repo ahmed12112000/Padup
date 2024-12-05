@@ -21,17 +21,15 @@ import com.nevadev.padeliummarhaba.R
 fun SplashScreen() {
     var isLoading by remember { mutableStateOf(true) }
 
-    // Simulate loading (e.g., you can replace this with real data loading)
     LaunchedEffect(Unit) {
-        delay(3000) // Loading time delay (3 seconds)
+        delay(3000)
         isLoading = false
-        // Navigate to your next screen after loading is done
     }
 
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0054D8)), // Full blue background
+            .background(Color(0xFF0054D8)),
         contentAlignment = Alignment.Center
     ) {
         Column(
@@ -39,37 +37,36 @@ fun SplashScreen() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Title "PADELIUM MARHABA"
+
+
             Image(
-                painter = painterResource(id = R.drawable.logopadelium), // Replace with your actual image name
+                painter = painterResource(id = R.drawable.logopadelium),
                 contentDescription = "Padelium Marhaba Logo",
                 modifier = Modifier
-                    .size(310.dp) // Adjust the size as needed
-                    .offset(y = 180.dp) // Adjust vertical offset
+                    .size(410.dp)
+                    .offset(y = 180.dp)
                     .padding(bottom = 8.dp),
-                contentScale = ContentScale.Fit // Adjust scale as necessary (Fit, Crop, etc.)
+                contentScale = ContentScale.Fit
             )
 
-            // Subtitle "Your Ultimate Padel Destination"
             Text(
-                text = "Your Ultimate Padel Destination",
-                fontSize = 29.sp,
-                fontWeight = FontWeight.Bold, // Make the text bold
+                text = "Le Padel dans son excellence",
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Bold,
                 color = Color.White,
-                textAlign = TextAlign.Center, // Center the text horizontally
+                textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .fillMaxWidth() // Ensure the text takes up the full width of the screen
+                    .fillMaxWidth()
                     .padding(bottom = 48.dp)
-                    .offset(y = 190.dp) // Adjust the position of the text as needed
+                    .offset(y = 190.dp)
             )
 
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Loading Circle
             if (isLoading) {
                 CircularProgressIndicator(
-                    color = Color.Cyan, // Blue circle as in your image
+                    color = Color.Cyan,
                     strokeWidth = 4.dp,
                     modifier = Modifier
                         .size(40.dp)

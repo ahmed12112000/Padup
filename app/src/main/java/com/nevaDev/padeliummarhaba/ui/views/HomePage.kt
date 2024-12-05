@@ -501,7 +501,8 @@ fun HomePagePreview() {
                 fun DrawerItem(
                     icon: Int, // Resource ID of the icon
                     label: String,
-                    onClick: () -> Unit
+                    onClick: () -> Unit,
+                    labelColor: Color = Color.White
                 ) {
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -519,6 +520,7 @@ fun HomePagePreview() {
                         Spacer(modifier = Modifier.width(16.dp))
                         androidx.compose.material3.Text(
                             text = label,
+                            color = labelColor,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Medium,
                         )
@@ -550,7 +552,7 @@ fun CustomTopBar(onMenuClick: () -> Unit) {
                     .padding(8.dp)
             )
             Image(
-                painter = painterResource(id = R.drawable.logopadelium),
+                painter = painterResource(id = R.drawable.a91),
                 contentDescription = "Logo Icon",
                 modifier = Modifier.size(82.dp)
             )

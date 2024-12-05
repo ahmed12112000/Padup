@@ -63,6 +63,9 @@ data class EstablishmentDTO(
 
     ): Serializable
 
+
+
+
 data class EstablishmentPacksDTO(
     val name:String,
     val firstTitle:String,

@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -15,14 +16,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration.Companion.Underline
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
 import com.padelium.domain.dto.LoginRequest
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
 import com.nevadev.padeliummarhaba.R
@@ -31,7 +38,9 @@ import com.padelium.domain.dataresult.DataResult
 @Composable
 fun LoginScreen(
         onLoginSuccess: () -> Unit,
-        viewModel : UserViewModel = hiltViewModel()
+        viewModel : UserViewModel = hiltViewModel(),
+        navController: NavHostController
+
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -41,7 +50,6 @@ fun LoginScreen(
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    // Initialize RetrofitClient with context
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
@@ -69,75 +77,94 @@ fun LoginScreen(
             .padding(16.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo and Background Images (kept same as original)
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(250.dp)
         ) {
             Image(
-                painter = painterResource(id = R.drawable.a2),
-                contentDescription = "Overlay Image",
-                modifier = Modifier
-                    .size(2000.dp)
-                    .offset(x = 15.dp, y = 52.dp)
-                    .border(2.dp, Color.Unspecified)
-            )
-            Image(
-                painter = painterResource(id = R.drawable.padelium),
+                painter = painterResource(id = R.drawable.padeliuum),
                 contentDescription = "Base Image",
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(end = 20.dp),
                 contentScale = ContentScale.Fit
             )
+            Image(
+                painter = painterResource(id = R.drawable.a90),
+                contentDescription = "Overlay Image",
+                modifier = Modifier
+                    .size(1600.dp)
+                    .offset(x = 158.dp,y=60.dp)
+                    .border(2.dp, Color.Unspecified)
+            )
+
         }
 
-        Image(
-            painter = painterResource(id = R.drawable.a3),
-            contentDescription = "Logo",
-            modifier = Modifier
-                .fillMaxWidth()
-                .offset(x = -18.dp)
-                .height(60.dp)
-                .padding(end = 20.dp, top = 10.dp),
-            contentScale = ContentScale.Fit
-        )
 
-        Spacer(modifier = Modifier.height(16.dp))
 
-        // Username/Email Field
+        Spacer(modifier = Modifier.height(66.dp))
+
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
-            label = { Text(context.getString(R.string.login)) },
-            leadingIcon = { Icon(imageVector = Icons.Default.Email, contentDescription = "Email Icon") },
+            label = { Text("E-mail") },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.mail),
+                    contentDescription = "Custom Drawable Icon",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(24.dp)
+                )
+            },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Gray,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Black,
+        )
         )
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Password Field
         OutlinedTextField(
             value = password,
             onValueChange = { password = it },
-            label = { Text("Password") },
-            leadingIcon = { Icon(imageVector = Icons.Default.Lock, contentDescription = "Password Icon") },
+            label = { Text("Mot de Passe") },
+            leadingIcon = {
+                Icon(
+                    painter = painterResource(id = R.drawable.password),
+                    contentDescription = "Password Icon",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+
             trailingIcon = {
-                val image = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff
+                val iconRes = if (passwordVisible) R.drawable.showpassword else R.drawable.hidepassword
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(imageVector = image, contentDescription = "Toggle Password Visibility")
+                    Icon(
+                        painter = painterResource(id = iconRes),
+                        contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = TextFieldDefaults.outlinedTextFieldColors(
+                focusedBorderColor = Color.Black, // Border color when focused
+                unfocusedBorderColor = Color.Gray, // Border color when not focused
+                focusedLabelColor = Color.Black, // Label color when focused
+                unfocusedLabelColor = Color.Black, // Label color when not focused
+                )
         )
+
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Remember Me & Forgot Password Row (same as original)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -148,7 +175,7 @@ fun LoginScreen(
             Checkbox(
                 checked = checked,
                 onCheckedChange = { checked = it },
-                modifier = Modifier.size(24.dp),
+                modifier = Modifier.size(11.dp),
                 colors = CheckboxDefaults.colors(
                     checkedColor = MaterialTheme.colors.primary,
                     uncheckedColor = Color.Gray,
@@ -156,51 +183,83 @@ fun LoginScreen(
                 )
             )
             Text(
-                text = "Remember Me !",
+                text = "Rester-Connecté !",
                 color = Color.Gray,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                fontStyle = FontStyle.Normal,
                 modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
             )
             Text(
                 text = "Mot de passe oublié ?",
-                color = Color.Red,
-                modifier = Modifier.clickable { /* Handle forgot password click */ }
+                color = Color(0xFF0054D8),
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                modifier = Modifier.clickable {  }
             )
         }
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Login Button with Loading State
         Button(
             onClick = {
-
-                Log.e("TAG","onclick")
+                Log.e("TAG", "onclick")
                 isLoading = true
+
                 val loginRequest = LoginRequest(email, password)
+
                 viewModel.loginUser(loginRequest)
+
+                viewModel.dataResult.observe(lifecycleOwner) { result ->
+                    when (result) {
+                        is DataResult.Loading -> {
+                        }
+                        is DataResult.Success -> {
+                            isLoading = false
+                            navController.navigate("main_screen") {
+                                //popUpTo("login_screen") { inclusive = true }
+                            }
+                        }
+                        is DataResult.Failure -> {
+                            isLoading = false
+                            Toast.makeText(
+                                context,
+                                "Login failed: ${result.errorMessage}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
             },
-            modifier = Modifier.fillMaxWidth().height(48.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
             enabled = !isLoading,
-            colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue),
+            colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
             shape = RoundedCornerShape(24.dp)
         ) {
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
             } else {
-                Text(text = "Se connecter", color = Color.White, fontSize = 25.sp)
+                Text(
+                    text = "Se connecter",
+                    color = Color.White,
+                    fontSize = 25.sp,
+                    fontWeight = FontWeight.ExtraBold
+                )
             }
         }
 
-        // Show error message if login fails
+
         errorMessage?.let {
             Text(text = it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
         }
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // OR Divider
         Column(
-            modifier = Modifier.fillMaxWidth(), // Ensure the Column takes up the full width
-            horizontalAlignment = Alignment.CenterHorizontally // Center content horizontally
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -311,31 +370,24 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(60.dp))
 
-        // Sign Up Link
         Row {
             Text(text = "vous n'avez pas de compte ?", color = Color.Gray)
             Text(
                 text = "S'inscrire",
                 color = Color.Black,
-                modifier = Modifier.clickable { /* Handle sign up click */ },
+                modifier = Modifier.clickable {  },
                 textDecoration = Underline
             )
         }
 
     }
-    Box(
-        modifier = Modifier.fillMaxSize() // Ensure the Box takes up the full available space
-    ) {
-        Image(
-            painter = painterResource(id = R.drawable.bottom), // Replace with your drawable resource ID
-            contentDescription = "Bottom Icon",
-            contentScale = ContentScale.FillWidth, // Adjust content scale as needed
-            modifier = Modifier
-                .size(5000.dp) // Make the image as wide as the parent
-                .height(200.dp) // Set a fixed height (adjust as needed)
-                .padding(bottom = 36.dp) // Padding to push the image up from the bottom edge
-                .offset( y = 435 .dp) // Adjust the horizontal and vertical position as needed
-        )
-    }
-}
+
+}/*
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun LoginScreenPreview() {
+    LoginScreen(onLoginSuccess = {})
+} */
+
+
 

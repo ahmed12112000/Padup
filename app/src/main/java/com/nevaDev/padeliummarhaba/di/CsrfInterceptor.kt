@@ -3,46 +3,64 @@ package com.nevaDev.padeliummarhaba.di
 import android.content.SharedPreferences
 import okhttp3.Interceptor
 import okhttp3.Response
-class CsrfInterceptor(private val sharedPreferences: SharedPreferences) : Interceptor {
 
+class CsrfInterceptor(private val sharedPreferences: SharedPreferences) : Interceptor {
     override fun intercept(chain: Interceptor.Chain): Response {
-        // Proceed with the original request and capture the response
         val originalRequest = chain.request()
+        println("Original Request: ${originalRequest.url}")
+
         val originalResponse = chain.proceed(originalRequest)
 
         // Log Set-Cookie headers for debugging
         originalResponse.headers("Set-Cookie").forEach {
-            println("Set-Cookie Header: $it") // Log the Set-Cookie header received from the server
+            println("Set-Cookie Header: $it")
         }
 
-        // Check for the CSRF token in the Set-Cookie headers
         val xsrfTokenHeader = originalResponse.headers("Set-Cookie")
             .find { it.startsWith("XSRF-TOKEN=") }
 
-        // Extract and save the CSRF token if found
         xsrfTokenHeader?.let { header ->
-            val csrfToken = header.substringAfter("XSRF-TOKEN=").substringBefore(";") // Extract CSRF token
+            val csrfToken = header.substringAfter("XSRF-TOKEN=").substringBefore(";")
             println("Extracted CSRF Token: $csrfToken")
-
-            // Save the CSRF token in SharedPreferences for later use
             sharedPreferences.edit().putString("XSRF-TOKEN", csrfToken).apply()
         } ?: println("CSRF Token not found in Set-Cookie header.")
 
-        // Retrieve the CSRF token from SharedPreferences for the new request
         val savedCsrfToken = sharedPreferences.getString("XSRF-TOKEN", null)
-
-        // Create a new request with the X-XSRF-TOKEN if available
         val newRequest = originalRequest.newBuilder().apply {
-            savedCsrfToken?.let { token ->
-                addHeader("X-XSRF-TOKEN", token) // Add the X-XSRF-TOKEN header for the next request
-            }
+            savedCsrfToken?.let { token -> addHeader("X-XSRF-TOKEN", token) }
         }.build()
 
-        // Close the original response to avoid resource leaks
         originalResponse.close()
-
-        // Proceed with the new request containing the X-XSRF-TOKEN header
         return chain.proceed(newRequest)
     }
 }
+class AuthInterceptor(private val sharedPreferences: SharedPreferences) : Interceptor {
+    override fun intercept(chain: Interceptor.Chain): Response {
+        val originalRequest = chain.request()
+
+        // Retrieve the authentication token from SharedPreferences
+        val authToken = sharedPreferences.getString("AUTH_TOKEN", null)
+        println("Authorization Token: $authToken") // Log token retrieval
+
+        val newRequestBuilder = originalRequest.newBuilder()
+
+        // Add the Authorization header if token exists
+        authToken?.let { token ->
+            newRequestBuilder.addHeader("Authorization", "Bearer $token")
+            println("Authorization Token Added: $token") // Log when header is added
+        } ?: println("No Authorization Token found.")
+
+        // Log the request headers to check if Authorization header is added
+        val finalRequest = newRequestBuilder.build()
+        println("Request Headers: ${finalRequest.headers}") // Log all headers
+        sharedPreferences.edit().putString("AUTH_TOKEN", authToken).apply()
+
+        // Proceed with the request
+        return chain.proceed(finalRequest)
+    }
+}
+
+
+
+
 

@@ -98,82 +98,63 @@ fun SignUpScreen(navController: NavController,
 
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Logo
         Box(
             modifier = Modifier
-                .fillMaxWidth() // Ensure Box takes up the full width
-                .height(250.dp) // Set a specific height for the Box
+                .fillMaxWidth()
+                .height(250.dp)
         ) {
             // Overlay Image
             Image(
-                painter = painterResource(id = R.drawable.a90), // Replace with your overlay image resource
+                painter = painterResource(id = R.drawable.a90),
                 contentDescription = "Overlay Image",
                 modifier = Modifier
-                    .size(2000.dp) // Adjust the size of the overlay image
+                    .size(2000.dp)
                     .offset(
-                        x = 128.dp,
+                        x = 158.dp,
                         y = 40.dp
-                    ) // Adjust the position of the overlay image as needed
-                    .border(2.dp, Color.Unspecified) // Optional: Add a border to the overlay image
+                    )
+                    .border(2.dp, Color.Unspecified)
             )
-            // Base Image
             Image(
-                painter = painterResource(id = R.drawable.padelium),
+                painter = painterResource(id = R.drawable.padeliuum),
                 contentDescription = "Base Image",
                 modifier = Modifier
-                    .fillMaxSize() // Fill the Box size
-                    .offset( y = -90.dp)
-                    .padding(end = 20.dp), // Right margin
-                contentScale = ContentScale.Fit // Maintain aspect ratio of the image
+                    .fillMaxSize()
+                    .offset( y = -50.dp)
+                    .padding(end = 20.dp),
+                contentScale = ContentScale.Fit
             )
         }
 
-
-        Text(
-            text = buildAnnotatedString {
-                withStyle(style = SpanStyle(color = Color(android.graphics.Color.parseColor("#0f0f0f")), fontWeight = FontWeight.Bold)) {
-                    append("Bienvenue ")
-                }
-                withStyle(style = SpanStyle(color = Color(android.graphics.Color.parseColor("#0054d8")), fontWeight = FontWeight.Bold)) {
-                    append("PADELIUM")
-                }
-            },
-            fontSize = 17.sp,
-            modifier = Modifier
-                .padding(horizontal = 8.dp)
-                .offset(x = -72.dp, y = -105.dp) // Adjust the position as needed
-        )
-
         Spacer(modifier = Modifier.height(1.dp))
-        // Username/Email Field
-      //  var firstName by remember { mutableStateOf("") }
-        //var lastName by remember { mutableStateOf("") }
 
         Row(
             modifier = Modifier
-                .fillMaxWidth() // Ensure the Row takes up the full width
-                .offset(y = -95.dp, x = 10.dp) // Adjust the vertical position as needed
+                .fillMaxWidth()
+                .offset(y = -65.dp, x = 10.dp)
         ) {
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { firstName = it },
                 label = { Text("Nom") },
                 leadingIcon = {
-                    // You can add an icon here if needed
                 },
                 modifier = Modifier
                     .weight(1f)
-                    // Split the space equally between the two TextFields
-                    .padding(end = 8.dp, top = 8.dp) // Add spacing between the two TextFields
+                    .padding(end = 8.dp, top = 8.dp)
                     .offset(x = -22.dp, y = -8.dp)
-                    .shadow(8.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray) // Add gray shadow
+                    .shadow(8.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray)
                 ,                keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
                 ),
                 shape = RoundedCornerShape(15.dp),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    backgroundColor = Color.White // Set the background color to white
+                    backgroundColor = Color.White,
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black,
                 )
             )
 
@@ -182,44 +163,43 @@ fun SignUpScreen(navController: NavController,
                 onValueChange = { lastName = it },
                 label = { Text("Prénom") },
                 leadingIcon = {
-                    // You can add an icon here if needed
                 },
                 modifier = Modifier
                     .weight(1f)
-                    // Split the space equally between the two TextFields
                     .padding(start = 8.dp)
-                    // Add spacing between the two TextFields
                     .offset(x = -20.dp)
-                    .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray) // Add gray shadow
-                , // Ensure the background color is white, // Adjust horizontal position as needed
+                    .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray)
+                ,
                 keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
                 ),
                 shape = RoundedCornerShape(15.dp),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
-                    backgroundColor = Color.White // Set the background color to white
+                    backgroundColor = Color.White,
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Gray,
+                    focusedLabelColor = Color.Black,
+                    unfocusedLabelColor = Color.Black,
                 )
             )
 
         }
         Spacer(modifier = Modifier.height(10.dp))
-        // Username/Email Field
 
-        //var email by remember { mutableStateOf("") }
         OutlinedTextField(
             value = email,
             onValueChange = { email = it },
             label = { Text("E-mail") },
             leadingIcon = {
                 Icon(
-                    painter = painterResource(id = R.drawable.email), // Replace 'your_icon' with the actual drawable resource name
+                    painter = painterResource(id = R.drawable.email),
                     contentDescription = "Email Icon",
-                    modifier = Modifier.size(24.dp) // Adjust the size as needed
+                    modifier = Modifier.size(24.dp)
                 )
             },
-            modifier = Modifier.fillMaxWidth().offset(y = -100.dp, x = -10.dp)
-                .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray) // Add gray shadow
+            modifier = Modifier.fillMaxWidth().offset(y = -75.dp, x = -10.dp)
+                .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray)
             ,
             keyboardOptions = KeyboardOptions.Default.copy(
                 keyboardType = KeyboardType.Email,
@@ -227,7 +207,11 @@ fun SignUpScreen(navController: NavController,
             ),
             shape = RoundedCornerShape(15.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                backgroundColor = Color.White // Set the background color to white
+                backgroundColor = Color.White,
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Gray,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Black,
             )
 
         )
@@ -299,37 +283,37 @@ fun SignUpScreen(navController: NavController,
     }*/
 
 
-    Spacer(modifier = Modifier.height(10.dp))
+    Spacer(modifier = Modifier.height(8.dp))
 
-    // Password Field
     var passwordVisible by remember { mutableStateOf(false) }
 
     OutlinedTextField(
         value = password,
         onValueChange = { password = it },
-        label = { Text("Password") },
+        label = { Text("Mot de Passe") },
         leadingIcon = {
             Icon(
-                painter = painterResource(id = R.drawable.password1), // Replace 'your_icon' with the actual drawable resource name
+                painter = painterResource(id = R.drawable.password1),
                 contentDescription = "Password Icon",
-                modifier = Modifier.size(24.dp) // Adjust the size as needed
+                modifier = Modifier.size(24.dp)
             )
         },
         trailingIcon = {
-            val image = if (passwordVisible)
-                Icons.Filled.Visibility
-            else Icons.Filled.VisibilityOff
-
+            val iconRes = if (passwordVisible) R.drawable.showpassword else R.drawable.hidepassword
             IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                Icon(imageVector = image, contentDescription = "Toggle Password Visibility")
+                Icon(
+                    painter = painterResource(id = iconRes),
+                    contentDescription = if (passwordVisible) "Hide Password" else "Show Password",
+                    modifier = Modifier.size(24.dp)
+                )
             }
         },
         visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
         modifier = Modifier
             .fillMaxWidth()
             .padding(start = 1.dp, end = 24.dp)
-            .offset(x = 5.dp, y = 350.dp)
-            .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray), // Gray shadow
+            .offset(x = 5.dp, y = 355.dp)
+            .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray),
 
         keyboardOptions = KeyboardOptions.Default.copy(
             keyboardType = KeyboardType.Password,
@@ -337,7 +321,11 @@ fun SignUpScreen(navController: NavController,
         ),
         shape = RoundedCornerShape(15.dp),
         colors = TextFieldDefaults.outlinedTextFieldColors(
-            backgroundColor = Color.White // Set the background color to white
+            backgroundColor = Color.White,
+            focusedBorderColor = Color.Black,
+            unfocusedBorderColor = Color.Gray,
+            focusedLabelColor = Color.Black,
+            unfocusedLabelColor = Color.Black,
         )
 
     )
@@ -390,23 +378,23 @@ fun SignUpScreen(navController: NavController,
     Row(
         modifier = Modifier
             .padding(start = 1.dp, end = 24.dp)
-            .offset(x = 22.dp, y = 450.dp) // Adjust the position as needed
+            .offset(x = 22.dp, y = 450.dp)
     ) {
         Checkbox(
             checked = checked,
             onCheckedChange = { checked = it },
             colors = CheckboxDefaults.colors(
-                checkedColor = MaterialTheme.colors.primary, // Customize this if you want a specific color
-                uncheckedColor = Color.Gray, // Color of the border when unchecked
-                checkmarkColor = Color.White // Color of the checkmark when checked
+                checkedColor = MaterialTheme.colors.primary,
+                uncheckedColor = Color.Gray,
+                checkmarkColor = Color.White
             ),
             modifier = Modifier
-                .size(24.dp) // Customize the size
-                .clip(RoundedCornerShape(35.dp)) // Make the checkbox icon rounded
-                .shadow(50.dp, RoundedCornerShape(35.dp)) // Add shadow with the same shape as the clip
+                .size(24.dp)
+                .clip(RoundedCornerShape(35.dp))
+                .shadow(50.dp, RoundedCornerShape(35.dp))
         )
 
-        Spacer(modifier = Modifier.width(1.dp)) // Add some space between the checkbox and the text
+        Spacer(modifier = Modifier.width(1.dp))
 
         Text(
             text = buildAnnotatedString {
@@ -437,7 +425,7 @@ fun SignUpScreen(navController: NavController,
                 }
                 append(".")
             },
-            color = Color.Black, // Set the default text color to black
+            color = Color.Black,
             modifier = Modifier
                 .weight(1f)
                 .padding(horizontal = 8.dp, vertical = 2.dp)
@@ -446,10 +434,8 @@ fun SignUpScreen(navController: NavController,
 
     }
 
-    // Sign Up Button
     Button(
         onClick = {
-            // Call the signup method
 
             Log.e("TAG","onclick")
             isLoading = true
@@ -459,7 +445,7 @@ fun SignUpScreen(navController: NavController,
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
-            .offset(x = 10.dp, y = 520.dp) // Adjust the position as needed
+            .offset(x = 10.dp, y = 520.dp)
             .padding(start = 27.dp, end = 60.dp),
         colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue),
         shape = RoundedCornerShape(24.dp)
@@ -467,7 +453,6 @@ fun SignUpScreen(navController: NavController,
         Text(text = "S'inscrire", color = Color.White, fontSize = 25.sp)
     }
 
-    // Display message
     if (message.isNotEmpty()) {
         Text(text = message, color = if (isSuccess) Color.Green else Color.Red)
     }
@@ -597,7 +582,6 @@ fun SignUpScreen(navController: NavController,
     }
 */
     Spacer(modifier = Modifier.height(60.dp))
-    // Sign Up Link
     Row (modifier = Modifier.fillMaxSize()
         .offset(x = 120.dp, y = 600.dp))
     {
@@ -612,17 +596,17 @@ fun SignUpScreen(navController: NavController,
     }
 
     Box(
-        modifier = Modifier.fillMaxSize() // Ensure the Box takes up the full available space
+        modifier = Modifier.fillMaxSize()
     ) {
         Image(
-            painter = painterResource(id = R.drawable.bottompadelium), // Replace with your drawable resource ID
+            painter = painterResource(id = R.drawable.bottompadelium),
             contentDescription = "Bottom Icon",
-            contentScale = ContentScale.FillWidth, // Adjust content scale as needed
+            contentScale = ContentScale.FillWidth,
             modifier = Modifier
-                .size(110.dp) // Make the image as wide as the parent
-                .height(200.dp) // Set a fixed height (adjust as needed)
-                .padding(bottom = 36.dp) // Padding to push the image up from the bottom edge
-                .offset( y = 625 .dp) // Adjust the horizontal and vertical position as needed
+                .size(110.dp)
+                .height(200.dp)
+                .padding(bottom = 36.dp)
+                .offset( y = 625 .dp)
         )
     }
 }

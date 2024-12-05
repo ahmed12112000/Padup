@@ -5,23 +5,22 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.Orientation
-import androidx.compose.foundation.gestures.scrollable
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -31,18 +30,40 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import com.nevaDev.padeliummarhaba.viewmodels.ReservationViewModel
-
-import com.nevaDev.padeliummarhaba.models.EstablishmentDTO
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import kotlinx.coroutines.launch
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
+import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.FetchKeyRequest
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.nevadev.padeliummarhaba.R
+import java.util.Locale
+import androidx.compose.ui.text.style.TextOverflow
+import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
+import com.padelium.data.dto.GetBookingResponseDTO
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.EstablishmentDTO
+import com.padelium.domain.dto.ExtrasRequest
+import java.math.BigDecimal
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -51,243 +72,133 @@ fun ReservationScreen(
     isUserLoggedIn: Boolean,
     context: Context,
     sharedPreferences: SharedPreferences,
-    reservationViewModel: ReservationViewModel = viewModel()
+    onFetchSuccess: () -> Unit,
+    viewModel: KeyViewModel = hiltViewModel(),
+    getBookingViewModel: GetBookingViewModel = hiltViewModel(),
 ) {
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
     var showLoginPopup by remember { mutableStateOf(false) }
     val selectedReservation = remember { mutableStateOf<ReservationOption?>(null) }
     val selectedDate = remember { mutableStateOf(LocalDate.now()) }
-    val coroutineScope = rememberCoroutineScope()
-    val establishments = remember { mutableStateOf<List<EstablishmentDTO>>(emptyList()) }
-    val combinedEstablishments = mutableListOf<Pair<String, Any>>()
-    val errorMessage1 by reservationViewModel.errorMessage1.collectAsState()
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
 
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    val filteredTimeSlots by getBookingViewModel.filteredTimeSlots.observeAsState(emptyList())
 
+    LaunchedEffect(filteredTimeSlots) {
+        if (filteredTimeSlots.isNotEmpty() && selectedTimeSlot.value == null) {
+            selectedTimeSlot.value = " ${filteredTimeSlots.first().time}"
+        }
+    }
 
+    viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
+        when (result) {
+            is DataResultBooking.Loading -> isLoading = true
+            is DataResultBooking.Success -> {
+                reservationKey.value = result.data.key
+                isLoading = false
+                onFetchSuccess()
+            }
+            is DataResultBooking.Failure -> {
+                isLoading = false
+                errorMessage = result.errorMessage ?: "Unknown error occurred"
+            }
+        }
+    }
 
-
-
-
-    // Mutable state for available time slots
-    val availableTimeSlots = remember { mutableStateOf(listOf<String>()) }
-    var selectedTimeSlot by remember { mutableStateOf("") }
-
-    // Fetch reservation key and establishments on date change
     LaunchedEffect(selectedDate.value) {
-        // Fetch the reservation key based on the selected date
-        reservationViewModel.fetchReservationKeyAndFollowUp(selectedDate.value)
-
-        // Call fetchGetBookingList to fetch available time slots
-        val key = reservationViewModel.reservationKey.value
-        if (!key.isNullOrEmpty()) {
-            coroutineScope.launch {
-                reservationViewModel.fetchGetBookingList(key) { bookings, error ->
-                    if (error != null) {
-                        reservationViewModel.errorMessage.value = error // Update error message
-                    } else {
-                        bookings?.let {
-                            availableTimeSlots.value = it.map { planning -> planning.fromStr }
-                        }
-                    }
-                }
-            }
-        }
+        val fetchKeyRequest = FetchKeyRequest(dateTime = selectedDate.value.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00")
+        viewModel.getReservationKey(fetchKeyRequest)
     }
 
-//Error:java.lang.illegalStateExeption:Expected Begin_ARRAY but wan BEGIN_OBJECT at line 1 column 23 $[0].establishmentDTO
+    Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TabItem(
+                isSelected = !showPaymentSection,
+                title = "CHOISIR UN CRÉNEAU",
+                icon = painterResource(id = R.drawable.calendre),  // Load drawable icon
+                onClick = { showPaymentSection = false },
+                onBackClick = {
 
-    // Listen for changes in the view model's available time slots
-    LaunchedEffect(reservationViewModel.availableTimeSlots) {
-        availableTimeSlots.value = reservationViewModel.availableTimeSlots.value // Update the state
-    }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .scrollable(rememberScrollState(), Orientation.Vertical)
-    ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            //.verticalScroll(rememberScrollState())
-            .padding(16.dp)
-    ) {
-        if (reservationViewModel.isLoading.value) {
-            CircularProgressIndicator()
-        } else {
-            errorMessage1.takeIf { it.isNotEmpty() }?.let { error ->
-                Text(text = error, color = Color.Red, textAlign = TextAlign.Center)
-            }
-
-
-
-
-            Button(onClick = {
-                coroutineScope.launch {
-                    reservationViewModel.fetchReservationKeyAndFollowUp(selectedDate.value)
                 }
-            }) {
-                Text(text = "CHOISIR UN CRÉNEAU")
-            }
+            )
+
+
+
 
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        // Date selector
-        if (!showPaymentSection) {
-            DaySelectorWithArrows(selectedDate.value) { newDate ->
+        DaySelectorWithArrows(
+            selectedDate = selectedDate.value,
+            onDateSelected = { newDate ->
                 selectedDate.value = newDate
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Time Slot Selector
-            TimeSlotSelector(
-                timeSlots = availableTimeSlots.value, // Pass the dynamically fetched time slots
-                onTimeSlotSelected = { selectedSlot ->
-                    selectedTimeSlot = selectedSlot // Store the selected slot in a local variable
-                }
-            )
-        }
+                getBookingViewModel.filterSlotsByDate(newDate)
+            },
+          //  viewModel = getBookingViewModel
+        )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-
-
-
-
-/*
-// Add establishments
-        reservationViewModel.establishments.value.forEach { establishment ->
-            combinedEstablishments.add(
-                Pair(establishment.name, establishment)
-            )
-        }
-
-// Add planning
-        reservationViewModel.establishments1.value.forEach { planning ->
-            combinedEstablishments.add(
-                Pair("Planning Item", planning) // Title for planning items
-            )
-        }
-
-        LazyColumn {
-            items(combinedEstablishments) { (title, item) ->
-                when (item) {
-                    is EstablishmentDTO -> {
-                        // Display EstablishmentDTO details
-                        Text(text = title, fontWeight = FontWeight.Bold)
-                        Text(text = "${item.amount} ${item.currencySymbol}", color = Color.Gray)
-
-                    }
-                    is PlanningDTO -> {
-                        // Display PlanningDTO details
-                        Text(text = title, fontWeight = FontWeight.Bold) // Title for planning item
-                        Text(
-                            text = "${item.fromStr} - ${item.toStr}",
-                            color = Color.Gray
-                        )
-                    }
-                }
-            }
-        }
-// select time slots....time inclue in plannings......build function...map in planninds object booking each one...
-*/
-/*
-        val establishments3 by reservationViewModel.establishments3.collectAsState()  // Collect the state from ViewModel
-
-        if (establishments3.isNotEmpty()) {
-            LazyColumn {
-                items(establishments3) { booking: PlanningDTO ->  // Explicitly specify the type of items
-                    // Display booking information
-                    Text(
-                        text = "${booking.fromStr} - ${booking.toStr} | Price: ${booking.price} ${booking.currencySymbol}",
-                        color = Color.Gray
-                    )
-                }
-            }
+        if (isLoading) {
+            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         } else {
-            // Optionally handle the case when there are no bookings
-            Text(text = "No bookings available", color = Color.Gray)
-        }
-
-        val establishmentsList by reservationViewModel.establishments.collectAsState()
-        if (establishmentsList.isNotEmpty()) {
-            LazyColumn {
-                items(establishmentsList) { establishment: EstablishmentDTO ->  // Specify the type explicitly
-                    Text(text = establishment.name, fontWeight = FontWeight.Bold)
-                    Text(text = "${establishment.amount} ${establishment.currencySymbol}", color = Color.Gray)
-                }
+            errorMessage?.let {
+                Text(text = it, color = Color.Red, textAlign = TextAlign.Center)
             }
-
         }
-*/
-        /*
-                reservationViewModel.establishments1.value.takeIf { it.isNotEmpty() }?.let { establishments ->
-                    LazyColumn {
-                        items(establishments) { establishment ->
-                            // Loop through each Establishment and display its name with related planning details
-                            establishment.Establishment.forEach { est ->
-                                Text(text = est.name, fontWeight = FontWeight.Bold)
 
-                                // Display each planning time range specific to this Establishment name
-                               establishment.plannings.forEach { planning ->
-                                    Text(
-                                        text = "Planning for ${est.name}: ${planning.fromStr} - ${planning.toStr}",
-                                        color = Color.Gray
-                                    )
-                                }
-                            }
-
-                            // Display other establishment details
-                            Text(text = "${establishment.amount} ${establishment.currencySymbol}", color = Color.Gray)
-                            Text(text = establishment.description, color = Color.Gray)
-
-
-                        }
-                    }
-                }*/
-
-
-
-
-
-
-        if (!showPaymentSection) {
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Reservation Options
-            ReservationOptions(
-                onReservationSelected = { reservation ->
-                    selectedReservation.value = reservation
-                    if (!isUserLoggedIn) {
-                        showLoginPopup = true
-                    } else {
-                        showPaymentSection = true
-                    }
-                },
-                isUserLoggedIn = isUserLoggedIn,
-                key = reservationKey.value // Pass the key here if `reservationKey` holds it
-            )
-
-
-            selectedReservation.value?.let { reservation ->
-                ReservationSummary(
-                    selectedDate = selectedDate.value,
-                    selectedTimeSlot = selectedTimeSlot, // Use the selected time slot
-                    selectedReservation = reservation,
-                    extrasCost = 0,
-                    selectedRaquette = "1",
-                    includeBalls = false,
-                    onTotalAmountCalculated = { totalAmount ->
-                        Log.d("TotalAmount", "Calculated Total Amount: $totalAmount")
-                    }
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4),
+            contentPadding = PaddingValues(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(filteredTimeSlots) { timeSlot ->
+                TimeSlotButton(
+                    slot = " ${timeSlot.time}",
+                    isSelected = selectedTimeSlot.value == " ${timeSlot.time}",
+                    onClick = { selectedTimeSlot.value = " ${timeSlot.time}" }
                 )
             }
         }
 
-        if (showLoginPopup) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (!showPaymentSection) {
+            ReservationOptions(
+                onReservationSelected = { selectedReservation.value = it },
+                isUserLoggedIn = isUserLoggedIn,
+                key = reservationKey.value,
+                viewModel = getBookingViewModel,
+                navController = navController,
+                selectedDate = selectedDate.value ,
+                selectedTimeSlot = selectedTimeSlot.value
+
+            )
+        }
+/*
+        if (selectedReservation.value != null && selectedTimeSlot.value != null) {
+            ReservationSummary(
+                selectedDate = selectedDate.value,
+                selectedReservation = selectedReservation.value!!,
+                selectedTimeSlot = selectedTimeSlot.value!!,
+                extrasCost = 0,
+                selectedRaquette = "1",
+                includeBalls = false,
+                onTotalAmountCalculated = { totalAmount ->
+                    Log.d("TotalAmount", "Calculated Total Amount: $totalAmount")
+                }
+            )
+        } else if (showLoginPopup) {
             PopLoginDialog(
                 onDismiss = { showLoginPopup = false },
                 onLoginSuccess = {
@@ -295,133 +206,306 @@ fun ReservationScreen(
                     showPaymentSection = true
                 }
             )
-        }
+        }*/
     }
-}}
+}
 
+@Composable
+fun TimeSlotButton(slot: String, isSelected: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (isSelected) Color(0xFF0054D8) else Color.White,
+            contentColor = if (isSelected) Color.White else Color(0xFF0054D8)
+        ),
+        border = BorderStroke(1.dp, Color(0xFF0054D8)),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.padding(2.dp)
+    ) {
+        Text(text = slot, fontWeight = FontWeight.Bold)
+    }
+}
 
 
 @Composable
-fun TimeSlotSelector(
-    timeSlots: List<String>, // Pass the fetched time slots here
-    onTimeSlotSelected: (String) -> Unit
+fun TabItem(
+    isSelected: Boolean,
+    title: String,
+    icon: Painter,  // Change from ImageVector to Painter
+    onClick: () -> Unit,
+    onBackClick: () -> Unit // Function to handle back navigation
 ) {
-    var selectedTime by remember { mutableStateOf("") }
-
-    Column {
-        Text(
-            text = "Select a Time Slot",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Medium
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Row(modifier = Modifier.horizontalScroll(rememberScrollState())) {
-            timeSlots.forEach { time ->
-                Box(
-                    modifier = Modifier
-                        .padding(4.dp)
-                        .clickable {
-                            selectedTime = time
-                            onTimeSlotSelected(time) // Notify selected time
-                        }
-                        .background(
-                            color = if (time == selectedTime) Color.Blue else Color.LightGray,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = time,
-                        color = if (time == selectedTime) Color.White else Color.Black
-                    )
-                }
+    Column(
+        horizontalAlignment = Alignment.Start,  // Align content to the left
+        modifier = Modifier
+            .clickable { onClick() }
+            .background(
+                if (isSelected) Color.White else Color.Transparent,
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        // Row for back arrow, icon, and text
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth() // Ensure the row takes full width
+        ) {
+            // Back arrow icon (clickable)
+            IconButton(onClick = { onBackClick() }) {
+                Icon(
+                    imageVector = Icons.Default.ArrowBack,  // Back arrow icon
+                    contentDescription = "Back",
+                    tint = Color.Gray,
+                    modifier = Modifier.size(24.dp)
+                )
             }
+
+            // Icon
+            Icon(
+                painter = icon,  // Use painter resource
+                contentDescription = null,
+                tint = if (isSelected) Color.Black else Color.Gray,
+                modifier = Modifier.size(20.dp)
+            )
+
+            Spacer(modifier = Modifier.width(8.dp))
+
+            // Text
+            Text(
+                text = title,
+                fontWeight = FontWeight.Bold,
+                color = if (isSelected) Color.Black else Color.Gray,
+                textAlign = TextAlign.Start // Align text to the left
+            )
+        }
+
+        // Blue underline for selected tab (Divider below the text and icon)
+        if (isSelected) {
+            Divider(
+                color = Color(0xFF0054D8),
+                thickness = 2.dp,
+                modifier = Modifier.fillMaxWidth().padding(top = 4.dp) // Ensure space between text and divider
+            )
         }
     }
 }
+
+
 
 @Composable
 fun ReservationOptions(
     onReservationSelected: (ReservationOption) -> Unit,
     isUserLoggedIn: Boolean,
     key: String?,
-    viewModel: ReservationViewModel = viewModel()
+    navController: NavController,
+    viewModel: GetBookingViewModel = hiltViewModel(),
+    viewModel1: ExtrasViewModel = hiltViewModel(),
+    selectedDate: LocalDate,
+    selectedTimeSlot: String? // Rename this as `currentSelectedTimeSlot` for clarity
 ) {
-    // Collect the establishments list from the ViewModel
-    val establishmentsList by viewModel.establishments.collectAsState()
+    var amountSelected by remember { mutableStateOf<Double?>(null) }
+    var currentSelectedTimeSlot by remember { mutableStateOf<String?>(null) }
+
+    val dayFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
+    val dataResultBooking by viewModel.dataResultBooking.observeAsState(initial = DataResultBooking.Loading)
+    val filteredTimeSlots by viewModel.filteredTimeSlots.observeAsState(emptyList())
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showLoginPopup by remember { mutableStateOf(false) }
     var selectedReservation by remember { mutableStateOf<ReservationOption?>(null) }
 
-    // Fetch establishments and bookings on initial composition or when the key changes
+    var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
+    var selectedFromStr by remember { mutableStateOf<String?>(null) }
+    var isLoading by remember { mutableStateOf(false) }
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+
     LaunchedEffect(key) {
-        viewModel.fetchAvailableEstablishments(key)
-        viewModel.loadBookings(key)
+        key?.let { viewModel.getBooking(it) }
     }
 
-    Column  {
-        // Display error message if present
-        if (errorMessage != null) {
-            Text(text = errorMessage!!, color = Color.Red)
-        } else {
-            // Display establishments if they are not empty
+    viewModel1.dataResult.observe(lifecycleOwner) { result ->
+        isLoading = false
+
+        when (result) {
+            is DataResult.Loading -> {
+                Log.e("TAG", "Loading")
+            }
+            is DataResult.Success -> {
+                Log.e("TAG", "Success")
+            }
+            is DataResult.Failure -> {
+                isLoading = false
+                Log.e("TAG", "Failure - Error Code: ${result.exception},${result.errorCode}, Message: ${result.errorMessage}")
+            }
+        }
+    }
+    when (val result = dataResultBooking) {
+        is DataResultBooking.Loading -> {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+        }
+        is DataResultBooking.Success -> {
+            val establishmentsList = result.data
+
             if (establishmentsList.isNotEmpty()) {
                 LazyColumn {
-                    items(establishmentsList) { establishment: EstablishmentDTO -> // Specify the type explicitly
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(8.dp)
-                                .clickable {
-                                    selectedReservation = ReservationOption(
-                                        name = establishment.name,
-                                        time = "12:30H - 14:00H", // Example data
-                                        price = "${establishment.amount} ${establishment.currencySymbol}", // Updated to use the establishment's data
-                                        duration = "90 min" // Example data
-                                    )
-                                    if (!isUserLoggedIn) {
-                                        showLoginPopup = true
-                                    } else {
-                                        selectedReservation?.let { onReservationSelected(it) }
-                                    }
-                                },
-                            shape = RoundedCornerShape(8.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(16.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column {
-                                    Text(text = establishment.name, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                                    Text(text = "12:30H - 14:00H", fontSize = 14.sp) // Example data
-                                    Text(text = "90 min", fontSize = 12.sp) // Example data
-                                }
-                                Column(horizontalAlignment = Alignment.End) {
-                                    Text(text = "${establishment.amount} ${establishment.currencySymbol}", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = Color.Blue)
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Button(
-                                        onClick = {
+                    items(establishmentsList) { getBookingResponseDTO ->
+
+                        val establishmentDTOList = getBookingResponseDTO.EstablishmentDTO
+                        val establishmentName = establishmentDTOList.firstOrNull()?.name ?: "Mercedes"
+
+                        // Filter the available plannings based on the selected time slots
+                        val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
+                            filteredTimeSlots.any { slot -> slot.time == planning.fromStr }
+                        }
+
+                        // White background card with rounded corners
+                        availablePlannings.forEach { planning ->
+                            // Only proceed if the selected time slot matches
+                            if (selectedFromStr == null || selectedFromStr == planning.fromStr) {
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(6.dp)
+                                        .clickable {
+                                            Log.d("Debugging", "Selected Planning: $planning")
+                                            Log.d("Debugging", "Establishment Name: $establishmentName")
+
+                                            currentSelectedTimeSlot = "${planning.fromStr} - ${planning.toStr}"
+                                            amountSelected = getBookingResponseDTO.amount
+
                                             selectedReservation = ReservationOption(
-                                                name = establishment.name,
-                                                time = "12:30H - 14:00H",
-                                                price = "${establishment.amount} ${establishment.currencySymbol}",
+                                                name = establishmentName,
+                                                time = "${planning.fromStr} ${planning.toStr}",
+                                                price = "${getBookingResponseDTO.amount} ${getBookingResponseDTO.currencySymbol}",
                                                 duration = "90 min"
                                             )
+                                            selectedTimeSlot = "${planning.fromStr} ${planning.toStr}"
+                                            amountSelected = getBookingResponseDTO.amount
+
                                             if (!isUserLoggedIn) {
                                                 showLoginPopup = true
                                             } else {
-                                                selectedReservation?.let { onReservationSelected(it) }
+                                                selectedReservation?.let {
+                                                    onReservationSelected(it)
+                                                }
+                                                val totalAmount = getBookingResponseDTO.amount
+                                                navController.navigate("PaymentSection1/${totalAmount}")
                                             }
                                         },
-                                        colors = ButtonDefaults.buttonColors(containerColor = Color.DarkGray),
-                                        modifier = Modifier.size(width = 80.dp, height = 30.dp)
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(1.dp, Color.Gray) // Add grey border here
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .background(Color.White) // White background for the card
+                                            .padding(16.dp)
                                     ) {
-                                        Text(text = "Réserver", fontSize = 12.sp)
+                                        // Content on top of the white background
+                                        Column {
+                                            // Establishment name and time range
+                                            Row(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(bottom = 8.dp),
+                                                horizontalArrangement = Arrangement.Start, // Align items to the start
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Icon(
+                                                    painter = painterResource(id = R.drawable.logopadelium),
+                                                    contentDescription = "Establishment Icon",
+                                                    modifier = Modifier
+                                                        .size(60.dp)
+                                                        .background(Color(0xFF0054D8), shape = CircleShape)
+                                                        .padding(8.dp),
+                                                    tint = Color.Unspecified
+                                                )
+                                                Column(
+                                                    modifier = Modifier
+                                                        .padding(start = 10.dp)
+                                                ) {
+                                                    Text(
+                                                        text = establishmentName,
+                                                        fontWeight = FontWeight.Bold,
+                                                        fontSize = 18.sp,
+                                                        color = Color.Black
+                                                    )
+                                                    Text(
+                                                        text = "${planning.fromStr} - ${planning.toStr}",
+                                                        fontSize = 16.sp,
+                                                        color = Color.Gray
+                                                    )
+                                                    Text(
+                                                        text = "90 min", fontSize = 16.sp,
+                                                        color = Color.Gray // Duration label
+                                                    )
+                                                }
+                                                // Button and pricing details
+                                                Column( modifier = Modifier
+                                                    .padding(start = 15.dp),
+                                                    horizontalAlignment = Alignment.End
+                                                ) {
+                                                    Button(
+                                                        onClick = {
+                                                            // Prepare the ExtrasRequest list
+                                                            val extrasRequest = listOf(
+                                                                ExtrasRequest(
+                                                                    id = "abc".toLongOrNull() ?: 0L,
+                                                                    name = establishmentName,
+                                                                    code = "SomeCode",
+                                                                    description = "Some description",
+                                                                    picture = "https://example.com/picture.jpg",
+                                                                    amount = BigDecimal("01"),
+                                                                    currencyId = 1L,
+                                                                    currencyName = 1L,
+                                                                    isShared = false
+                                                                )
+                                                            )
+
+                                                            // Call the Extras function in ExtrasViewModel
+                                                            viewModel1.Extras(extrasRequest)
+
+                                                            // Navigate or handle reservation logic
+                                                            selectedReservation = ReservationOption(
+                                                                name = establishmentName,
+                                                                time = "${planning.fromStr} ${planning.toStr}",
+                                                                price = "${getBookingResponseDTO.amount} ${getBookingResponseDTO.currencySymbol}",
+                                                                duration = "90 min"
+                                                            )
+                                                            selectedTimeSlot = "${planning.fromStr} ${planning.toStr}"
+
+                                                            if (!isUserLoggedIn) {
+                                                                showLoginPopup = true
+                                                            } else {
+                                                                selectedReservation?.let {
+                                                                    onReservationSelected(it)
+                                                                }
+                                                                val totalAmount = getBookingResponseDTO.amount
+                                                                navController.navigate("PaymentSection1/${totalAmount}")
+                                                            }
+                                                        },
+                                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
+                                                        shape = RoundedCornerShape(12.dp),
+                                                        modifier = Modifier
+                                                            .size(width = 120.dp, height = 40.dp)
+                                                            .wrapContentWidth()
+                                                            .offset(x = 80.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "${getBookingResponseDTO.amount} ${getBookingResponseDTO.currencySymbol}",
+                                                            fontWeight = FontWeight.Bold,
+                                                            fontSize = 18.sp,
+                                                            color = Color(0xFFD7F057),
+                                                            modifier = Modifier.fillMaxWidth(),
+                                                            textAlign = TextAlign.Center
+                                                        )
+                                                    }
+
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                }
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -429,183 +513,30 @@ fun ReservationOptions(
                     }
                 }
             } else {
-                // Optionally handle the case when there are no establishments
                 Text(text = "No establishments available", color = Color.Gray)
             }
         }
-
-        if (showLoginPopup) {
-            PopLoginDialog(
-                onDismiss = { showLoginPopup = false },
-                onLoginSuccess = {
-                    selectedReservation?.let { onReservationSelected(it) }
-                    showLoginPopup = false
-                }
-            )
+        is DataResultBooking.Failure -> {
+            errorMessage = result.errorMessage ?: "An unexpected error occurred."
         }
     }
-}
 
-
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun DaySelectorWithArrows(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit
-) {
-    val dayFormatter = DateTimeFormatter.ofPattern("EEE d MMM")
-    val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
-
-    // Lazy list state to control the scroll position
-    val listState = rememberLazyListState()
-
-    Column(modifier = Modifier.fillMaxWidth()) {
-        // Top row with arrows for navigating weeks and showing current month/year
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "SEMAINE PRÉCÉDENTE",
-                color = Color.Gray,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onDateSelected(selectedDate.minusWeeks(1)) } // Click to navigate previous week
-            )
-
-            Text(
-                text = monthYearFormatter.format(selectedDate),
-                color = Color.Blue,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold
-            )
-
-            Text(
-                text = "SEMAINE SUIVANTE",
-                color = Color.Gray,
-                fontSize = 12.sp,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.clickable { onDateSelected(selectedDate.plusWeeks(1)) } // Click to navigate next week
-            )
-        }
-
-        // Arrow buttons and "Today" button in the middle
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(onClick = { onDateSelected(selectedDate.minusWeeks(1)) }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous week", tint = Color.Gray)
+    if (showLoginPopup) {
+        /*PopLoginDialog(
+            onDismiss = { showLoginPopup = false },
+            onLoginSuccess = {
+                selectedReservation?.let { onReservationSelected(it) }
+                showLoginPopup = false
+                navController.navigate("PaymentSection1/${selectedReservation?.price?.toIntOrNull() ?: 0}")
             }
-
-            IconButton(onClick = { onDateSelected(selectedDate.minusDays(1)) }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Previous day", tint = Color.Gray)
-            }
-
-            Column(
-                modifier = Modifier
-                    .padding(horizontal = 8.dp)
-                    .border(1.dp, Color.Gray, shape = RoundedCornerShape(8.dp))
-                    .clickable { onDateSelected(LocalDate.now()) }
-                    .padding(8.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "AUJOURD'HUI",
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Blue,
-                    fontSize = 16.sp,
-                    textAlign = TextAlign.Center
-                )
-                Icon(
-                    Icons.Default.CalendarToday,
-                    contentDescription = "Today",
-                    tint = Color.Blue,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-
-            IconButton(onClick = { onDateSelected(selectedDate.plusDays(1)) }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next day", tint = Color.Gray)
-            }
-
-            IconButton(onClick = { onDateSelected(selectedDate.plusWeeks(1)) }) {
-                Icon(Icons.AutoMirrored.Filled.ArrowForward, contentDescription = "Next week", tint = Color.Gray)
-            }
-        }
-
-        // Smooth horizontal scrolling days of the week
-        LazyRow(
-            state = listState,  // Using the list state to control scroll position
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(7) { i ->
-                val day = selectedDate.minusDays(selectedDate.dayOfWeek.value.toLong() - i.toLong())
-                Column(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .clickable { onDateSelected(day) },
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = dayFormatter.format(day),
-                        textAlign = TextAlign.Center,
-                        color = if (day == selectedDate) Color.White else Color.Gray,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier
-                            .background(
-                                if (day == selectedDate) Color.Blue else Color.Transparent,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(8.dp)
-                    )
-                }
-            }
-        }
-
-        // Scroll to the middle position when the selected day changes
-        LaunchedEffect(selectedDate) {
-            val middleIndex = 3 // Middle of the 7-day list
-            listState.scrollToItem(middleIndex)
-        }
+        )*/
     }
-}
 
-
-
-@Composable
-fun PopLoginDialog(onDismiss: () -> Unit, onLoginSuccess: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .size(1000.dp)
-                .padding(vertical = 100.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) {
-            LoginScreen(onLoginSuccess = {
-                // Dismiss the dialog after login success
-                onLoginSuccess() // Call the onLoginSuccess callback passed from ReservationScreen
-                onDismiss()
-            })
-        }
+    errorMessage?.let {
+        Text(text = it, color = Color.Red)
     }
+
 }
-
-
-
-
-
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReservationSummary(
@@ -613,18 +544,22 @@ fun ReservationSummary(
     selectedTimeSlot: String,
     selectedReservation: ReservationOption,
     extrasCost: Int,
+    selectedExtras: List<Triple<String, String, Int>>,
     selectedRaquette: String,
     includeBalls: Boolean,
-    onTotalAmountCalculated: (Int) -> Unit // Callback to pass total amount
+    amountSelected: Double?,
+    onTotalAmountCalculated: (Int) -> Unit,
+
 ) {
-    // Function to calculate total amount based on reservation price and extras
-    fun calculateTotalAmount(): Int {
-        val priceString = selectedReservation.price.replace("[^\\d]".toRegex(), "")
-        val price = priceString.toIntOrNull() ?: 0 // Default to 0 if parsing fails
-        return price + extrasCost // Calculate total amount
+    val price = selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
+    val totalExtrasCost = selectedExtras.sumOf { (name, priceString, _) ->
+        priceString.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
     }
 
-    val totalAmount = calculateTotalAmount() // Calculate total amount
+    val totalAmountSelected = remember {
+        (amountSelected?.toInt() ?: 0) + totalExtrasCost.toInt()
+    }
+    onTotalAmountCalculated(totalAmountSelected)
 
     Column(
         modifier = Modifier
@@ -648,7 +583,7 @@ fun ReservationSummary(
         )
 
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
-        ReservationDetailRow(label = "Prix", value = selectedReservation.price)
+        ReservationDetailRow(label = "Prix", value = "$${String.format("%.2f", amountSelected ?: 0.0)}")
         ReservationDetailRow(
             label = "Date",
             value = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy").format(selectedDate)
@@ -657,7 +592,6 @@ fun ReservationSummary(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Price breakdown
         Text(
             text = "Détails du Prix",
             fontSize = 18.sp,
@@ -665,85 +599,331 @@ fun ReservationSummary(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        ReservationDetailRow(label = "Prix de Réservation", value = selectedReservation.price)
+        ReservationDetailRow(label = "Prix de Réservation", value = "$${String.format("%.2f", amountSelected ?: 0.0)}")
 
-        // Include details of extras if any are added
-        val extrasDetails = buildString {
-            if (includeBalls) append("3 New Balls + ")
-            append("${selectedRaquette} Raquettes")
+        selectedExtras.forEach { (name, price, _) ->
+            ReservationDetailRow(label = "Extra: $name", value = price)
         }
-        ReservationDetailRow(label = "Extras", value = extrasDetails)
 
-        // Display total amount
-        ReservationDetailRow(label = "Total", value = "$totalAmount")
+        // Display summary of extras
+        val extrasSummary = selectedExtras.joinToString(separator = ", ") { (name, price, _) ->
+            "$name ($price)"
+        }
+        ReservationDetailRow(label = "Extras", value = extrasSummary)
 
-        // Call the callback to pass the total amount
-        onTotalAmountCalculated(totalAmount)
+        ReservationDetailRow(label = "Total", value = "$${totalAmountSelected}")
+
+        onTotalAmountCalculated(totalAmountSelected)
     }
 }
-
-
-
-
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ReservationDetailRow(label: String, value: String) {
+fun DaySelectorWithArrows(
+    selectedDate: LocalDate,
+    onDateSelected: (LocalDate) -> Unit,
+) {
+    val dayFormatter = DateTimeFormatter.ofPattern("EEE", Locale.FRENCH) // Abbreviated day name (e.g., "Sam")
+    val dateFormatter = DateTimeFormatter.ofPattern("d", Locale.FRENCH) // Day of the month (e.g., "29")
+    val monthFormatter = DateTimeFormatter.ofPattern("MMM", Locale.FRENCH) // Abbreviated month name (e.g., "Nov")
+
+    val daysInWeek = (0..6).map { offset ->
+        selectedDate.minusDays(selectedDate.dayOfWeek.value.toLong() - 1L).plusDays(offset.toLong())
+    }
+    val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
+
+
+    val listState = rememberLazyListState()
+
+    // Automatically scroll to center the selected day
+    LaunchedEffect(selectedDate) {
+        val selectedIndex = daysInWeek.indexOf(selectedDate)
+        if (selectedIndex != -1) {
+            // Scroll to the position with an offset to center the selected day
+            listState.animateScrollToItem(
+                index = selectedIndex,
+                scrollOffset = -listState.layoutInfo.viewportEndOffset / 2
+            )
+        }
+    }
+    Column(modifier = Modifier.fillMaxWidth()) {
+        // Month-Year Header
+        Text(
+            text = monthYearFormatter.format(selectedDate).uppercase(Locale.FRENCH),
+            color = Color(0xFF0054D8),
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+        )
+    // Navigation Row with Arrows and "AUJOURD'HUI"
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = label, fontWeight = FontWeight.Bold)
-        Text(text = value, fontWeight = FontWeight.Medium)
+        // Left Arrow
+        IconButton(onClick = { onDateSelected(selectedDate.minusDays(1)) }) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Previous day", tint = Color.Gray)
+        }
+
+        // "AUJOURD'HUI" Button
+        Row(
+            modifier = Modifier
+                .clickable { onDateSelected(LocalDate.now()) }
+                .border(1.dp, Color.Gray, shape = RoundedCornerShape(8.dp))
+                .padding(vertical = 8.dp, horizontal = 16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "AUJOURD'HUI",
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0054D8),
+                fontSize = 14.sp,
+            )
+            Icon(
+                Icons.Default.CalendarToday,
+                contentDescription = "Today",
+                tint = Color(0xFF0054D8),
+                modifier = Modifier
+                    .padding(start = 4.dp)
+                    .size(20.dp)
+            )
+        }
+
+        // Right Arrow
+        IconButton(onClick = { onDateSelected(selectedDate.plusDays(1)) }) {
+            Icon(Icons.Default.ArrowForward, contentDescription = "Next day", tint = Color.Gray)
+        }
+    } }
+    LazyRow(
+        state = listState,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(0.dp) // No space between boxes, add gray line manually
+    ) {
+        items(daysInWeek) { day ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Box for each day with reduced size
+                Column(
+                    modifier = Modifier
+                        .clickable { onDateSelected(day) }
+                        .background(
+                            color = if (day == selectedDate) Color(0xFF0054D8) else Color.White,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .border(
+                            width = if (day == selectedDate) 0.dp else 1.dp,
+                            color = Color.Gray,
+                            shape = RoundedCornerShape(8.dp)
+                        )
+                        .padding(vertical = 8.dp, horizontal = 8.dp) // Reduced padding
+                        .width(60.dp),  // Smaller width
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Abbreviated day name (e.g., "Sam")
+                    Text(
+                        text = dayFormatter.format(day).uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = if (day == selectedDate) Color.White else Color.Gray,
+                        fontSize = 12.sp  // Smaller font size for day name
+                    )
+
+                    // Day of the month (e.g., "29")
+                    Text(
+                        text = dateFormatter.format(day),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = if (day == selectedDate) Color.White else Color.Black,
+                        fontSize = 18.sp  // Smaller font size for day number
+                    )
+
+                    // Abbreviated month name (e.g., "Nov")
+                    Text(
+                        text = monthFormatter.format(day).uppercase(),
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        color = if (day == selectedDate) Color.White else Color.Gray,
+                        fontSize = 12.sp  // Smaller font size for month
+                    )
+                }
+
+                // Gray line separator (except after the last item)
+                if (day != daysInWeek.last()) {
+                    Box(
+                        modifier = Modifier
+                            .height(40.dp) // Match the reduced height of the day box
+                            .width(1.dp)
+                            .background(Color.Gray)
+                    )
+                }
+            }
+        }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+/*
+@Composable
+fun PopLoginDialog(onDismiss: () -> Unit, onLoginSuccess: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            modifier = Modifier
+                .size(1000.dp)
+                .padding(vertical = 100.dp),
+            shape = RoundedCornerShape(16.dp)
+        ) { /*
+            LoginScreen(onLoginSuccess = {
+                onLoginSuccess()
+                onDismiss()
+                navController = navController
+
+                viewModel = hiltViewModel(), */
+            })
+        }
+    }
+}
+
+*/
+
+
 
 /*
 @Preview(showBackground = true)
 @Composable
 fun ReservationScreenPreview() {
-    @Composable
-    fun ReservationScreen(
-        navController: NavController,
-        key: String,
-        date: String,
-        isUserLoggedIn: Boolean,
-        rawResponse: String // New parameter to accept the raw API response
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = "Reservation Key: $key", fontSize = 20.sp)
-            Text(text = "Reservation Date: $date", fontSize = 20.sp)
-            Text(text = "Raw API Response: $rawResponse", fontSize = 14.sp) // Display raw response
-        }
+    val navController = rememberNavController()
+
+    val context = LocalContext.current
+    val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(context)
+
+    val onFetchSuccess: () -> Unit = {
+        Log.d("ReservationPreview", "Fetch Success!")
     }
 
-}*/
-/*
+    ReservationScreen(
+        navController = navController,
+        isUserLoggedIn = true,
+        context = context,
+        sharedPreferences = sharedPreferences,
+        onFetchSuccess = onFetchSuccess
+    )
+}
+*/
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Preview(showBackground = true, widthDp = 400, heightDp = 800)
+@Composable
+fun ReservationScreenPreview() {
+    // Mock data to simulate context and shared preferences
+    val mockContext = LocalContext.current
+    val mockSharedPreferences = mockContext.getSharedPreferences("MockPrefs", Context.MODE_PRIVATE)
+
+    // Preview for the ReservationScreen
+    ReservationScreen(
+        navController = rememberNavController(),
+        isUserLoggedIn = true,
+        context = mockContext,
+        sharedPreferences = mockSharedPreferences,
+        onFetchSuccess = {
+            Log.d("ReservationScreenPreview", "Fetch successful")
+        },
+        viewModel = hiltViewModel<KeyViewModel>(), // You might need to provide a mocked ViewModel for testing
+        getBookingViewModel = hiltViewModel<GetBookingViewModel>() // Same for this ViewModel
+    )
+}
+
 @Preview(showBackground = true)
 @Composable
-fun PaymentSectionPreview() {
-    // Mock data to use in the preview
-    val mockSelectedDate = LocalDate.now()
-    val mockSelectedTimeSlot = "10:00 AM - 11:00 AM"
-    val mockSelectedReservation = ReservationOption(
-        name = "Tennis Court",
-        price = 50.toString(),
-        time = "10:00 AM", // Provide a mock value for time
-        duration = "1 hour" // Provide a mock value for duration
-    )
-
-    PaymentSection(
-        selectedDate = mockSelectedDate,
-        selectedTimeSlot = mockSelectedTimeSlot,
-        selectedReservation = mockSelectedReservation,
-        onExtrasUpdate = { extrasCost, selectedRaquette, includeBalls ->
-            // Handle extras update in the preview
-        },
-        onPayWithCardClick = {
-            // Handle pay with card click in the preview
+fun TimeSlotButtonPreview() {
+    TimeSlotButton(
+        slot = "10:00 AM",
+        isSelected = true,
+        onClick = {
+            Log.d("TimeSlotButtonPreview", "Time slot selected")
         }
     )
-}*/
+}
+
+@Preview(showBackground = true)
+@Composable
+fun TabItemPreview() {
+    Row {
+        // TabItem with a selected state and a calendar icon
+        TabItem(
+            isSelected = true,
+            title = "CHOISIR UN CRÉNEAU",
+            icon = painterResource(id = R.drawable.calendre),  // Replace with your actual drawable resource
+            onClick = {
+                Log.d("TabItemPreview", "Tab clicked")
+            },
+            onBackClick = {
+                Log.d("TabItemPreview", "Back arrow clicked")
+                // Handle back navigation logic here
+            }
+        )
+
+        Spacer(modifier = Modifier.width(16.dp))
 
 
-//i want to devise this file into files corresponding to the MVVM methode to make the work smoother and better
+    }
+}
+
+
+@RequiresApi(Build.VERSION_CODES.O)
+@Preview(showBackground = true, widthDp = 400, heightDp = 150)
+@Composable
+fun PreviewDaySelectorWithArrows() {
+    // Define a sample selected date
+    val today = LocalDate.of(2024, 11, 29) // Example: 29th November 2024
+
+    // Preview the composable with dummy onDateSelected logic
+    DaySelectorWithArrows(
+        selectedDate = today,
+        onDateSelected = { selectedDay ->
+            println("Selected date: $selectedDay") // Debug action for the preview
+        }
+    )
+}
+@Preview(showBackground = true)
+@Composable
+fun ReservationOptionsPreview() {
+    // Mock data
+
+
+    // Mock ViewModel
+
+
+    // NavController Mock (using rememberNavController for preview)
+    val navController = rememberNavController()
+
+    // Preview of the composable
+    ReservationOptions(
+        onReservationSelected = {},
+        isUserLoggedIn = true,
+        key = "dummyKey",
+        navController = navController,
+        selectedDate = LocalDate.now(),
+        selectedTimeSlot = "12:00"
+    )
+}
+
+
+
+
+
 

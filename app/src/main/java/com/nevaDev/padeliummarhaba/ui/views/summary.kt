@@ -24,14 +24,16 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.window.Dialog
+import kotlinx.coroutines.launch
 
 @Composable
 fun SummaryScreen() {
     var showFilterMenu by remember { mutableStateOf(false) }
     var reservations = remember { mutableStateOf(listOf(
-        Reservation("SPX12345", "Mercedes", "18/09/2024", "21:30 - 23:00", "80 DT", "Confirmé", "RAHMOUNI Omar", true),
-        Reservation("PAR11225", "Mercedes", "18/09/2024", "21:30 - 23:00", "80 DT", "Annulée", "RAHMOUNI Omar", false),
-        Reservation("SPX12345", "Mercedes", "18/09/2024", "21:30 - 23:00", "80 DT", "Confirmé", "RAHMOUNI Omar", true)
+        Reservation("SPX12345", "Mercedes", "18/09/2024", "21:30 - 23:00", "80 DT", "Confirmé", " ", true),
+        //Reservation("PAR11225", "Mercedes", "18/09/2024", "21:30 - 23:00", "80 DT", "Annulée", " ", false),
+        //Reservation("SPX12345", "Mercedes", "18/09/2024", "21:30 - 23:00", "80 DT", "Confirmé", " ", true)
     )) }
 
     Column(
@@ -46,17 +48,15 @@ fun SummaryScreen() {
         )
         Divider(modifier = Modifier.padding(vertical = 8.dp), thickness = 1.dp, color = Color.Gray)
 
-        // Filter and Sort Row
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp)
-                .border(width = 1.dp, color = Color.LightGray, shape = RoundedCornerShape(16.dp)) // Rounded border
+                .border(width = 1.dp, color = Color.LightGray, shape = RoundedCornerShape(16.dp))
                 .padding(horizontal = 8.dp, vertical = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Filter Button with Dropdown
             Box {
                 OutlinedButton(
                     onClick = { showFilterMenu = !showFilterMenu },
@@ -75,19 +75,16 @@ fun SummaryScreen() {
                     onDismissRequest = { showFilterMenu = false }
                 ) {
                     DropdownMenuItem(onClick = {
-                        // Add filter logic here (e.g., filter by date)
                         showFilterMenu = false
                     }) {
                         Text("By Date")
                     }
                     DropdownMenuItem(onClick = {
-                        // Add filter logic here (e.g., filter by name)
                         showFilterMenu = false
                     }) {
                         Text("By Name")
                     }
                     DropdownMenuItem(onClick = {
-                        // Add your own filtering option
                         showFilterMenu = false
                     }) {
                         Text("By Type")
@@ -102,9 +99,8 @@ fun SummaryScreen() {
                     .width(1.dp)
             )
 
-            // Sort Button
             OutlinedButton(onClick = {
-                reservations.value = reservations.value.reversed() // Reverse the reservation list
+                reservations.value = reservations.value.reversed()
             }) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Sort,
@@ -118,7 +114,6 @@ fun SummaryScreen() {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Display the reservation list
         reservations.value.forEach { reservation ->
             ReservationCard(reservation)
             Spacer(modifier = Modifier.height(8.dp))
@@ -129,45 +124,123 @@ fun SummaryScreen() {
 
 @Composable
 fun ReservationCard(reservation: Reservation) {
+    // State for managing the visibility of the bottom sheet
+    var showDialog by remember { mutableStateOf(false) }
+
+    // Modal Bottom Sheet Layout
+
     Card(
         shape = RoundedCornerShape(8.dp),
         elevation = 4.dp,
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp)
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp)) // Adding a border
+            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Reference Number Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
 
+            ) {
+
+
+            }
+
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = " ${reservation.space}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 14.sp
+                    )
+                    Spacer(modifier = Modifier.height(7.dp))
+                    Text(
+                        text = " ${reservation.date} , ${reservation.time} ",
+                        fontWeight = FontWeight.Normal,
+                        fontSize = 12.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(7.dp))
+
+
+
+                    StatusBadge(reservation.isConfirmed)
+                }
+
+                Column(
+                    modifier = Modifier.weight(1f),
+                    horizontalAlignment = Alignment.End
+                ) {
+                    Text(
+                        text = " ${reservation.price}",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    IconButton(onClick = {
+                        showDialog = true
+                    }) {
+                        Icon(imageVector = Icons.Default.Visibility, contentDescription = "View")
+                    }
+                }
+            }
+        }
+    }
+
+    // Dialog displaying ReservationCard1 when showDialog is true
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(
+                shape = RoundedCornerShape(16.dp),
+                elevation = 8.dp,
+                modifier = Modifier.fillMaxWidth().padding(16.dp)
+            ) {
+                // ReservationCard1 content inside the dialog
+                ReservationCard1(reservation)
+            }
+        }
+    }
+}
+
+@Composable
+fun ReservationCard1(reservation: Reservation) {
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        elevation = 4.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
                     text = "Référence N° :",
                     fontWeight = FontWeight.Bold,
                     fontSize = 19.sp,
                     color = Color.Gray,
-                    style = TextStyle(textDecoration = TextDecoration.Underline) // Underline the text
-
+                    style = TextStyle(textDecoration = TextDecoration.Underline)
                 )
                 Text(
                     text = reservation.reference,
                     fontWeight = FontWeight.Bold,
                     fontSize = 19.sp,
-                    style = TextStyle(textDecoration = TextDecoration.Underline) // Underline the text
-
+                    style = TextStyle(textDecoration = TextDecoration.Underline)
                 )
             }
 
             Spacer(modifier = Modifier.height(10.dp))
 
-            // Space, Price, Date, and Creator Information
             Row(modifier = Modifier.fillMaxWidth()) {
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Espace: ${reservation.space}",
                         fontWeight = FontWeight.Normal,
@@ -185,8 +258,9 @@ fun ReservationCard(reservation: Reservation) {
                         fontWeight = FontWeight.Normal,
                         fontSize = 14.sp
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                    StatusBadge(reservation.isConfirmed) // Badge with status
+                    StatusBadge(reservation.isConfirmed)
                 }
 
                 Column(
@@ -194,13 +268,13 @@ fun ReservationCard(reservation: Reservation) {
                     horizontalAlignment = Alignment.End
                 ) {
                     Text(
-                        text = "Date & Heure: ${reservation.date} | ${reservation.time}",
+                        text = " ${reservation.date} | ${reservation.time}",
                         fontWeight = FontWeight.Normal,
                         fontSize = 14.sp
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Créé par: ${reservation.createdBy}",
+                        text = " ${reservation.createdBy}",
                         fontWeight = FontWeight.Normal,
                         fontSize = 14.sp
                     )
@@ -208,8 +282,6 @@ fun ReservationCard(reservation: Reservation) {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Action Icons Row
             Row(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically,
@@ -221,10 +293,9 @@ fun ReservationCard(reservation: Reservation) {
                 IconButton(onClick = { /*TODO*/ }) {
                     Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete")
                 }
-                IconButton(onClick = { /*TODO*/ }) {
-                    Icon(imageVector = Icons.Default.Visibility, contentDescription = "View") // Example Icon for View
-                }
+
             }
+
         }
     }
 }
@@ -232,7 +303,7 @@ fun ReservationCard(reservation: Reservation) {
 
 @Composable
 fun StatusBadge(isConfirmed: Boolean) {
-    val backgroundColor = if (isConfirmed) Color(0xFF4CAF50) else Color(0xFFF44336) // Match green and red colors
+    val backgroundColor = if (isConfirmed) Color(0xFF4CAF50) else Color(0xFFF44336)
     val statusText = if (isConfirmed) "Confirmée" else "Annulée"
 
     Box(
@@ -262,4 +333,19 @@ data class Reservation(
 @Composable
 fun SummaryScreenPreview() {
     SummaryScreen()
+}
+@Preview(showBackground = true)
+@Composable
+fun PreviewReservationCard1() {
+    val sampleReservation = Reservation(
+        reference = "12345",
+        space = "Meeting Room A",
+        price = "$200",
+        isConfirmed = true,
+        date = "2024-12-03",
+        time = "10:00 AM",
+        createdBy = "John Doe",
+        status = "Doe"
+    )
+    ReservationCard1(reservation = sampleReservation)
 }

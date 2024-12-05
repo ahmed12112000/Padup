@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt.android.plugin)
     id("kotlin-kapt")
+    id ("dagger.hilt.android.plugin")
+
 }
 
 android {
@@ -28,6 +30,11 @@ dependencies {
     implementation(libs.squareup.retrofit)
     implementation(libs.squareup.converter.gson)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.ui.graphics.android)
     kapt(libs.hilt.android.compiler)
     implementation(project(":domain"))
+    implementation (libs.okhttp )
+    implementation (libs.okhttp )
+    implementation ("com.squareup.retrofit2:retrofit:2.x.x") // Retrofit if you're using it
+    implementation ("com.squareup.retrofit2:converter-gson:2.x.x") // Gson converter for Retrofit
 }

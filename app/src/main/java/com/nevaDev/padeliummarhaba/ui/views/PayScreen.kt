@@ -1,5 +1,8 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -11,21 +14,37 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.TabRowDefaults.tabIndicatorOffset
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
 import com.nevadev.padeliummarhaba.R
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.PaymentRequest
+import com.padelium.domain.dto.SaveBookingRequest
 
 @Composable
-fun PayScreen(totalAmount: Int, navController: NavController) {
+fun PayScreen(totalAmount: String,
+              navController: NavController,
+              onPayWithCardClick: () -> Unit,
+              viewModel : SaveBookingViewModel = hiltViewModel(),
+              saveBookingRequest: List<SaveBookingRequest>,
+              viewModel1 : PaymentViewModel = hiltViewModel(),
+              paymentRequest: PaymentRequest
+)
+{
     var selectedTab by remember { mutableStateOf(0) }
     var cardNumber by remember { mutableStateOf("") }
     var month by remember { mutableStateOf("") }
@@ -35,8 +54,32 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
     var emailAddress by remember { mutableStateOf("") }
     var isEmailChecked by remember { mutableStateOf(true) }
     var optionalMessage by remember { mutableStateOf("") }
+    val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    var isLoading by remember { mutableStateOf(false) }
+    val context = LocalContext.current
 
     val scrollState = rememberScrollState()
+    val paymentResult by viewModel1.dataResult.observeAsState()
+    val saveBookingResult by viewModel.dataResult.observeAsState()
+
+
+ viewModel.dataResult.observe(lifecycleOwner) { result ->
+        isLoading = false
+
+        when (result) {
+            is DataResult.Loading -> {
+                Log.e("TAG", "Loading")
+            }
+            is DataResult.Success -> {
+                Log.e("TAG", "Success")
+            }
+            is DataResult.Failure -> {
+                isLoading = false
+                Log.e("TAG", "Failure - Error Code: ${result.exception},${result.errorCode}, Message: ${result.errorMessage}")
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -44,7 +87,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
             .padding(16.dp)
             .verticalScroll(scrollState)
     ) {
-        // Tabs for payment methods
         TabRow(
             selectedTabIndex = selectedTab,
             backgroundColor = Color.Transparent,
@@ -52,28 +94,26 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
                 TabRowDefaults.Indicator(
                     Modifier
                         .tabIndicatorOffset(tabPositions[selectedTab])
-                        .height(4.dp), // Adjust the height of the indicator if needed
-                    color = Color(0xFF0054D8) // Set the color of the indicator
+                        .height(4.dp),
+                    color = Color(0xFF0054D8)
                 )
             }
         ) {
-            // First Tab (Card Crédit)
             Tab(
                 selected = selectedTab == 0,
                 onClick = { selectedTab = 0 },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp)) // Apply rounded corners
+                    .clip(RoundedCornerShape(8.dp))
                     .border(1.dp, if (selectedTab == 0) Color(0xFF0054D8) else Color.Transparent, RoundedCornerShape(8.dp))
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Add the icon next to the text
                     Icon(
-                        painter = painterResource(id = R.drawable.a123), // Replace with your drawable resource name
+                        painter = painterResource(id = R.drawable.a123),
                         contentDescription = "Card Crédit Icon",
                         modifier = Modifier.size(20.dp),
                         tint = if (selectedTab == 0) Color.Unspecified else Color.Gray
                     )
-                    Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Card Crédit",
                         modifier = Modifier.padding(8.dp),
@@ -83,23 +123,21 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
                 }
             }
 
-            // Second Tab (Crédit Padelium)
             Tab(
                 selected = selectedTab == 1,
                 onClick = { selectedTab = 1 },
                 modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp)) // Apply rounded corners
+                    .clip(RoundedCornerShape(8.dp))
                     .border(1.dp, if (selectedTab == 1) Color(0xFF0054D8) else Color.Transparent, RoundedCornerShape(8.dp))
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    // Add the icon next to the text
                     Icon(
-                        painter = painterResource(id = R.drawable.a123), // Replace with your drawable resource name
+                        painter = painterResource(id = R.drawable.a123),
                         contentDescription = "Crédit Padelium Icon",
                         modifier = Modifier.size(20.dp),
                         tint = if (selectedTab == 1) Color.Unspecified else Color.Gray
                     )
-                    Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Crédit Padelium",
                         modifier = Modifier.padding(8.dp),
@@ -115,7 +153,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Card number field
         OutlinedTextField(
             value = cardNumber,
             onValueChange = { cardNumber = it },
@@ -126,7 +163,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Month and Year fields
         Row(modifier = Modifier.fillMaxWidth()) {
             OutlinedTextField(
                 value = month,
@@ -150,7 +186,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Security Code field
         OutlinedTextField(
             value = code,
             onValueChange = { code = it },
@@ -162,7 +197,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Cardholder Name field
         OutlinedTextField(
             value = cardholderName,
             onValueChange = { cardholderName = it },
@@ -173,7 +207,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Email Checkbox and Address Field
         Row(verticalAlignment = Alignment.CenterVertically) {
             Checkbox(
                 checked = isEmailChecked,
@@ -194,10 +227,70 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Payment button
         Button(
             onClick = {
-                navController.navigate("PayScreen/$totalAmount") // Ensure the correct argument is passed
+                onPayWithCardClick() // Trigger any custom logic passed for payment with card
+
+                Log.e("TAG", "onclick")
+
+                var isLoading = true
+
+                viewModel.SaveBooking(saveBookingRequest)
+
+                viewModel.dataResult.observe(lifecycleOwner) { result ->
+                    when (result) {
+                        is DataResult.Loading -> {
+                            isLoading = true
+
+                        }
+                        is DataResult.Success -> {
+                            Log.d("SaveBooking", "SaveBooking successful: ${result.data}")  // Access data from Success
+
+                            isLoading = false
+
+
+                            viewModel1.Payment(paymentRequest)
+
+                            viewModel1.dataResult.observe(lifecycleOwner) { paymentResult ->
+                                when (paymentResult) {
+                                    is DataResult.Loading -> {
+                                        isLoading = true
+
+                                    }
+                                    is DataResult.Success -> {
+                                        Log.d("Payment", "Payment successful: ${paymentResult.data}") // Log the success
+
+                                        isLoading = false
+
+                                        val paymentUrl = "https://test.clictopay.com/payment/merchants/CLICTOPAY/payment_fr.html?mdOrder=dd79368f-6e10-71a4-8641-4ce60008f1b8"
+                                        navController.navigate("WebViewScreen?paymentUrl=${Uri.encode(paymentUrl)}")
+                                    }
+                                    is DataResult.Failure -> {
+                                        Log.e("Payment", "Payment failed: ${paymentResult.errorMessage}") // Log the failure
+
+                                        isLoading = false
+
+                                        Toast.makeText(
+                                            context,
+                                            "Payment failed: ${paymentResult.errorMessage}",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                    }
+                                }
+                            }
+                        }
+                        is DataResult.Failure -> {
+                            isLoading = false
+
+
+                            Toast.makeText(
+                                context,
+                                "Booking failed: ${result.errorMessage}",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -206,7 +299,7 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
             shape = RoundedCornerShape(24.dp)
         ) {
             Text(
-                text = "Paiement $totalAmount DT", // Use totalAmount here
+                text = "Paiement $totalAmount DT",
                 color = Color.White,
                 fontSize = 16.sp,
                 textAlign = TextAlign.Center
@@ -215,7 +308,6 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Optional Message field
         OutlinedTextField(
             value = optionalMessage,
             onValueChange = { optionalMessage = it },
@@ -225,13 +317,16 @@ fun PayScreen(totalAmount: Int, navController: NavController) {
                 .size(250.dp),
             shape = RoundedCornerShape(24.dp)
         )
-    }
-}
+    }}
 
+
+/*
 @Preview(showBackground = true)
 @Composable
 fun PaymentScreenPreview() {
-    PayScreen(totalAmount = 100, navController = rememberNavController())
+    PayScreen(totalAmount = "100", navController = rememberNavController(),
+        onPayWithCardClick = {
+            // Handle pay with card click in the preview
+        },)
 }
-
-//i ant after clicking on "Payer avec Carte" button to navigate to
+*/

@@ -1,6 +1,11 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.net.Uri
+import android.util.Log
+import android.webkit.WebView
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -13,10 +18,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Phone
@@ -42,9 +52,27 @@ import androidx.compose.ui.unit.sp
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import java.time.LocalDate
 import androidx.compose.material.*
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.PaymentRequest
+import com.padelium.domain.dto.SaveBookingRequest
+import com.nevadev.padeliummarhaba.R
+
 @OptIn(ExperimentalMaterialApi::class)
 
 @Composable
@@ -52,40 +80,80 @@ fun PaymentSection1(
     selectedDate: LocalDate,
     selectedTimeSlot: String,
     selectedReservation: ReservationOption,
-    onExtrasUpdate: (Int, Int, Boolean) -> Unit, // Callback parameter
-    onPayWithCardClick: () -> Unit, // Callback for "Payer avec Carte"
+    onExtrasUpdate: (Int, Int, Boolean) -> Unit,
+    onPayWithCardClick: () -> Unit,
+    totalAmount: String,
+    navController: NavController,
+    viewModel : SaveBookingViewModel = hiltViewModel(),
+    saveBookingRequest: List<SaveBookingRequest>,
+    viewModel1 : PaymentViewModel = hiltViewModel(),
+    paymentRequest: PaymentRequest,
+
 
 ) {
-    var showPayScreen by remember { mutableStateOf(false) } // State to toggle PayScreen visibility
+    var showPayScreen by remember { mutableStateOf(false) }
 
-    var additionalExtrasEnabled by remember { mutableStateOf(false) } // For the second switch
+    var additionalExtrasEnabled by remember { mutableStateOf(false) }
+    val selectedExtras = remember { mutableStateListOf<Triple<String, String, Int>>() } // State for selected extras
 
     var partnerName by remember { mutableStateOf("") }
-    // State for dropdown visibility
     var expanded by remember { mutableStateOf(false) }
-    // State for selected parts
     var selectedParts by remember { mutableStateOf("1") }
-    // List of options for parts
     val options = listOf("1", "2", "3", "4")
-    // State variables to store user input
     var phoneNumber by remember { mutableStateOf("") }
     var payParts by remember { mutableStateOf("1") }
-    var payTotal by remember { mutableStateOf(false) } // Toggle between parts or total
+    var payTotal by remember { mutableStateOf(false) }
     var extrasEnabled by remember { mutableStateOf(false) }
     var selectedRaquette by remember { mutableStateOf(1) }
     var includeBalls by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
+    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
 
-    // Calculate extras cost
     val extrasCost = (if (includeBalls) 5 else 0) + (selectedRaquette * 2)
     onExtrasUpdate(extrasCost, selectedRaquette, includeBalls)
 
+    var totalExtrasCost by remember { mutableStateOf(0.0) }
+    onExtrasUpdate(totalExtrasCost.toInt(), selectedRaquette, includeBalls)
 
+    // Recalculate the total amount when extras are updated
+    val totalAmountSelected = remember(totalExtrasCost) {
+        val reservationAmount = selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
+        reservationAmount + totalExtrasCost
+    }
+
+    // Update the extras whenever they change
+    onExtrasUpdate(totalExtrasCost.toInt(), selectedRaquette, includeBalls)
+
+    // Handle the addition of extras
+    val onTotalAmountCalculated: (Int) -> Unit = { totalAmountSelected ->
+        // Handle the total amount calculation
+        Log.d("TotalAmount", "The total amount is $totalAmountSelected")
+    }
+
+    viewModel.dataResult.observe(lifecycleOwner) { result ->
+        isLoading = false
+
+        when (result) {
+            is DataResult.Loading -> {
+                Log.e("TAG", "Loading")
+            }
+            is DataResult.Success -> {
+                Log.e("TAG", "Success")
+            }
+            is DataResult.Failure -> {
+                isLoading = false
+                Log.e("TAG", "Failure - Error Code: ${result.exception},${result.errorCode}, Message: ${result.errorMessage}")
+            }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
+            .verticalScroll(rememberScrollState())
+
     ) {
-        // Phone Number Section
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -104,13 +172,11 @@ fun PaymentSection1(
 
                 HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
                     color = Color.Gray, thickness = 1.dp)
-                Spacer(modifier = Modifier.height(8.dp))
                 // Phone number input with pre-filled number and "Modifier" button
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BasicTextField(
                         value = phoneNumber,
                         onValueChange = {
-                            // Allow only numbers and limit to 8 digits
                             if (it.all { char -> char.isDigit() } && it.length <= 8) {
                                 phoneNumber = it
 
@@ -118,7 +184,7 @@ fun PaymentSection1(
                         },
                         modifier = Modifier
                             .offset(x = 3.dp)
-                            .width(150.dp)
+                            .width(200.dp)
                             .padding(vertical = 4.dp),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         decorationBox = { innerTextField ->
@@ -140,45 +206,42 @@ fun PaymentSection1(
                                     color = Color.Black,
                                     modifier = Modifier.offset(x = -8.dp, y = -2.dp)
                                 )
-                                // Inner TextField
                                 Box(
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     innerTextField()
                                 }
 
-                                // Success Icon
 
                             }
                         }
                     )
 
-                    Spacer(modifier = Modifier.width(10.dp)) // Add some space between the fields
+                    Spacer(modifier = Modifier.width(10.dp))
 
-                    // Button to validate the phone number
 
                     Button(
                         onClick = {
-                            // Handle button click
                         },
                         modifier = Modifier
-                            .fillMaxWidth()
+                            .offset(x=28.dp)
+                            .width(120.dp)
                             .height(48.dp)
                             .border(1.dp, Color(0xFF0054D8), RoundedCornerShape(13.dp)),
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        shape = RoundedCornerShape(15.dp) // Set button background to transparent
+                        shape = RoundedCornerShape(15.dp)
                     ) {
                         Box(
                             modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(10.dp)) // White background for the box
-                                .fillMaxSize() // Fill the button size
+                                .background(Color.White, RoundedCornerShape(10.dp))
+                                .fillMaxSize(),
+                            contentAlignment = Alignment.Center
                         ) {
                             Text(
                                 text = "Modifier",
-                                color = Color(0xFF0054D8), // Text color
+                                color = Color(0xFF0054D8),
                                 fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp,
-                                modifier = Modifier.align(Alignment.Center) // Center the text in the box
+                                fontSize = 20.sp
                             )
                         }
                     }
@@ -189,7 +252,6 @@ fun PaymentSection1(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Payment options for parts or total
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -197,224 +259,276 @@ fun PaymentSection1(
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "    Je veux payer pour", fontSize = 15.sp,fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.height(18.dp))
-
-                HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
-                    color = Color.Gray, thickness = 1.dp)
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Dropdown for number of parts
+                    Text(
+                        text = "Je veux payer pour",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.width(100.dp))
+
                     ExposedDropdownMenuBox(
                         expanded = expanded,
-                        onExpandedChange = { expanded = !expanded } // Toggle dropdown visibility
+                        onExpandedChange = { expanded = !expanded }
                     ) {
                         TextField(
                             value = selectedParts,
-                            onValueChange = { selectedParts = it }, // Not used as it's read-only
-                            readOnly = true, // Make it read-only to ensure dropdown selection
+                            onValueChange = { selectedParts = it },
+                            readOnly = true,
                             modifier = Modifier
-                                .width(50.dp)
-                                .border(1.dp, Color.Unspecified, RoundedCornerShape(13.dp)), // Custom border
+                                .widthIn(min = 30.dp).width(50.dp)
+                                .border(1.dp, Color.Gray, RoundedCornerShape(13.dp)),
                             colors = TextFieldDefaults.textFieldColors(
-                                backgroundColor = Color.White, // Set background color
-                                cursorColor = Color.Transparent, // Hide cursor color if needed
-                                focusedIndicatorColor = Color.Transparent, // Hide underline when focused
-                                unfocusedIndicatorColor = Color.Transparent // Hide underline when not focused
+                                backgroundColor = Color.White,
+                                cursorColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
                             ),
-                            placeholder = { Text("Select parts") } // Placeholder text
+                            placeholder = { Text("Select parts") }
                         )
 
                         ExposedDropdownMenu(
                             expanded = expanded,
-                            onDismissRequest = { expanded = false } // Close dropdown when dismissed
+                            onDismissRequest = { expanded = false }
                         ) {
                             options.forEach { option ->
-                                DropdownMenuItem(onClick = {
-                                    selectedParts = option // Update selected parts
-                                    expanded = false // Close the dropdown
-                                }) {
-                                    Text(text = option) // Display option text
-                                }
-                            }
-                        }
-                    }
-
-                    Text(text = "parts")
-
-                    Spacer(modifier = Modifier.width(16.dp))
-
-                    Text(text = "OU")
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically, // Center vertically
-                        modifier = Modifier.padding(start = 8.dp) // Add some padding if needed
-                    ) {
-                        Checkbox(
-                            checked = payTotal,
-                            onCheckedChange = { payTotal = it }, // Handle checkbox state change
-                            colors = CheckboxDefaults.colors(checkedColor = Color.Blue) // Set checked color to blue
-                        )
-                        Spacer(modifier = Modifier.width(4.dp)) // Adjust space between checkbox and label
-                        Text(text = "total") // Label for the checkbox
-                    }
-
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Partner Selection Section
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "    Sélectionnez votre partenaire", fontSize = 16.sp,fontWeight = FontWeight.Bold)
-                    Switch(
-                        checked = extrasEnabled,
-                        onCheckedChange = { extrasEnabled = it }, // Update state on toggle
-                        colors = SwitchDefaults.colors(
-                            // Customize the colors directly here
-                            checkedThumbColor = Color(0xFF0054D8), // Set thumb color to blue when checked
-                            uncheckedThumbColor = Color.Gray, // Set thumb color to gray when unchecked
-                            checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f), // Set track color to blue when checked
-                            uncheckedTrackColor = Color.LightGray // Set track color to light gray when unchecked
-                        )
-                    )
-
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-
-                HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
-                    color = Color.Gray, thickness = 1.dp)
-
-                Text(
-                    text = "Votre partenaire doit avoir un compte sur PADELIUM",
-                    color = Color.Gray
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                OutlinedTextField(
-                    value = partnerName,  // Replace with your state variable for text input
-                    onValueChange = { partnerName = it }, // Handle partner name input
-                    label = { Text("Taper le nom de votre partenaire") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(40.dp) // Set height
-                        .border(1.dp, Color(0xFF0054D8), RoundedCornerShape(8.dp)), // Optional custom border
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        backgroundColor = Color.White, // Set background color to white
-                       // focusedIndicatorColor = Color.Transparent, // Remove underline when focused
-                        //unfocusedIndicatorColor = Color.Transparent // Remove underline when not focused
-                    ),
-                    shape = RoundedCornerShape(15.dp) // Rounded corners
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Extras Section (Raquette and Balls)
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(text = "    Des extras?", fontSize = 16.sp,fontWeight = FontWeight.Bold)
-                    Switch(
-                        checked = additionalExtrasEnabled ,
-                        onCheckedChange = { additionalExtrasEnabled = it }, // Update state on toggle
-                        colors = SwitchDefaults.colors(
-                            // Customize the colors directly here
-                            checkedThumbColor = Color(0xFF0054D8), // Set thumb color to blue when checked
-                            uncheckedThumbColor = Color.Gray, // Set thumb color to gray when unchecked
-                            checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f), // Set track color to blue when checked
-                            uncheckedTrackColor = Color.LightGray // Set track color to light gray when unchecked
-                        )
-                    )
-
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-
-                HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
-                    color = Color.Gray, thickness = 1.dp)
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        var expanded by remember { mutableStateOf(false) }
-
-                        Box {
-                            Button(onClick = { expanded = true },
-
-                                modifier = Modifier
-                                    //.fillMaxWidth()
-                                    //.height(48.dp)
-                                    .border(1.dp, Color.Unspecified, RoundedCornerShape(13.dp)),
-                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                                shape = RoundedCornerShape(1.dp))
-                            {
-                                Text(text = selectedRaquette.toString())
-                            }
-                            DropdownMenu(
-                                expanded = expanded,
-                                onDismissRequest = { expanded = false }
-                            ) {
-                                (1..4).forEach { number ->
-                                    DropdownMenuItem(
-                                        text = { Text(text = number.toString()) },
-                                        onClick = {
-                                            selectedRaquette = number
-                                            expanded = false
-                                            onExtrasUpdate(extrasCost, selectedRaquette, includeBalls)
-                                        }
+                                DropdownMenuItem(
+                                    onClick = {
+                                        selectedParts = option
+                                        expanded = false
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(20.dp)
+                                        .padding(horizontal = 2.dp)
+                                ) {
+                                    Text(
+                                        text = option,
+                                        fontSize = 16.sp,
+                                        modifier = Modifier.align(Alignment.CenterVertically)
                                     )
                                 }
                             }
                         }
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "Raquette")
                     }
 
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Checkbox(
-                            checked = includeBalls,
-                            onCheckedChange = { includeBalls = it }
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(text = "3 New Balls")
-                    }
+                    Spacer(modifier = Modifier.width(10.dp))
+
+                    Text(
+                        text = "Parts",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(18.dp))
+
+                    HorizontalDivider(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp),
+                        color = Color.Gray,
+                        thickness = 1.dp
+                    )
+
             }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Reservation Summary Section
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(Color.White),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            var extrasEnabled by remember { mutableStateOf(false) }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "    Sélectionnez votre partenaire",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Switch(
+                        checked = extrasEnabled,
+                        onCheckedChange = { extrasEnabled = it }, // Toggle the extrasEnabled state
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color(0xFF0054D8),
+                            uncheckedThumbColor = Color.Gray,
+                            checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f),
+                            uncheckedTrackColor = Color.LightGray
+                        )
+                    )
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+
+                HorizontalDivider(
+                    modifier = Modifier
+                        .width(900.dp)
+                        .padding(horizontal = 10.dp)
+                        .offset(y = -10.dp),
+                    color = Color.Gray,
+                    thickness = 1.dp
+                )
+
+                if (extrasEnabled) { // Conditional rendering based on the switch state
+                    Column {
+                        Text(
+                            text = "Votre partenaire doit avoir un compte sur PADELIUM",
+                            color = Color.Gray,
+                            fontSize = 16.sp,
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = partnerName,
+                            onValueChange = { partnerName = it },
+                            label = {
+                                Box(
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentAlignment = Alignment.CenterStart // Align placeholder text to the center vertically.
+                                ) {
+                                    Text("Taper le nom de votre partenaire")
+                                }
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(56.dp), // Slightly increase height for better alignment.
+                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                backgroundColor = Color.White
+                            ),
+                            shape = RoundedCornerShape(15.dp)
+                        )
+                    }
+                }
+            } }
+
+        Spacer(modifier = Modifier.height(16.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp), // Added padding to separate the card from the screen edges
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(Color.White),
+            elevation = CardDefaults.cardElevation(6.dp) // Slightly increased elevation for better visual separation
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                // Title and Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Je commande des extras?",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Switch(
+                        checked = additionalExtrasEnabled,
+                        onCheckedChange = { additionalExtrasEnabled = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color(0xFF0054D8),
+                            uncheckedThumbColor = Color.Gray,
+                            checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f),
+                            uncheckedTrackColor = Color.LightGray
+                        )
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Horizontal Divider
+                HorizontalDivider(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 10.dp),
+                    color = Color.Gray,
+                    thickness = 1.dp
+                )
+
+                // Extras Section
+                if (additionalExtrasEnabled) {
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Text(
+                        text = "Article(s) réserver à mon usage",
+                        fontSize = 14.sp,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    var extrasCost by remember { mutableStateOf(0.0) } // State for total cost of extras
+
+                    // Extras List
+                    val extras: List<Triple<String, String, Int>> = listOf(
+                        Triple("Une raquette", "5 DT", R.drawable.raquettebl),
+                        Triple("Eau", "5 DT", R.drawable.eau),
+                        Triple("EXTRA", "10 DT", R.drawable.star)
+                    )
+
+                    extras.forEachIndexed { index, (name, price, iconRes) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 8.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (index % 2 == 0) Color(0xFFF8F8F8) else Color.White) // Alternating row colors
+                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
+                                .padding(8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Image(
+                                    painter = painterResource(id = iconRes),
+                                    contentDescription = name,
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFFF0F0F0))
+                                )
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(text = name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                                    Text(text = price, fontSize = 14.sp, color = Color.Gray)
+                                }
+                            }
+                            IconButton(onClick = {
+                                selectedExtras.add(Triple(name, price, iconRes))
+                                val extraPrice = price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
+                                totalExtrasCost += extraPrice
+                            })
+                            {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.plus),
+                                    contentDescription = "Add",
+                                    tint = Color.Unspecified,
+                                    modifier = Modifier
+                                        .size(28.dp)
+                                        .background(Color(0xFF0054D8), shape = CircleShape)
+                                        .padding(8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
+
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -423,60 +537,127 @@ fun PaymentSection1(
         ) {
             ReservationSummary(
                 selectedDate = selectedDate,
-                selectedTimeSlot = selectedTimeSlot,
-                selectedReservation = selectedReservation,
+                selectedTimeSlot = selectedTimeSlot ?: "Not selected",
+                selectedReservation = selectedReservation ?: ReservationOption("Default", "Not selected", "100.0", "Not selected"),
                 extrasCost = extrasCost,
+                selectedExtras = selectedExtras, // Pass the entire list of extras
                 selectedRaquette = selectedRaquette.toString(),
                 includeBalls = includeBalls,
-                onTotalAmountCalculated = { total ->
-                    // Handle the total amount calculation here if needed
+                amountSelected = selectedReservation?.price?.replace("[^\\d.]".toRegex(), "")?.toDoubleOrNull() ?: 0.0,
+                onTotalAmountCalculated = { totalAmountSelected ->
+                    Log.d("TotalAmountSelected", "The total amount is $totalAmountSelected")
                 }
             )
+            val displayedPrice = "${selectedReservation?.price?.replace("[^\\d.]".toRegex(), "")?.toDoubleOrNull() ?: 0.0} DT"
+
+
+
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Payment buttons
         Row(
             modifier = Modifier.fillMaxWidth().offset(x=-10.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Button(
-                onClick = { onPayWithCardClick() },
+                onClick = {
+                    onPayWithCardClick()
+                    Log.e("TAG", "onclick")
+
+                    var isLoading = true
+
+                    viewModel.SaveBooking(saveBookingRequest)
+
+                    viewModel.dataResult.observe(lifecycleOwner) { result ->
+                        when (result) {
+                            is DataResult.Loading -> {
+                                isLoading = true
+
+                            }
+                            is DataResult.Success -> {
+                                Log.d("SaveBooking", "SaveBooking successful: ${result.data}")  // Access data from Success
+
+                                isLoading = false
+
+
+                                viewModel1.Payment(paymentRequest)
+
+                                viewModel1.dataResult.observe(lifecycleOwner) { paymentResult ->
+                                    when (paymentResult) {
+                                        is DataResult.Loading -> {
+                                            isLoading = true
+
+                                        }
+                                        is DataResult.Success -> {
+                                            Log.d("Payment", "Payment successful: ${paymentResult.data}") // Log the success
+
+                                            isLoading = false
+
+                                            val paymentUrl = "https://test.clictopay.com/payment/merchants/CLICTOPAY/payment_fr.html?mdOrder=dd79368f-6e10-71a4-8641-4ce60008f1b8"
+                                            navController.navigate("WebViewScreen?paymentUrl=${Uri.encode(paymentUrl)}")
+                                        }
+                                        is DataResult.Failure -> {
+                                            Log.e("Payment", "Payment failed: ${paymentResult.errorMessage}") // Log the failure
+
+                                            isLoading = false
+
+                                            Toast.makeText(
+                                                context,
+                                                "Payment failed: ${paymentResult.errorMessage}",
+                                                Toast.LENGTH_SHORT
+                                            ).show()
+                                        }
+                                    }
+                                }
+                            }
+                            is DataResult.Failure -> {
+                                isLoading = false
+
+
+                                Toast.makeText(
+                                    context,
+                                    "Booking failed: ${result.errorMessage}",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                            }
+                        }
+                    }
+                },
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White), // White background
-                border = BorderStroke(2.dp, Color(0xFF0054D8)) // Blue border
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                border = BorderStroke(2.dp, Color(0xFF0054D8))
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Payment, // Replace with your desired icon
+                        imageVector = Icons.Default.Payment,
                         contentDescription = "Card Payment",
-                        tint = Color(0xFF0054D8) // Set icon color to blue
+                        tint = Color(0xFF0054D8)
                     )
-                    Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Card Crédit",
                         fontWeight = FontWeight.Bold,
-                        color = Color.Gray // Set text color to blue
+                        color = Color.Gray
                     )
                 }
             }
 
             Button(
-                onClick = { /* Handle credits payment */ },
+                onClick = {  },
                 modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White), // White background
-                border = BorderStroke(2.dp, Color(0xFF0054D8)) // Blue border
+                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                border = BorderStroke(2.dp, Color(0xFF0054D8))
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(
-                        imageVector = Icons.Default.Money, // Replace with your desired icon
+                        imageVector = Icons.Default.Money,
                         contentDescription = "Credits Payment",
-                        tint = Color(0xFF0054D8) // Set icon color to blue
+                        tint = Color(0xFF0054D8)
                     )
-                    Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
+                    Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "Crédit Padelium",
                         fontWeight = FontWeight.Bold,
@@ -487,35 +668,36 @@ fun PaymentSection1(
         }
     }
 }
+@Composable
+fun WebViewScreen(paymentUrl: String, navController: NavController) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        AndroidView(
+            factory = { context ->
+                WebView(context).apply {
+                    settings.javaScriptEnabled = true
+                    loadUrl(paymentUrl)
+                }
+            },
+            modifier = Modifier.fillMaxSize()
+        )
+        IconButton(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Close,
+                contentDescription = "Close",
+                tint = Color.Black
+            )
+        }
+    }
+}
+
 fun calculateTotalAmount(): Int {
     // Your logic to calculate the total amount based on selected options
     return 100 // Example static value, replace this with actual calculation
 }
 
 
-@Preview(showBackground = true)
-@Composable
-fun PaymentSection1Preview() {
-    // Mock data to use in the preview
-    val mockSelectedDate = LocalDate.now()
-    val mockSelectedTimeSlot = "10:00 AM - 11:00 AM"
-    val mockSelectedReservation = ReservationOption(
-        name = "Tennis Court",
-        price = 50.toString(),
-        time = "10:00 AM", // Provide a mock value for time
-        duration = "1 hour" // Provide a mock value for duration
-    )
-
-    PaymentSection1(
-        selectedDate = mockSelectedDate,
-        selectedTimeSlot = mockSelectedTimeSlot,
-        selectedReservation = mockSelectedReservation,
-        onExtrasUpdate = { extrasCost, selectedRaquette, includeBalls ->
-            // Handle extras update in the preview
-        },
-        onPayWithCardClick = {
-            // Handle pay with card click in the preview
-        },
-
-    )
-}

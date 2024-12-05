@@ -63,6 +63,8 @@ mediationTestSuite = "3.0.0"
 compose = "1.4.3"
 material3Android = "1.3.0"
 identityJvm = "202408.1"
+uiGraphicsAndroid = "1.7.4"
+preferenceKtx = "1.2.1"
 
 [libraries]
 androidx-appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -138,6 +140,8 @@ mediation-test-suite = { group = "com.google.android.ads", name = "mediation-tes
 androidx-compose-material = { module = "androidx.compose.material:material", version = "1.7.2" }
 androidx-material3-android = { group = "androidx.compose.material3", name = "material3-android", version.ref = "material3Android" }
 identity-jvm = { group = "com.android.identity", name = "identity-jvm", version.ref = "identityJvm" }
+androidx-ui-graphics-android = { group = "androidx.compose.ui", name = "ui-graphics-android", version.ref = "uiGraphicsAndroid" }
+androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

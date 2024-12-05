@@ -4,11 +4,14 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -22,6 +25,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.layout.ContentScale
@@ -30,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -44,7 +50,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
     var isValid by remember { mutableStateOf(false) }
-    // Profile image picker
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -63,7 +68,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.Start
     ) {
-        // Progress Bar and title
         Text(
             text = "Mon Profil",
             fontSize = 20.sp,
@@ -76,45 +80,32 @@ fun ProfileScreen(onLogout: () -> Unit) {
         HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
             color = Color.Gray, thickness = 1.dp)
         Spacer(modifier = Modifier.height(28.dp))
-        Text(
-            text = "Progression de votre profil :",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            modifier = Modifier.offset(x = 14.dp)
 
-        )
-        Spacer(modifier = Modifier.height(13.dp))
-        HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 17.dp).offset(y = -10.dp),
-            color = Color.Gray, thickness = 1.dp)
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Simulate a progress bar
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(18.dp)
                 .padding(horizontal = 17.dp)
-                .border(1.dp, Color.Gray, RoundedCornerShape(24.dp)) // Gray border
-                .clip(RoundedCornerShape(24.dp)) // Rounded corners
+                .border(1.dp, Color.Gray, RoundedCornerShape(24.dp))
+                .clip(RoundedCornerShape(24.dp))
         ) {
-            // LinearProgressIndicator
             LinearProgressIndicator(
                 progress = 0.75f,
                 modifier = Modifier.fillMaxSize(),
-                color = Color(0xFFD7F057), // Progress color
-                backgroundColor = Color.White, // Background color
-                strokeCap = StrokeCap.Round // Rounded ends
+                color = Color(0xFFD7F057),
+                backgroundColor = Color.White,
+                strokeCap = StrokeCap.Round
             )
 
-            // Text inside the LinearProgressIndicator
             Text(
                 text = "75%",
                 fontSize = 14.sp,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
-                    .align(Alignment.Center) // Center the text in the Box
-                    .fillMaxSize(), // Make sure the Text takes the same size as the Box
+                    .align(Alignment.Center)
+                    .fillMaxSize(),
                 color = Color.Black
             )
         }
@@ -123,7 +114,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // First Name Input
         BasicTextField(
             value = prenom,
             onValueChange = { prenom = it },
@@ -135,7 +125,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     Text(text = "| Nom", color = Color.Black,  fontSize = 19.sp,
                         modifier = Modifier.offset(x = 25.dp))
 
-                    // Use a Box to apply rounded corners
                     Box(
                         modifier = Modifier
                             .padding(4.dp)
@@ -146,7 +135,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         OutlinedTextField(
                             value = prenom,
                             onValueChange = { prenom = it },
-                            label = { Text("User Lastname") },
+                            label = { Text("") },
                            // leadingIcon = { Icon(imageVector = Icons.Default.Email, contentDescription = "Email Icon") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(15.dp)
@@ -160,7 +149,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Last Name Input
         BasicTextField(
             value = nom,
             onValueChange = { nom = it },
@@ -172,7 +160,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                     Text(text = "| Prénom", color = Color.Black,  fontSize = 19.sp,
                         modifier = Modifier.offset(x = 25.dp))
 
-                    // Use a Box to apply rounded corners
                     Box(
                         modifier = Modifier
                             .padding(4.dp)
@@ -181,7 +168,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
                         OutlinedTextField(
                             value = prenom,
                             onValueChange = { prenom = it },
-                            label = { Text("User Firstname") },
+                            label = { Text("") },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(15.dp)
                         )
@@ -194,16 +181,14 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Phone Number Input
         Column {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 BasicTextField(
                     value = phoneNumber,
                     onValueChange = {
-                        // Allow only numbers and limit to 8 digits
                         if (it.all { char -> char.isDigit() } && it.length <= 8) {
                             phoneNumber = it
-                            isValid = it.length == 8 // Check if valid
+                            isValid = it.length == 8
                         }
                     },
                     modifier = Modifier
@@ -218,7 +203,6 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                 .fillMaxWidth(),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            // Phone Icon
                             Icon(
                                 imageVector = Icons.Default.Phone,
                                 contentDescription = "Phone Icon",
@@ -229,33 +213,29 @@ fun ProfileScreen(onLogout: () -> Unit) {
                                 fontSize = 29.sp,
                                 color = Color.Black,
                                 modifier = Modifier.offset(x = -8.dp, y = -2.dp))
-                            // Inner TextField
                             Box(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 innerTextField()
                             }
 
-                            // Success Icon
                             if (isValid) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
                                     contentDescription = "Valid Phone Number",
                                     tint = Color.Green,
-                                    modifier = Modifier.padding(8.dp) // Padding for the icon
+                                    modifier = Modifier.padding(8.dp)
                                 )
                             }
                         }
                     }
                 )
 
-                Spacer(modifier = Modifier.width(10.dp)) // Add some space between the fields
+                Spacer(modifier = Modifier.width(10.dp))
 
-                // Button to validate the phone number
 
                     Button(
                         onClick = {
-                            // Validate the phone number or perform any action
                             if (isValid) {
                                 println("Phone number is valid: $phoneNumber")
                             } else {
@@ -266,15 +246,16 @@ fun ProfileScreen(onLogout: () -> Unit) {
                             .fillMaxWidth().padding(10.dp)
                             .border(1.dp, Color.Unspecified, RoundedCornerShape(13.dp))
                             .clip(RoundedCornerShape(10.dp)) ,
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White) // White background for the button
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
                     ) {
-                        Text(text = "Modifier", color = Color.Blue, fontWeight = FontWeight.Bold,) // Set text color to black for contrast
+                        Text(text = "Modifier", color = Color(0xFF0066CC), fontWeight = FontWeight.Bold,
+                            fontSize = 18.sp,
+                        )
                     }
                 }
 
 
 
-            // "Modifier" text below the phone input
             if (phoneNumber.isNotEmpty()) {
                 Text(
                     text = "Modifier",
@@ -289,50 +270,53 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Profile Picture Upload
-        // Profile Picture Upload
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "| Modifier la photo de profil",
+                text = "Photo de profile",
                 color = Color.Black,
+                fontWeight = FontWeight.Bold,
                 fontSize = 19.sp,
-                modifier = Modifier.offset(x = 25.dp)
+                modifier = Modifier.offset(x = 100.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Box to hold the upload icon or selected image
             Box(
                 modifier = Modifier
-                    .size(100.dp)
-                    .padding(4.dp)
-
+                    .offset(x=100.dp)
+                    .size(90.dp)
+                   /// .background(Color.Unspecified) // Ensure the box has a white background
+                    .drawBehind {
+                        drawCircle(
+                            color = Color.Gray.copy(alpha = 0.5f), // Grey shadow with transparency
+                            radius = size.minDimension / 3 + 2.dp.toPx(), // Reduce shadow spread
+                            center = center
+                        )
+                    }
             ) {
                 if (profileImageUri != null) {
-                    // Display selected image
                     Image(
                         painter = rememberAsyncImagePainter(profileImageUri),
                         contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize().clickable {
-                            launcher.launch("image/*") // Launches file picker to select an image
+                        modifier = Modifier.fillMaxSize()
+                            .clickable {
+                            launcher.launch("image/*")
                         },
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    // Display upload icon when no image is selected
                     Icon(
-                        painter = painterResource(id = R.drawable.a123), // Use drawable icon
+                        painter = painterResource(id = R.drawable.a321),
                         contentDescription = "Upload Photo",
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .offset(x = 50.dp)
                             .align(Alignment.Center)
-                            .clickable { // Make the icon clickable
-                                launcher.launch("image/*") // Launch file picker when the icon is clicked
+                            .fillMaxSize()
+                            .clickable {
+                                launcher.launch("image/*")
                             },
-                        tint = Color.Unspecified // No color tint for the icon
+                        tint = Color.Unspecified
                     )
                 }
             }
@@ -343,21 +327,60 @@ fun ProfileScreen(onLogout: () -> Unit) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Save and Cancel Buttons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
         ) {
-            Button(onClick = { /* Handle Save */ }) {
-                Text("Sauvegarder")
+            Button(
+                onClick = {  },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor =Color(0xFF0066CC),
+                    contentColor = Color.White,
+                ),
+                modifier = Modifier
+                    .padding(start = 3.dp)
+                    .height(50.dp)
+                    .fillMaxWidth(0.6f)
+                    .offset(x = 10.dp),
+                shape = RoundedCornerShape(12.dp)
+
+
+            ) {
+                Text(
+                    text = "Sauvegarder",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
             }
             Spacer(modifier = Modifier.width(8.dp))
 
         }
+/*
+  Button(
+                        onClick = {  },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color.White,
+                            contentColor = Color(0xFF0066CC),
+                        )
 
+                    ) {
+                        Text(
+                            text = "Sauvegarder",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+ */
         Spacer(modifier = Modifier.height(16.dp))
 
-        // Add a Logout button
 
     }
 }
@@ -365,5 +388,5 @@ fun ProfileScreen(onLogout: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun ProfileScreenPreview() {
-    ProfileScreen(onLogout = { /* Handle Logout Action */ })
+    ProfileScreen(onLogout = {  })
 }

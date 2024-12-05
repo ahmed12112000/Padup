@@ -32,8 +32,7 @@ fun DrawerContentOnline(
     navController: NavController,
     onItemSelected: (String) -> Unit,
     onCloseDrawer: () -> Unit,
-    username: String // Pass username here
-
+    username: String
 ) {
     Column(
         modifier = Modifier
@@ -46,7 +45,7 @@ fun DrawerContentOnline(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF0054D8)) // Blue background
+            .background(Color(0xFF0054D8))
             .padding(horizontal = 30.dp, vertical = 16.dp)
             //.width(50.dp)
 
@@ -68,34 +67,30 @@ fun DrawerContentOnline(
                 Icon(
                     painter = painterResource(id = R.drawable.oip),
                     contentDescription = "Close Drawer",
-                    tint = Color.Unspecified // Set color for the X icon
+                    tint = Color.Unspecified
                 )
             }}
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(bottom = 10.dp) // Add padding to the bottom to avoid overlap with footer
+                .padding(bottom = 10.dp)
         ) {
 
-            // Top section with logo and greeting
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Padelium logo
                 Image(
-                    painter = painterResource(id = R.drawable.logopadelium), // Replace with your logo resource
+                    painter = painterResource(id = R.drawable.logopadelium),
                     contentDescription = "Padelium Logo",
                     modifier = Modifier.size(260.dp)
                         .offset(y = -80.dp)
                 )
 
-                // Profile section
                 Row(
                     modifier = Modifier.fillMaxWidth() .offset(y = -110.dp,x=30.dp),
-                    verticalAlignment = Alignment.CenterVertically // Aligns items vertically centered
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // Avatar
                     Image(
                         painter = painterResource(id = R.drawable.a9),
                         contentDescription = "Avatar",
@@ -105,12 +100,11 @@ fun DrawerContentOnline(
                             .background(Color.LightGray)
                     )
 
-                    Spacer(modifier = Modifier.width(8.dp)) // Space between the avatar and text
+                    Spacer(modifier = Modifier.width(8.dp))
 
-                    // Column for welcome text to align text elements vertically
                     Column(
                         modifier = Modifier
-                            .weight(1f) // Allows the column to take remaining space in the row
+                            .weight(1f)
                             .padding(start = 16.dp)
 
 
@@ -121,14 +115,9 @@ fun DrawerContentOnline(
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
-                            modifier = Modifier.align(Alignment.Start) // Align text to the start
+                            modifier = Modifier.align(Alignment.Start)
                         )
-                        Text(
-                            text = "Alors, prêts pour jouer?",
-                            fontSize = 14.sp,
-                            color = Color.White,
-                            modifier = Modifier.align(Alignment.Start) // Align text to the start
-                        )
+
                     }
                 }
 
@@ -140,93 +129,78 @@ fun DrawerContentOnline(
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // User Settings Section
             Column(modifier = Modifier.padding(vertical = 8.dp).offset(y = -110.dp),) {
-                // Section Header
-                Text(
-                    text = "Paramètres d'utilisateurs",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFCCEA44)
-                )
+
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Menu Items
                 DrawerItem(
-                    icon = R.drawable.homy,
+                    icon = R.drawable.sidebarmenue,
                     label = "Profil",
+                    labelColor = Color.White,
                     onClick = { navController.navigate("profile_screen") }
+
                 )
 
                 DrawerItem(
-                    icon = R.drawable.contact,
-                    label = "Mes réservations",
+                    icon = R.drawable.sidebarmenue,
+                    label = "Mes Réservations",
+                    labelColor = Color.White,
                     onClick = { navController.navigate("reservations_screen") }
                 )
-
                 DrawerItem(
-                    icon = R.drawable.contact,
-                    label = "Paramètres",
-                    onClick = { navController.navigate("settings_screen") }
+                    icon = R.drawable.sidebarmenue,
+                    label = "Plans Tarifaires",
+                    labelColor = Color.White,
+                    onClick = { navController.navigate("CreditPayment") }
                 )
+
 
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // Other Section
             Column(modifier = Modifier.padding(vertical = 8.dp).offset(y = -110.dp),) {
-                // Section Header
-                Text(
-                    text = "Autres",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFFCCEA44)
-                )
+
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Menu Items
-                DrawerItem(
-                    icon = R.drawable.contact,
-                    label = "Plan tarifaires",
-                    onClick = { navController.navigate("pricing_screen") }
-                )
+
 
                 DrawerItem(
-                    icon = R.drawable.contact,
-                    label = "Comment utiliser l’application?",
+                    icon = R.drawable.sidebarmenue,
+                    label = "Qui sommes nous?",
+                    labelColor = Color.White,
                     onClick = { navController.navigate("help_screen") }
                 )
 
                 DrawerItem(
-                    icon = R.drawable.contact,
-                    label = "Contactez-nous",
+                    icon = R.drawable.sidebarmenue,
+                    label = "CGV",
+                    labelColor = Color.White,
                     onClick = { navController.navigate("contact_screen") }
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Make the image bigger
 
             }
         }
         Image(
-            painter = painterResource(id = R.drawable.a91), // Replace with your image resource
+            painter = painterResource(id = R.drawable.a91),
             contentDescription = "Additional Image",
             modifier = Modifier
-                .fillMaxWidth() // Fills the available width
-                .height(200.dp) // Increased height for the image
-                .align(Alignment.BottomCenter) // Align to the bottom center
-                .offset(y = -60.dp, x = -115.dp) // Adjust the offset as needed
+                .fillMaxWidth()
+                .height(200.dp)
+                .align(Alignment.BottomCenter)
+                .offset(y = -60.dp, x = -135.dp)
         )
 
         Row(
-            modifier = Modifier.size(165.dp).offset(y = 740.dp, x = 53.dp),
+            modifier = Modifier.size(165.dp).offset(y = 760.dp, x = 90.dp),
             horizontalArrangement = Arrangement.End
         ) {
         Button(onClick = {
-            onLogout() // Call the onLogout function passed from MainApp
+            onLogout()
         },
                 modifier = Modifier
                 .fillMaxWidth().padding(start = 10.dp, end = 5.dp)
@@ -235,13 +209,12 @@ fun DrawerContentOnline(
             colors = ButtonDefaults.buttonColors(backgroundColor = Color.White)
         )
         {
-            Text("Se déconnecter", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)//0054D8
+            Text("Se déconnecter", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
         }}
-        // Footer section
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(6.dp), // Add padding for aesthetics
+                .padding(6.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Spacer(modifier = Modifier.height(16.dp))
@@ -298,12 +271,11 @@ fun onLogout() {
 fun DrawerContentPreview() {
     val navController = rememberNavController()
 
-    // Pass a sample username for the preview
     DrawerContentOnline(
         navController = navController,
-        onItemSelected = {}, // Mock function for preview
-        onCloseDrawer = {},  // Mock function for preview
-        username = "John Doe" // Sample username for preview
+        onItemSelected = {},
+        onCloseDrawer = {},
+        username = "John Doe"
     )
 }
 
