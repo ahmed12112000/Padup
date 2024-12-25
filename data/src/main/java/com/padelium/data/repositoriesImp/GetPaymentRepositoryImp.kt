@@ -14,7 +14,7 @@ class GetPaymentRepositoryImp @Inject constructor(
     private val mapper: GetPaymentMapper,
 
     ) : IGetPaymentRepository {
-    override suspend fun GetPayment(getPaymentRequest: GetPaymentRequest): Response<List<GetPaymentResponse>> {
+    override suspend fun GetPayment(getPaymentRequest: GetPaymentRequest): Response<GetPaymentResponse> {
         return api.GetPayment(mapper.GetPaymentRequestToGetPaymentRequestDTO(getPaymentRequest))
     }
 

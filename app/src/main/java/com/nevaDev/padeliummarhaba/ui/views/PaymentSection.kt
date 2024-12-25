@@ -5,7 +5,6 @@ import android.util.Log
 import android.webkit.WebView
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -18,11 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -32,9 +28,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -55,26 +48,105 @@ import androidx.compose.material.*
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.Payment
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.google.gson.Gson
+import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.domain.dto.SaveBookingRequest
-import com.nevadev.padeliummarhaba.R
+import com.padelium.data.dto.GetBookingResponseDTO
+import com.padelium.domain.dto.GetBookingResponse
+import java.math.BigDecimal
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+
+fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
+    return this.map { dto ->
+        val startFormatted = dto.start?.let {
+            // Parse the Instant and format it
+            Instant.parse(it.toString()).atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+        } ?: "2024-12-20 9:30" // Default fallback value if start is null
+        val endFormatted = if (dto.end.isNullOrBlank()) {
+            // Provide a default value or leave it as null if end is empty or blank
+            "2024-12-20 9:30"  // Example default fallback value
+        } else {
+            // Parse the Instant and format it
+            Instant.parse(dto.end).atZone(ZoneId.systemDefault())
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))
+        }
+
+        GetBookingResponse(
+
+            // Map fields from GetBookingResponseDTO to GetBookingResponse
+            aamount = dto.aamount ?: BigDecimal.ZERO,
+            amount = dto.amount ?: 0.0,
+            amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
+            bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptyList(),
+            isClient = dto.isClient ?: true,
+            closeTime = dto.closeTime?.toString() ?: Instant.now().toString(), // Ensure ISO 8601 format
+
+            couponCode = dto.couponCode ?: "",
+            currencyId = dto.currencyId ?: 0L,
+            currencySymbol = dto.currencySymbol ?: "",
+            decimalNumber = dto.decimalNumber ?: 0,
+            description = dto.description ?: "",
+            end = endFormatted,
+            establishmentDTO = dto.establishmentDTO,
+            establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),
+            establishmentPacksId = dto.establishmentPacksId ?: 0L,
+            EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
+            facadeUrl = dto.facadeUrl ?: "",
+            from = dto.from?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+            HappyHours = dto.HappyHours ?: emptyList(),
+            mgAmount = dto.mgAmount ?: BigDecimal.ZERO,
+            moyFeed = dto.moyFeed ?: 0.0,
+            numberOfPart = dto.numberOfPart ?: 0.0,
+            numberOfPlayer = dto.numberOfPlayer ?: 0,
+            openTime = dto.openTime?.toString() ?: Instant.now().toString(),
+            payFromAvoir = dto.payFromAvoir ?: false,
+            plannings = dto.plannings ?: emptyList(),
+            privateExtrasIds = dto.privateExtrasIds ?: emptyList(),
+            ramountfeeTrans = dto.ramountfeeTrans ?: BigDecimal.ZERO,
+            reduction = dto.reduction ?: BigDecimal.ZERO,
+            reductionAmount = dto.reductionAmount ?: BigDecimal.ZERO,
+            reductionSecondAmount = dto.reductionSecondAmount ?: BigDecimal.ZERO,
+            reductionaAmount = dto.reductionaAmount ?: BigDecimal.ZERO,
+            reductionaSecondAmount = dto.reductionaSecondAmount ?: BigDecimal.ZERO,
+            rsamountfeeTrans = dto.rsamountfeeTrans ?: BigDecimal.ZERO,
+            samountfeeTrans = dto.samountfeeTrans ?: BigDecimal.ZERO,
+            searchDate = dto.searchDate ?: "",
+            secondAamount = dto.secondAamount ?: BigDecimal.ZERO,
+            secondAmount = dto.secondAmount ?: BigDecimal.ZERO,
+            secondReduction = dto.secondReduction ?: 0,
+            sharedExtrasIds = dto.sharedExtrasIds ?: emptyList(),
+            to = dto.to?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+            start = startFormatted,
+            totalFeed = dto.totalFeed ?: 0,
+            users = dto.users ?: emptyList(),
+            usersIds = dto.usersIds ?: emptyList(),
+            withSecondPrice = dto.withSecondPrice ?: false,
+
+        )
+    }
+}
+
+
 
 @OptIn(ExperimentalMaterialApi::class)
-
 @Composable
 fun PaymentSection1(
     selectedDate: LocalDate,
@@ -84,25 +156,25 @@ fun PaymentSection1(
     onPayWithCardClick: () -> Unit,
     totalAmount: String,
     navController: NavController,
-    viewModel : SaveBookingViewModel = hiltViewModel(),
-    saveBookingRequest: List<SaveBookingRequest>,
-    viewModel1 : PaymentViewModel = hiltViewModel(),
+    viewModel: SaveBookingViewModel = hiltViewModel(),
+    viewModel1: PaymentViewModel = hiltViewModel(),
     paymentRequest: PaymentRequest,
-
+    amountSelected: Double,
+    currencySymbol: String,
+    bookingViewModel: BookingViewModel = hiltViewModel(), // Use the shared BookingViewModel
 
 ) {
-    var showPayScreen by remember { mutableStateOf(false) }
+    val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
+
+    val viewModel2: ExtrasViewModel = hiltViewModel()
 
     var additionalExtrasEnabled by remember { mutableStateOf(false) }
-    val selectedExtras = remember { mutableStateListOf<Triple<String, String, Int>>() } // State for selected extras
+    val selectedExtras = remember { mutableStateListOf<Triple<String, String, Int>>() }
 
     var partnerName by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
     var selectedParts by remember { mutableStateOf("1") }
-    val options = listOf("1", "2", "3", "4")
     var phoneNumber by remember { mutableStateOf("") }
-    var payParts by remember { mutableStateOf("1") }
-    var payTotal by remember { mutableStateOf(false) }
     var extrasEnabled by remember { mutableStateOf(false) }
     var selectedRaquette by remember { mutableStateOf(1) }
     var includeBalls by remember { mutableStateOf(false) }
@@ -115,38 +187,20 @@ fun PaymentSection1(
 
     var totalExtrasCost by remember { mutableStateOf(0.0) }
     onExtrasUpdate(totalExtrasCost.toInt(), selectedRaquette, includeBalls)
-
-    // Recalculate the total amount when extras are updated
-    val totalAmountSelected = remember(totalExtrasCost) {
-        val reservationAmount = selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
-        reservationAmount + totalExtrasCost
-    }
-
-    // Update the extras whenever they change
     onExtrasUpdate(totalExtrasCost.toInt(), selectedRaquette, includeBalls)
 
-    // Handle the addition of extras
-    val onTotalAmountCalculated: (Int) -> Unit = { totalAmountSelected ->
-        // Handle the total amount calculation
-        Log.d("TotalAmount", "The total amount is $totalAmountSelected")
-    }
 
-    viewModel.dataResult.observe(lifecycleOwner) { result ->
-        isLoading = false
 
-        when (result) {
-            is DataResult.Loading -> {
-                Log.e("TAG", "Loading")
-            }
-            is DataResult.Success -> {
-                Log.e("TAG", "Success")
-            }
-            is DataResult.Failure -> {
-                isLoading = false
-                Log.e("TAG", "Failure - Error Code: ${result.exception},${result.errorCode}, Message: ${result.errorMessage}")
-            }
-        }
-    }
+    val selectedBookingsJson = navController.previousBackStackEntry?.arguments?.getString("selectedBookings")
+    val selectedBookings = Gson().fromJson(selectedBookingsJson, Array<GetBookingResponseDTO>::class.java).toList()
+
+    // Map the DTOs to domain objects
+    val dataResult by viewModel.dataResult.observeAsState()
+
+
+
+
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -161,19 +215,41 @@ fun PaymentSection1(
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(text = "Requis pour votre réservation", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+
+                Text(
+                    text = "Requis pour votre réservation",
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold)
+
                 Spacer(modifier = Modifier.height(18.dp))
 
-                HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
+                HorizontalDivider(
+                    modifier = Modifier
+                        .width(900.dp)
+                        .padding(horizontal = 10.dp)
+                        .offset(y = -10.dp),
                     color = Color.Gray, thickness = 1.dp)
+
                 Spacer(modifier = Modifier.height(8.dp))
-                Text(text = "    Numéro de téléphone", fontSize = 15.sp,fontWeight = FontWeight.Bold)
+
+                Text(text = "    Numéro de téléphone",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold)
+
                 Spacer(modifier = Modifier.height(18.dp))
 
-                HorizontalDivider(modifier = Modifier .width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
+                HorizontalDivider(
+                    modifier = Modifier
+                        .width(900.dp)
+                        .padding(horizontal = 10.dp)
+                        .offset(y = -10.dp),
                     color = Color.Gray, thickness = 1.dp)
+
                 // Phone number input with pre-filled number and "Modifier" button
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically)
+                {
+
                     BasicTextField(
                         value = phoneNumber,
                         onValueChange = {
@@ -252,281 +328,23 @@ fun PaymentSection1(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Je veux payer pour",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
+        ReservationDetailsCard(
+            selectedExtras = selectedExtras,
+            onExtrasUpdate = { updatedExtras, updatedTotalCost ->
+                // Handle the updated extras list and total cost
+                selectedExtras.clear()
+                selectedExtras.addAll(updatedExtras)
 
-                    Spacer(modifier = Modifier.width(100.dp))
+                // Update the total cost or perform other actions
+                val updatedCost = updatedTotalCost
+            },
+            selectedReservation = selectedReservation,
+            viewModel2 = viewModel2
+        )
 
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        TextField(
-                            value = selectedParts,
-                            onValueChange = { selectedParts = it },
-                            readOnly = true,
-                            modifier = Modifier
-                                .widthIn(min = 30.dp).width(50.dp)
-                                .border(1.dp, Color.Gray, RoundedCornerShape(13.dp)),
-                            colors = TextFieldDefaults.textFieldColors(
-                                backgroundColor = Color.White,
-                                cursorColor = Color.Transparent,
-                                focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent
-                            ),
-                            placeholder = { Text("Select parts") }
-                        )
 
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false }
-                        ) {
-                            options.forEach { option ->
-                                DropdownMenuItem(
-                                    onClick = {
-                                        selectedParts = option
-                                        expanded = false
-                                    },
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(20.dp)
-                                        .padding(horizontal = 2.dp)
-                                ) {
-                                    Text(
-                                        text = option,
-                                        fontSize = 16.sp,
-                                        modifier = Modifier.align(Alignment.CenterVertically)
-                                    )
-                                }
-                            }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.width(10.dp))
 
-                    Text(
-                        text = "Parts",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                    HorizontalDivider(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 10.dp),
-                        color = Color.Gray,
-                        thickness = 1.dp
-                    )
-
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
-        ) {
-            var extrasEnabled by remember { mutableStateOf(false) }
-            Column(modifier = Modifier.padding(16.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "    Sélectionnez votre partenaire",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Switch(
-                        checked = extrasEnabled,
-                        onCheckedChange = { extrasEnabled = it }, // Toggle the extrasEnabled state
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFF0054D8),
-                            uncheckedThumbColor = Color.Gray,
-                            checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f),
-                            uncheckedTrackColor = Color.LightGray
-                        )
-                    )
-                }
-                Spacer(modifier = Modifier.height(12.dp))
-
-                HorizontalDivider(
-                    modifier = Modifier
-                        .width(900.dp)
-                        .padding(horizontal = 10.dp)
-                        .offset(y = -10.dp),
-                    color = Color.Gray,
-                    thickness = 1.dp
-                )
-
-                if (extrasEnabled) { // Conditional rendering based on the switch state
-                    Column {
-                        Text(
-                            text = "Votre partenaire doit avoir un compte sur PADELIUM",
-                            color = Color.Gray,
-                            fontSize = 16.sp,
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        OutlinedTextField(
-                            value = partnerName,
-                            onValueChange = { partnerName = it },
-                            label = {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.CenterStart // Align placeholder text to the center vertically.
-                                ) {
-                                    Text("Taper le nom de votre partenaire")
-                                }
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(56.dp), // Slightly increase height for better alignment.
-                            colors = TextFieldDefaults.outlinedTextFieldColors(
-                                backgroundColor = Color.White
-                            ),
-                            shape = RoundedCornerShape(15.dp)
-                        )
-                    }
-                }
-            } }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp), // Added padding to separate the card from the screen edges
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(6.dp) // Slightly increased elevation for better visual separation
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                // Title and Switch
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "Je commande des extras?",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Switch(
-                        checked = additionalExtrasEnabled,
-                        onCheckedChange = { additionalExtrasEnabled = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color(0xFF0054D8),
-                            uncheckedThumbColor = Color.Gray,
-                            checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f),
-                            uncheckedTrackColor = Color.LightGray
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Horizontal Divider
-                HorizontalDivider(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 10.dp),
-                    color = Color.Gray,
-                    thickness = 1.dp
-                )
-
-                // Extras Section
-                if (additionalExtrasEnabled) {
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    Text(
-                        text = "Article(s) réserver à mon usage",
-                        fontSize = 14.sp,
-                        color = Color.Gray,
-                        modifier = Modifier.padding(bottom = 8.dp)
-                    )
-                    var extrasCost by remember { mutableStateOf(0.0) } // State for total cost of extras
-
-                    // Extras List
-                    val extras: List<Triple<String, String, Int>> = listOf(
-                        Triple("Une raquette", "5 DT", R.drawable.raquettebl),
-                        Triple("Eau", "5 DT", R.drawable.eau),
-                        Triple("EXTRA", "10 DT", R.drawable.star)
-                    )
-
-                    extras.forEachIndexed { index, (name, price, iconRes) ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 8.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (index % 2 == 0) Color(0xFFF8F8F8) else Color.White) // Alternating row colors
-                                .border(1.dp, Color.LightGray, RoundedCornerShape(8.dp))
-                                .padding(8.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Image(
-                                    painter = painterResource(id = iconRes),
-                                    contentDescription = name,
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFFF0F0F0))
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Column {
-                                    Text(text = name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                                    Text(text = price, fontSize = 14.sp, color = Color.Gray)
-                                }
-                            }
-                            IconButton(onClick = {
-                                selectedExtras.add(Triple(name, price, iconRes))
-                                val extraPrice = price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
-                                totalExtrasCost += extraPrice
-                            })
-                            {
-                                Icon(
-                                    painter = painterResource(id = R.drawable.plus),
-                                    contentDescription = "Add",
-                                    tint = Color.Unspecified,
-                                    modifier = Modifier
-                                        .size(28.dp)
-                                        .background(Color(0xFF0054D8), shape = CircleShape)
-                                        .padding(8.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
 
 
         Card(
@@ -535,20 +353,33 @@ fun PaymentSection1(
             colors = CardDefaults.cardColors(Color.White),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
+            var selectedExtras by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
+            var totalExtrasCost by remember { mutableStateOf(0.0) }
+            ExtrasSection(
+                onExtrasUpdate = { extras, cost ->
+                    selectedExtras = extras
+                    totalExtrasCost = cost
+                }
+            )
             ReservationSummary(
                 selectedDate = selectedDate,
                 selectedTimeSlot = selectedTimeSlot ?: "Not selected",
                 selectedReservation = selectedReservation ?: ReservationOption("Default", "Not selected", "100.0", "Not selected"),
-                extrasCost = extrasCost,
-                selectedExtras = selectedExtras, // Pass the entire list of extras
+                selectedExtras = selectedExtras, // Pass the selectedExtras list directly
                 selectedRaquette = selectedRaquette.toString(),
                 includeBalls = includeBalls,
-                amountSelected = selectedReservation?.price?.replace("[^\\d.]".toRegex(), "")?.toDoubleOrNull() ?: 0.0,
-                onTotalAmountCalculated = { totalAmountSelected ->
-                    Log.d("TotalAmountSelected", "The total amount is $totalAmountSelected")
+                amountSelected = selectedReservation?.let {
+                    val price = it.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
+                    val currencySymbol = it.price.replace("[\\d.]".toRegex(), "") // Extract currency symbol
+                    Pair(price, currencySymbol)
+                },
+                onTotalAmountCalculated = { totalAmountSelected, currencySymbol ->
+                    Log.d("TotalAmountSelected", "The total amount is $totalAmountSelected and currency symbol is $currencySymbol")
                 }
             )
-            val displayedPrice = "${selectedReservation?.price?.replace("[^\\d.]".toRegex(), "")?.toDoubleOrNull() ?: 0.0} DT"
+
+
+
 
 
 
@@ -557,117 +388,80 @@ fun PaymentSection1(
         Spacer(modifier = Modifier.height(16.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth().offset(x=-10.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(x = -10.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Button(
-                onClick = {
-                    onPayWithCardClick()
-                    Log.e("TAG", "onclick")
-
-                    var isLoading = true
-
-                    viewModel.SaveBooking(saveBookingRequest)
-
-                    viewModel.dataResult.observe(lifecycleOwner) { result ->
-                        when (result) {
-                            is DataResult.Loading -> {
-                                isLoading = true
-
-                            }
-                            is DataResult.Success -> {
-                                Log.d("SaveBooking", "SaveBooking successful: ${result.data}")  // Access data from Success
-
-                                isLoading = false
-
-
-                                viewModel1.Payment(paymentRequest)
-
-                                viewModel1.dataResult.observe(lifecycleOwner) { paymentResult ->
-                                    when (paymentResult) {
-                                        is DataResult.Loading -> {
-                                            isLoading = true
-
-                                        }
-                                        is DataResult.Success -> {
-                                            Log.d("Payment", "Payment successful: ${paymentResult.data}") // Log the success
-
-                                            isLoading = false
-
-                                            val paymentUrl = "https://test.clictopay.com/payment/merchants/CLICTOPAY/payment_fr.html?mdOrder=dd79368f-6e10-71a4-8641-4ce60008f1b8"
-                                            navController.navigate("WebViewScreen?paymentUrl=${Uri.encode(paymentUrl)}")
-                                        }
-                                        is DataResult.Failure -> {
-                                            Log.e("Payment", "Payment failed: ${paymentResult.errorMessage}") // Log the failure
-
-                                            isLoading = false
-
-                                            Toast.makeText(
-                                                context,
-                                                "Payment failed: ${paymentResult.errorMessage}",
-                                                Toast.LENGTH_SHORT
-                                            ).show()
-                                        }
-                                    }
-                                }
-                            }
-                            is DataResult.Failure -> {
-                                isLoading = false
-
-
-                                Toast.makeText(
-                                    context,
-                                    "Booking failed: ${result.errorMessage}",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
-                        }
-                    }
-                },
+            Row(
                 modifier = Modifier
-                    .weight(1f)
-                    .padding(end = 8.dp),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                border = BorderStroke(2.dp, Color(0xFF0054D8))
+                    .fillMaxWidth()
+                    .offset(x = -10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Payment,
-                        contentDescription = "Card Payment",
-                        tint = Color(0xFF0054D8)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Card Crédit",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
-                }
-            }
 
-            Button(
-                onClick = {  },
-                modifier = Modifier.weight(1f),
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                border = BorderStroke(2.dp, Color(0xFF0054D8))
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.Money,
-                        contentDescription = "Credits Payment",
-                        tint = Color(0xFF0054D8)
-                    )
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(
-                        text = "Crédit Padelium",
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Gray
-                    )
+                // Card Payment Button
+                Button(
+                    onClick = {
+                        isLoading = true
+                        val mappedBookings = selectedBookings.toDomain()
+
+                        saveBookingViewModel.SaveBooking(mappedBookings)
+                        Log.d("SelectedBookings", "Selected bookings: $selectedBookingsJson")
+                        Log.d("MappedBookings", "Mapped bookings: $mappedBookings")
+
+
+                    },
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 8.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                    border = BorderStroke(2.dp, Color(0xFF0054D8))
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Payment,
+                            contentDescription = "Card Payment",
+                            tint = Color(0xFF0054D8)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Card Crédit",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                    }
+                }
+
+                Button(
+                    onClick = {},
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(start = 8.dp),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                    border = BorderStroke(2.dp, Color(0xFF0054D8))
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Money,
+                            contentDescription = "Credits Payment",
+                            tint = Color(0xFF0054D8)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Crédit Padelium",
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray
+                        )
+                    }
                 }
             }
         }
+
+        }
     }
-}
+
+
 @Composable
 fun WebViewScreen(paymentUrl: String, navController: NavController) {
     Box(modifier = Modifier.fillMaxSize()) {
@@ -695,9 +489,10 @@ fun WebViewScreen(paymentUrl: String, navController: NavController) {
     }
 }
 
-fun calculateTotalAmount(): Int {
-    // Your logic to calculate the total amount based on selected options
-    return 100 // Example static value, replace this with actual calculation
-}
+
+
+
+
+
 
 

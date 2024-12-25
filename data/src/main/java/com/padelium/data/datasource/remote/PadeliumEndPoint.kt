@@ -1,16 +1,23 @@
 package com.padelium.data.datasource.remote
 
-import com.nevaDev.padeliummarhaba.repository.LoginRequestDto
 import com.padelium.data.dto.ConfirmBookingRequestDTO
-import com.padelium.data.dto.ExtrasRequestDTO
+import com.padelium.data.dto.CreditPayResponseDTO
+import com.padelium.data.dto.ExtrasResponseDTO
 import com.padelium.data.dto.FetchKeyRequestDTO
+import com.padelium.data.dto.GetBookingResponseDTO
+import com.padelium.data.dto.GetPacksResponseDTO
 import com.padelium.data.dto.GetPaymentRequestDTO
+import com.padelium.data.dto.GetProfileResponseDTO
+import com.padelium.data.dto.GetReservationResponseDTO
 import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
+import com.padelium.data.dto.ProfileRequestDTO
 import com.padelium.data.dto.SaveBookingRequestDTO
+import com.padelium.data.dto.SaveBookingResponseDTO
 import com.padelium.data.dto.SignupRequestDTO
+import com.padelium.data.dto.UserAvoirRequestDTO
+import com.padelium.data.dto.UserAvoirResponseDTO
 import com.padelium.domain.dto.ConfirmBookingResponse
-import com.padelium.domain.dto.ExtrasRequest
 import com.padelium.domain.dto.ExtrasResponse
 import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.GetBookingResponse
@@ -18,21 +25,32 @@ import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.dto.PaymentResponse
+import com.padelium.domain.dto.SaveBookingRequest
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.GET
 import retrofit2.http.Headers
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 
 interface PadeliumEndPoint {
+    @Headers(
+        "Accept: application/json", "Content-Type: application/x-www-form-urlencoded")
+    @FormUrlEncoded
+    @POST("api/authentication")
+    suspend fun loginUser(
+        @Field("username") username: String,
+        @Field("password") password: String
+    ): Response<ResponseBody>
 
-    @Headers("Accept: application/json", "Content-Type: application/json","Accept: XSRF-TOKEN")
-    @POST("/api/authentication/")
-    suspend fun loginUser(@Body loginRequest: LoginRequestDto): Response<Void>
-
-    @Headers("Accept: XSRF-TOKEN")
     @POST("/api/register")
     suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
@@ -57,21 +75,56 @@ interface PadeliumEndPoint {
     @POST("api/establishments/search/get/booking")
     suspend fun GetBooking(@Body key: RequestBody): Response<List<GetBookingResponse>>
 
-       @Headers("Content-Type: application/json")
+
+
+    @Headers("Accept: application/json")
+    @POST("/api/account")
+    suspend fun Profile(@Body profileRequest: ProfileRequestDTO): Response<Void>
+
+
+    @Headers("Accept: application/json" )
+    @GET("api/packs/online")
+    suspend fun GetPacks(): Response<List<GetPacksResponseDTO>>
+
+    @Headers("Accept: application/json" )
+    @GET("api/user-avoirs")
+    suspend fun GetCreditPay(): Response<List<CreditPayResponseDTO>>
+
+    @Headers("Accept: application/json" )
+    @GET("api/bookings")
+    suspend fun GetReservation(): Response<List<GetReservationResponseDTO>>
+
+    @Headers("Accept: application/json")
+    @GET("/api/account")
+    suspend fun GetProfile(): Response<GetProfileResponseDTO>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @GET("api/extras")
+    suspend fun Extras(): Response<List<ExtrasResponseDTO>>
+
+
+
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("api/establishments/search/save/booking")
-    suspend fun SaveBooking(@Body saveBookingRequest: List<SaveBookingRequestDTO>): Response<List<SaveBookingResponse>>
+    suspend fun SaveBooking(@Body saveBookingRequest: List<GetBookingResponse>): Response<List<SaveBookingResponse>>
+
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/payment")
+    suspend fun Payment(@Body paymentRequest: PaymentRequestDTO): Response<PaymentResponse?>
+
+
+
+
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/payment/user/avoir")
+    suspend fun PaymentAvoir(@Body userAvoirRequest: UserAvoirRequestDTO): Response<UserAvoirResponseDTO>
 
     @Headers("Content-Type: application/json")
-    @POST("api/extras")
-    suspend fun Extras(@Body extrasRequest: List<ExtrasRequestDTO>): Response<List<ExtrasResponse>>
-
-    @Headers("Accept: application/json", "Content-Type: application/json","Accept: XSRF-TOKEN")
-    @POST("api/payment")
-    suspend fun Payment(@Body paymentRequest: PaymentRequestDTO): Response<PaymentResponse>
-
-        @Headers("Content-Type: application/json")
     @POST("api/payment/get")
-    suspend fun GetPayment(@Body getPaymentRequest: GetPaymentRequestDTO): Response<List<GetPaymentResponse>>
+    suspend fun GetPayment(@Body getPaymentRequest: GetPaymentRequestDTO): Response<GetPaymentResponse>
 
     @Headers("Content-Type: application/json")
     @POST("api/establishments/search/confirm/booking")

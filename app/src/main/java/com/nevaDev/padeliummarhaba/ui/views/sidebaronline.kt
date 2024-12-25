@@ -146,7 +146,7 @@ fun DrawerContentOnline(
                     icon = R.drawable.sidebarmenue,
                     label = "Mes Réservations",
                     labelColor = Color.White,
-                    onClick = { navController.navigate("reservations_screen") }
+                    onClick = { navController.navigate("summary_screen") }
                 )
                 DrawerItem(
                     icon = R.drawable.sidebarmenue,

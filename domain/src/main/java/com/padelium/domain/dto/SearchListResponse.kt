@@ -88,6 +88,6 @@ data class SearchListResponse(
     val secondPrice: Boolean,
     val isHappyHours: Boolean,
     val annulationDate: String,
-    val HappyHours: List<HappyHours>
+   // val HappyHours: List<happyHours>
 )
 

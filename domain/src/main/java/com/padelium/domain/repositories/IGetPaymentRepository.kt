@@ -6,6 +6,6 @@ import retrofit2.Response
 
 
 interface IGetPaymentRepository {
-    suspend fun GetPayment (getPaymentRequest: GetPaymentRequest): Response<List<GetPaymentResponse>>
+    suspend fun GetPayment (getPaymentRequest: GetPaymentRequest): Response<GetPaymentResponse>
 
 }

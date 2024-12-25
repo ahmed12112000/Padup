@@ -17,7 +17,7 @@ class GetPaymentMapper @Inject constructor(){
             privateExtrasIds = getPaymentRequest.privateExtrasIds,
             sharedExtrasIds = getPaymentRequest.sharedExtrasIds,
             userIds = getPaymentRequest.userIds,
-           // bookingIds = getPaymentRequest.bookingIds,
+            bookingIds = getPaymentRequest.bookingIds,
 
 
  )

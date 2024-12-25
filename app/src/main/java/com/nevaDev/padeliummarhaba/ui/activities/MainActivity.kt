@@ -1,4 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.activities
+
+
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Bundle
@@ -6,6 +8,13 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,9 +46,11 @@ import kotlinx.coroutines.*
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.pager.ExperimentalPagerApi
 import java.time.LocalDate
@@ -50,10 +61,14 @@ import com.nevadev.padeliummarhaba.R
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
+import com.nevaDev.padeliummarhaba.ui.views.PricingCard
+import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.GetPacksResponse
+import com.padelium.domain.dto.GetReservationResponse
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -89,7 +104,7 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences) {
     val scope = rememberCoroutineScope()
     var isUserLoggedIn by remember { mutableStateOf(false) }
     var username by remember { mutableStateOf("") }
-
+    val getReservationViewModel: GetReservationViewModel = hiltViewModel()
     val currentBackStackEntry = navController.currentBackStackEntryAsState()
 
     // List of screens where you want to show the top bar
@@ -124,7 +139,10 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences) {
         Scaffold(
 
             bottomBar = {
-                AnimatedBottomBar(navController = navController)
+                AnimatedBottomBar(
+                    navController = navController,
+                    getReservationViewModel = getReservationViewModel
+                )
             },
             content = { innerPadding ->
                 Box(modifier = Modifier.padding(innerPadding)) {
@@ -433,51 +451,75 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
                                 modifier = Modifier.size(44.dp) // Adjust size as needed
                             )
                         } */
-@Composable
-fun AnimatedBottomBar(navController: NavController) {
-    val selectedItem = navController.currentBackStackEntry?.destination?.route ?: "main_screen"
-    val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route ?: "main_screen"
 
-    BottomNavigation(
-        backgroundColor = Color(0xFF0054D8),
+
+@Composable
+fun AnimatedBottomBar(
+    navController: NavController,
+    getReservationViewModel: GetReservationViewModel
+) {
+    val selectedItem = navController.currentBackStackEntry?.destination?.route ?: "main_screen"
+    val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)
+
+    Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(85.dp)
             .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
+            .background(Color(0xFF0054D8))
     ) {
-        // Bottom Navigation Bar
-        CustomBottomNavItem(
-            navController = navController,
-            route = "main_screen",
-            icon = Icons.Filled.Home,
-            label = "Accueil",
-            isSelected = selectedItem == "main_screen",
-            onClick = {
+        BottomNavigation(
+            backgroundColor = Color(0xFF0054D8),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(95.dp)
+        ) {
+            listOf(
+                NavItem("main_screen", Icons.Filled.Home, "Accueil"),
+                NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
+                NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits")
+            ).forEach { item ->
+                val isSelected = selectedItem == item.route
+                val animatedOffsetY by animateDpAsState(
+                    targetValue = if (isSelected) (-12).dp else 0.dp,
+                    animationSpec = spring(
+                        dampingRatio = Spring.DampingRatioMediumBouncy,
+                        stiffness = Spring.StiffnessLow
+                    )
+                )
 
-
+                CustomBottomNavItem(
+                    navController = navController,
+                    route = item.route,
+                    icon = item.icon,
+                    label = item.label,
+                    isSelected = selectedItem == item.route,
+                    onClick = {
+                        // Handle navigation to CreditPayment screen
+                    }
+                )
             }
-        )
-        CustomBottomNavItem(
-            navController = navController,
-            route = "summary_screen",
-            icon = Icons.Filled.CalendarMonth,
-            label = "Mes Réservations",
-            isSelected = selectedItem == "summary_screen",
-            onClick = {
-
-            }
-            )
-        CustomBottomNavItem(
-            navController = navController,
-            route = "CreditPayment",
-            icon = Icons.Filled.CreditCard,
-            label = "Mes crédits",
-            isSelected = selectedItem == "CreditPayment",
-            onClick = {
-            }
-            )
+        }
     }
 }
+/*
+
+            CustomBottomNavItem(
+                navController = navController,
+                route = "CreditPayment",
+                icon = Icons.Filled.CreditCard,
+                label = "Mes crédits",
+                isSelected = selectedItem == "CreditPayment",
+                onClick = {
+                    // Handle navigation to CreditPayment screen
+                }
+            )
+        }
+
+        // Handle reservation data states
+
+    }
+}
+*/
 
 @Composable
 fun CustomBottomNavItem(
@@ -486,46 +528,69 @@ fun CustomBottomNavItem(
     icon: ImageVector,
     label: String,
     isSelected: Boolean,
-    onClick: () -> Unit
+    onClick: @Composable () -> Unit
 
 ) {
+    val animatedOffsetY by animateDpAsState(
+        targetValue = if (isSelected) (-12).dp else 0.dp,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
 
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFFD7F057) else Color.Transparent,
+        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
+    )
 
+    val contentColor by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFF0054D8) else Color.White,
+        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
+    )
     Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+
+
             .clickable {
                 navController.navigate(route) {
-                    popUpTo(navController.graph.startDestinationId) {
-                        saveState = true
-                    }
+                    popUpTo(navController.graph.startDestinationId) { saveState = true }
                     launchSingleTop = true
                     restoreState = true
                 }
             }
             .padding(12.dp)
-
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.height(100.dp)
+            modifier = Modifier.height(60.dp)
+                .offset(y = animatedOffsetY)
+
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
-                tint = Color.White,
+                tint = contentColor,
                 modifier = Modifier.size(40.dp)
+                    .clip(CircleShape)
+                    .background(backgroundColor)
+
             )
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = label,
-                color = Color.White,
+                color = Color(0xFFD7F057),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal
             )
         }
     }
 }
+
+data class NavItem(val route: String, val icon: ImageVector, val label: String)
 
 
 
@@ -775,7 +840,7 @@ fun DrawerItem(
 
     Divider(color = Color.White, thickness = 1.dp)
 }
-
+/*
 
 @Preview(showBackground = true)
 @Composable
@@ -797,13 +862,19 @@ fun PreviewMainScreen() {
         }
     )
 }
+*/
 
 @Preview(showBackground = true)
 @Composable
-fun PreviewAnimatedBottomBar() {
+fun AnimatedBottomBarPreview() {
+    val mockNavController = rememberNavController()
+
     // You can use a mocked NavController for preview
     val navController = rememberNavController()
+    val getReservationViewModel: GetReservationViewModel = hiltViewModel()
 
-    AnimatedBottomBar(navController = navController)
+    AnimatedBottomBar(navController = navController,
+        getReservationViewModel = getReservationViewModel
+    )
 }
 

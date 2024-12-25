@@ -5,6 +5,6 @@ import com.padelium.domain.dto.PaymentResponse
 import retrofit2.Response
 
 interface IPaymentRepository {
-    suspend fun Payment (paymentRequest: PaymentRequest): Response<PaymentResponse>
+    suspend fun Payment (paymentRequest: PaymentRequest): Response<PaymentResponse?>
 
 }

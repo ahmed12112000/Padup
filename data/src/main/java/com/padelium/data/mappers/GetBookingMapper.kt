@@ -14,58 +14,87 @@ import javax.inject.Inject
 
 class GetBookingMapper @Inject constructor() {
 
+    fun GetBookingResponseDtoToGetBookingResponse(dtos: List<GetBookingResponseDTO>): List<GetBookingResponse> {
+        return dtos.map { dto ->
+            GetBookingResponse(
+                // Map fields from GetBookingResponseDTO to GetBookingResponse
+                aamount = dto.aamount ?: BigDecimal.ZERO,
+                amount = dto.amount ?: 0.0,
+                amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
+                bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptyList(),
+                isClient = dto.isClient ?: true,
+                closeTime = dto.closeTime?.toString() ?: Instant.now().toString(),
+
+                couponCode = dto.couponCode ?: "",
+                currencyId = dto.currencyId ?: 0L,
+                currencySymbol = dto.currencySymbol ?: "",
+                decimalNumber = dto.decimalNumber ?: 0,
+                description = dto.description ?: "",
+                end = dto.end ?: "",
+                establishmentDTO = dto.establishmentDTO,
+                establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),
+                establishmentPacksId = dto.establishmentPacksId ?: 0L,
+                EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
+                facadeUrl = dto.facadeUrl ?: "",
+                from = dto.from ?: "",
+                HappyHours = dto.HappyHours ?: emptyList(),
+                mgAmount = dto.mgAmount ?: BigDecimal.ZERO,
+                moyFeed = dto.moyFeed ?: 0.0,
+                numberOfPart = dto.numberOfPart ?: 0.0,
+                numberOfPlayer = dto.numberOfPlayer ?: 0,
+                openTime = dto.openTime?.toString() ?: Instant.now().toString(),
+                payFromAvoir = dto.payFromAvoir ?: false,
+                plannings = dto.plannings ?: emptyList(),
+                privateExtrasIds = dto.privateExtrasIds ?: emptyList(),
+                ramountfeeTrans = dto.ramountfeeTrans ?: BigDecimal.ZERO,
+                reduction = dto.reduction ?: BigDecimal.ZERO,
+                reductionAmount = dto.reductionAmount ?: BigDecimal.ZERO,
+                reductionSecondAmount = dto.reductionSecondAmount ?: BigDecimal.ZERO,
+                reductionaAmount = dto.reductionaAmount ?: BigDecimal.ZERO,
+                reductionaSecondAmount = dto.reductionaSecondAmount ?: BigDecimal.ZERO,
+                rsamountfeeTrans = dto.rsamountfeeTrans ?: BigDecimal.ZERO,
+                samountfeeTrans = dto.samountfeeTrans ?: BigDecimal.ZERO,
+                searchDate = dto.searchDate ?: "",
+                secondAamount = dto.secondAamount ?: BigDecimal.ZERO,
+                secondAmount = dto.secondAmount ?: BigDecimal.ZERO,
+                secondReduction = dto.secondReduction ?: 0,
+                sharedExtrasIds = dto.sharedExtrasIds ?: emptyList(),
+                start = dto.start?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+                to = dto.to?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+
+                totalFeed = dto.totalFeed ?: 0,
+                users = dto.users ?: emptyList(),
+                usersIds = dto.usersIds ?: emptyList(),
+                withSecondPrice = dto.withSecondPrice ?: false,
+                )
+        }
+    }
+
+
+
+
+
 
     fun GetBookingResponseToGetBookingResponseDto(getBookingResponse: List<GetBookingResponse>): List<GetBookingResponseDTO> {
-        val gson = Gson()
-
         return getBookingResponse.map { response ->
 
-            // Parse the EstablishmentDTO from the response
-            val establishmentDTOList: List<EstablishmentDTO> = try {
-                val establishmentJson = response.EstablishmentDTO
-
-                // Check if the establishmentJson is a valid JsonElement
-                if (establishmentJson is JsonElement) {
-                    when {
-                        // If it's a JSON array, parse it into a list of EstablishmentDTO objects
-                        establishmentJson.isJsonArray -> gson.fromJson(establishmentJson, Array<EstablishmentDTO>::class.java).toList()
-
-                        // If it's a JSON object, wrap it into a list
-                        establishmentJson.isJsonObject -> listOf(gson.fromJson(establishmentJson, EstablishmentDTO::class.java))
-
-                        // If it's neither an array nor an object, return an empty list
-                        else -> emptyList()
-                    }
-                } else {
-                    emptyList()  // Return an empty list if it's not a JsonElement
-                }
-            } catch (e: Exception) {
-                Log.e("ParsingError", "Failed to parse EstablishmentDTO: ${e.message}")
-                emptyList()  // Return an empty list if parsing fails
-            }
-
-            // If establishmentDTOList is empty, ensure name is a default value
-            val establishmentDTOWithNames = establishmentDTOList.map {
-                Log.d("EstablishmentName", "Establishment name: ${it.name ?: "Unknown"}")
-
-                it.copy(name = it.name ?: "Unknown")
-            }
-
-            // Return the final DTO with the list of EstablishmentDTO
             GetBookingResponseDTO(
-                EstablishmentDTO = response.EstablishmentDTO?: emptyList(),
+                establishmentDTO = response.establishmentDTO,
+                description = response.description ?: "",
                 amount = response.amount ?: 0.0,
                 decimalNumber = response.decimalNumber ?: 0,
                 currencySymbol = response.currencySymbol ?: "",
                 facadeUrl = response.facadeUrl ?: "",
-                openTime = response.openTime ?: Instant.now(),
-                closeTime = response.closeTime ?: Instant.now(),
+                openTime = response.openTime?.toString() ?: Instant.now().toString(),
+                closeTime = response.closeTime?.toString() ?: Instant.now().toString(),
+
                 searchDate = response.searchDate ?: "",
-                from = response.from ?: "",
-                to = response.to ?: "",
+                from = response.from?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+
+                to = response.to?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+
                 numberOfPlayer = response.numberOfPlayer ?: 0,
-                description = response.description ?: "",
-                currencyId = response.currencyId ?: 0,
+                currencyId = response.currencyId ?: 0L,
                 mgAmount = response.mgAmount ?: BigDecimal.ZERO,
                 totalFeed = response.totalFeed ?: 0,
                 moyFeed = response.moyFeed ?: 0.0,
@@ -77,10 +106,11 @@ class GetBookingMapper @Inject constructor() {
                 reductionAmount = response.reductionAmount ?: BigDecimal.ZERO,
                 reductionSecondAmount = response.reductionSecondAmount ?: BigDecimal.ZERO,
                 payFromAvoir = response.payFromAvoir ?: false,
-                reduction = response.reduction ?: 0,
+                reduction = response.reduction ?: BigDecimal.ZERO,
                 reductionaAmount = response.reductionaAmount ?: BigDecimal.ZERO,
                 reductionaSecondAmount = response.reductionaSecondAmount ?: BigDecimal.ZERO,
-                start = response.start ?: "",
+                start = response.start?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
+
                 end = response.end ?: "",
                 amountfeeTrans = response.amountfeeTrans ?: BigDecimal.ZERO,
                 samountfeeTrans = response.samountfeeTrans ?: BigDecimal.ZERO,
@@ -95,22 +125,12 @@ class GetBookingMapper @Inject constructor() {
                 secondReduction = response.secondReduction ?: 0,
                 aamount = response.aamount ?: BigDecimal.ZERO,
                 EstablishmentPictureDTO = response.EstablishmentPictureDTO ?: emptyList(),
-                key = response.key?: ""
+                numberOfPart = response.numberOfPart ?: 0.0,
+                privateExtrasIds = response.privateExtrasIds ?: emptyList(),
+                sharedExtrasIds = response.sharedExtrasIds ?: emptyList(),
+                usersIds = response.usersIds ?: emptyList(),
 
                 )
-        }
-    }
-    fun GetBookingDataResultToGetBookingDataResultDto(getBookingDataResult: List<GetBookingDataResult>): List<GetBookingDataResultDto> {
-        return getBookingDataResult.map { response ->
-            GetBookingDataResultDto(
-                name = response.name ?: "",
-                amount = response.amount ?: 0.0,
-                currencySymbol = response.currencySymbol ?: "",
-                fromStr = response.fromStr ?: "",
-                toStr = response.toStr ?: "",
-
-
-            )
         }
     }
 }

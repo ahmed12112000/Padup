@@ -12,8 +12,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import com.nevaDev.padeliummarhaba.di.JSessionInterceptor
-
 @InstallIn(SingletonComponent::class)
 @Module
 object NetworkModule {
@@ -35,15 +33,24 @@ object NetworkModule {
     @Provides
     fun provideOkHttpClient(
         loggingInterceptor: HttpLoggingInterceptor,
-        csrfInterceptor: CsrfInterceptor,
-        authInterceptor: AuthInterceptor,
         jSessionInterceptor: JSessionInterceptor
     ): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
         return OkHttpClient.Builder()
-            .addInterceptor(loggingInterceptor) // Logging interceptor for request/response logging
-            .addInterceptor(csrfInterceptor)    // CSRF Interceptor for token handling
-            .addInterceptor(authInterceptor)    // Add AuthInterceptor for Authorization token
-            .addInterceptor(jSessionInterceptor) // Add JSessionInterceptor to manage cookies
+            .addInterceptor(logging) // Logging interceptor for request/response logging
+            .addInterceptor(jSessionInterceptor) // Ensure JSessionInterceptor is added here
+            .addInterceptor { chain ->
+                val response = chain.proceed(chain.request())
+
+                // Log response details for debugging
+                println("Response Code: ${response.code}")
+                println("Response Body: ${response.peekBody(2048).string()}")
+
+                response
+            }
             .build()
     }
 
@@ -55,18 +62,9 @@ object NetworkModule {
     }
 
     @Provides
-    fun provideCsrfInterceptor(sharedPreferences: SharedPreferences): CsrfInterceptor {
-        return CsrfInterceptor(sharedPreferences) // Pass SharedPreferences to the CsrfInterceptor
-    }
-
-    @Provides
-    fun provideAuthInterceptor(sharedPreferences: SharedPreferences): AuthInterceptor {
-        return AuthInterceptor(sharedPreferences) // Provide AuthInterceptor to manage Authorization token
-    }
-
-    @Provides
     fun provideJSessionInterceptor(sharedPreferences: SharedPreferences): JSessionInterceptor {
         return JSessionInterceptor(sharedPreferences) // Provide JSessionInterceptor to manage JSESSIONID cookies
     }
 }
+
 

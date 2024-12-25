@@ -7,9 +7,11 @@ import com.padelium.data.dto.GetInitResponseDTO
 import com.padelium.data.mappers.GetInitMapper
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.usecases.GetInitUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@HiltViewModel
 class GetInitViewModel @Inject constructor(
     private val getInitUseCase: GetInitUseCase,
     private val getInitMapper: GetInitMapper

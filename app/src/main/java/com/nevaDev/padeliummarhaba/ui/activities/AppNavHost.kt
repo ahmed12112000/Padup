@@ -5,8 +5,6 @@ import android.content.SharedPreferences
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -18,12 +16,15 @@ import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.ui.views.*
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
+import com.padelium.domain.dto.EstablishmentBasicDTO
+import com.padelium.domain.dto.EstablishmentPictureBasicDTO
+import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.PaymentRequest
+import com.padelium.domain.dto.PlanningBasicDTO
 import com.padelium.domain.dto.SaveBookingRequest
-import com.padelium.domain.repositories.ISaveBookingRepository
+import com.padelium.domain.dto.happyHoursBasicDTO
 import kotlinx.coroutines.CoroutineScope
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -40,7 +41,7 @@ fun AppNavHost(
     drawerState: DrawerState,
     scope: CoroutineScope,
 
-) {
+    ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
     // Set the TopBar to be shown only on "main_screen"
     Column {
@@ -107,48 +108,6 @@ fun AppNavHost(
                 )
             }
 
-            // Other Screens (without top bar)
-            composable("PaymentScreen1") {
-                // Obtain instances of the ViewModels
-                val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
-                val paymentViewModel: PaymentViewModel = hiltViewModel()
-
-                // Access the current saveBookingRequest and paymentRequest
-                val saveBookingRequest by saveBookingViewModel.saveBookingRequest.observeAsState(emptyList())
-                val paymentRequest by paymentViewModel.paymentRequest.observeAsState(
-                    PaymentRequest(amount = "", orderId = "", currency = "")
-                )
-
-                // Sample data for other parameters
-                val selectedDate = LocalDate.now()
-                val selectedTimeSlot = "10:00 AM"
-                val selectedReservation = ReservationOption(
-                    time = "1",
-                    name = "Standard Reservation",
-                    price = "100.0",
-                    duration = "Reservation for one hour"
-                )
-                val totalAmount = "100.0"
-
-                PaymentSection1(
-                    selectedDate = selectedDate,
-                    selectedTimeSlot = selectedTimeSlot,
-                    selectedReservation = selectedReservation,
-                    onExtrasUpdate = { extra1, extra2, extra3 ->
-                        // Handle extras update logic here
-                    },
-                    onPayWithCardClick = {
-                        // Call Payment function in the ViewModel
-                    },
-                    totalAmount = totalAmount,
-                    navController = navController,
-                    viewModel = saveBookingViewModel,
-                    saveBookingRequest = saveBookingRequest,
-                    viewModel1 = paymentViewModel,
-                    paymentRequest = paymentRequest
-                )
-            }
-
 
             composable(
                 route = "WebViewScreen?paymentUrl={paymentUrl}",
@@ -158,17 +117,32 @@ fun AppNavHost(
                 WebViewScreen(paymentUrl = paymentUrl, navController = navController)
             }
 
+            composable("WebViewScreen?paymentUrl={paymentUrl}") { backStackEntry ->
+                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
+                WebViewScreen(paymentUrl = paymentUrl, navController = navController)
+            }
+            composable("PaymentSuccessScreen") {
+                PaymentSuccessScreen(navController = navController)
+            }
+
             composable("CreditPayment") { CreditPayment(navController = navController) }
             composable("CreditCharge") { CreditCharge() }
             composable("login_screen") {
-                LoginScreen(onLoginSuccess = onLoginSuccess,  navController = navController)
+                LoginScreen(
+                    onLoginSuccess = onLoginSuccess,
+                    navController = navController,
+                    loginRequest = LoginRequest("", "") // Provide initial values as empty or pre-filled as needed.
+                )
             }
             composable("Profile_screen") {
                 ProfileScreen(onLogout = onLogout)
             }
             composable("summary_screen") {
-                SummaryScreen() // Your SummaryScreen Composable
+                SummaryScreen()
             }
+            /*  composable("PaymentSuccessScreen") {
+                  PaymentSuccessScreen(navController = navController)
+              }*/
             composable("main_screen") {
                 MainScreen(
                     navController = navController,
@@ -197,67 +171,68 @@ fun AppNavHost(
                     viewModel = hiltViewModel()
                 )
             }
-            composable(
-                route = "PayScreen/{totalAmount}",
-                arguments = listOf(
-                    navArgument("totalAmount") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val totalAmount = backStackEntry.arguments?.getString("totalAmount") ?: "0"
 
-                PayScreen(
-                    totalAmount = totalAmount,
-                    navController = navController,
-                    onPayWithCardClick = {
+
+            composable("reservation_options") { backStackEntry ->
+                ReservationOptions(
+                    onReservationSelected = { reservationOption ->
+                        navController.navigate("payment_section1/${reservationOption.name}/${reservationOption.time}/${reservationOption.date}/${reservationOption.price}")
                     },
-                    saveBookingRequest = listOf(),
-                    paymentRequest = PaymentRequest(
-                        amount = totalAmount,
-                        currency = "",
-                        orderId = ""
-                    )
+                    isUserLoggedIn = true, // Example value
+                    key = null,
+                    navController = navController,
+                    selectedDate = LocalDate.now(), // Example value
+                    selectedTimeSlot = "12:00 PM" // Example value
                 )
             }
 
             composable(
-                route = "PaymentSection1/{totalAmount}",
+                "PaymentSection1/{amountSelected}/{currencySymbol}/{name}/{time}/{date}",
                 arguments = listOf(
-                    navArgument("totalAmount") { type = NavType.StringType }
+                    navArgument("amountSelected") { type = NavType.FloatType },
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("time") { type = NavType.StringType },
+                    navArgument("date") { type = NavType.StringType },
+                    navArgument("currencySymbol") { type = NavType.StringType },
+
                 )
             ) { backStackEntry ->
-                val totalAmount = backStackEntry.arguments?.getString("totalAmount") ?: "0"
-                val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
-                val paymentViewModel: PaymentViewModel = hiltViewModel()
 
-                // Access the current saveBookingRequest and paymentRequest
-                val saveBookingRequest by saveBookingViewModel.saveBookingRequest.observeAsState(emptyList())
-                val paymentRequest by paymentViewModel.paymentRequest.observeAsState(
-                    PaymentRequest(amount = "", orderId = "", currency = "")
+                val amountSelected = backStackEntry.arguments?.getFloat("amountSelected")?.toDouble() ?: 0.0
+                val currencySymbol = backStackEntry.arguments?.getString("currencySymbol") ?: ""
+                val name = backStackEntry.arguments?.getString("name") ?: ""
+                val time = backStackEntry.arguments?.getString("time") ?: ""
+                val date = backStackEntry.arguments?.getString("date") ?: ""
+
+                val amount = backStackEntry.arguments?.getString("amount") ?: ""
+                val currency = backStackEntry.arguments?.getString("currency") ?: ""
+                val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
+
+                val paymentRequest = PaymentRequest(
+                    amount = amount,
+                    currency = currency,
+                    orderId = orderId
                 )
-                val selectedDate = LocalDate.now()
-                val selectedTimeSlot = "10:00 AM"
-                val selectedReservation = ReservationOption(
-                    time = "1",
-                    name = "Standard Reservation",
-                    price = "100.0",
-                    duration = "Reservation for one hour"
-                )
+
+
                 PaymentSection1(
-                    selectedDate = selectedDate,
-                    selectedTimeSlot = selectedTimeSlot,
-                    selectedReservation = selectedReservation,
-                    onExtrasUpdate = { extra1, extra2, extra3 ->
-                    },
-                    onPayWithCardClick = {
-                    },
-                    totalAmount = totalAmount,
+                    selectedDate = LocalDate.now(),
+                    selectedTimeSlot = time,
+                    selectedReservation = ReservationOption(name, time, "$amountSelected", date),
+                    onExtrasUpdate = { extra1, extra2, extra3 -> },
+                    onPayWithCardClick = { /* Handle pay click */ },
+                    totalAmount = "$amountSelected",
                     navController = navController,
-                    viewModel = saveBookingViewModel,
-                    saveBookingRequest = saveBookingRequest,
-                    viewModel1 = paymentViewModel,
-                    paymentRequest = paymentRequest
+                    paymentRequest = paymentRequest,
+                    viewModel = hiltViewModel(),
+                    viewModel1 = hiltViewModel(),
+                    amountSelected = amountSelected,
+                    currencySymbol = currencySymbol,
+
                 )
             }
+
+
         }
     }
 }

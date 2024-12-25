@@ -23,25 +23,25 @@ import androidx.compose.ui.unit.sp
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun ReservationSummary1(
+fun ReservationSummary2(
     selectedDate: LocalDate,
     selectedTimeSlot: String,
     selectedReservation: ReservationOption,
     extrasCost: Int,
     selectedRaquette: String,
     includeBalls: Boolean,
-    amountSelected: Double?,
-    onTotalAmountCalculated: (Int) -> Unit
+    priceDetails: Pair<Double, String>, // Updated parameter
+    onTotalAmountCalculated: (Double, String) -> Unit // Updated callback
 ) {
-    val price = selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
+    val (price, currencySymbol) = priceDetails
 
-    val totalAmountSelected = remember {
-        (amountSelected?.toInt() ?: 0) + extrasCost
-    }
-    onTotalAmountCalculated(totalAmountSelected)
+    // Calculate the total amount
+    val totalAmountSelected = remember { price + extrasCost }
+
+    // Trigger the callback with total amount and currency symbol
+    onTotalAmountCalculated(totalAmountSelected, currencySymbol)
 
     Column(
         modifier = Modifier
@@ -65,7 +65,7 @@ fun ReservationSummary1(
         )
 
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
-        ReservationDetailRow(label = "Prix", value = "$${String.format("%.2f", amountSelected ?: 0.0)}")
+        ReservationDetailRow(label = "Prix", value = "$currencySymbol${String.format("%.2f", price)}")
         ReservationDetailRow(
             label = "Date",
             value = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy").format(selectedDate)
@@ -81,7 +81,7 @@ fun ReservationSummary1(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        ReservationDetailRow(label = "Prix de Réservation", value = "$${String.format("%.2f", amountSelected ?: 0.0)}")
+        ReservationDetailRow(label = "Prix de Réservation", value = "$currencySymbol${String.format("%.2f", price)}")
 
         val extrasDetails = buildString {
             if (includeBalls) append("3 New Balls + ")
@@ -89,11 +89,10 @@ fun ReservationSummary1(
         }
         ReservationDetailRow(label = "Extras", value = extrasDetails)
 
-        ReservationDetailRow(label = "Total", value = "$${totalAmountSelected}")
-
-        onTotalAmountCalculated(totalAmountSelected)
+        ReservationDetailRow(label = "Total", value = "$currencySymbol${String.format("%.2f", totalAmountSelected)}")
     }
 }
+
 
 
 

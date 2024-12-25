@@ -21,12 +21,18 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
 import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,12 +44,64 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.nevaDev.padeliummarhaba.viewmodels.CreditPayViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
 import com.nevadev.padeliummarhaba.R
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.CreditPayResponse
+import com.padelium.domain.dto.GetPacksResponse
+import com.padelium.domain.dto.GetReservationResponse
 
 @Composable
-fun CreditPayment(navController: NavController) {
+fun CreditPayment(navController: NavController,
+                  viewModel: GetPacksViewModel = hiltViewModel(),
+                  viewModel2: CreditPayViewModel = hiltViewModel(),
+) {
+    val packsData by viewModel.packsData.observeAsState(DataResult.Loading)
+
+    when (val result = packsData) {
+        is DataResult.Loading -> {
+            CircularProgressIndicator()
+        }
+
+        is DataResult.Success -> {
+            // Show the data (e.g., packs)
+            val packs = result.data as List<GetPacksResponse>
+
+        }
+
+        is DataResult.Failure -> {
+            val errorMessage = result.errorMessage
+            Text(text = "Error: $errorMessage")
+        }
+    }
+
+    val CreditsData by viewModel2.CreditsData.observeAsState()
+    val Credits = remember { mutableStateOf<List<CreditPayResponse>>(emptyList()) }
+
+    // On data change, update reservations list
+    LaunchedEffect(CreditsData) {
+        if (CreditsData is DataResultBooking.Success) {
+            Credits.value = (CreditsData as DataResultBooking.Success<List<CreditPayResponse>>).data
+        }
+    }
+
+    // Fetch reservations when screen is launched
+    LaunchedEffect(Unit) {
+        viewModel2.GetCreditPay()
+    }
+    val reservations = Credits.value.filter { it.userAvoirTypeName == "Réservation" }
+    val alimentations = Credits.value.filter { it.userAvoirTypeName == "Alimentation" }
+
+    val totalReservations = reservations.sumOf { it.amount }
+    val totalAlimentations = alimentations.sumOf { it.amount }
+    val balance = totalAlimentations + totalReservations
+
+
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -59,13 +117,13 @@ fun CreditPayment(navController: NavController) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-            Text(
-                text = "Détails\nCrédits",
-                color = Color(0xFFCCFF00),
-                fontSize = 32.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(start = 16.dp)
-            )
+                Text(
+                    text = "Détails\nCrédits",
+                    color = Color(0xFFCCFF00),
+                    fontSize = 32.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(start = 16.dp)
+                )
                 Icon(
                     painter = painterResource(id = R.drawable.a90),
                     contentDescription = "Icon",
@@ -75,7 +133,7 @@ fun CreditPayment(navController: NavController) {
                         .offset(x = 62.dp)
 
                 )
-        }
+            }
         }
 
         Box(
@@ -94,7 +152,7 @@ fun CreditPayment(navController: NavController) {
                     elevation = 2.dp
                 ) {
                     Text(
-                        text = "Votre solde est 0 Crédits",
+                        text = "Votre solde est $balance Crédits",
                         modifier = Modifier.padding(16.dp),
                         fontSize = 16.sp,
                         color = Color.Black
@@ -109,7 +167,10 @@ fun CreditPayment(navController: NavController) {
                 ) {
 
                     Button(
-                        onClick = { navController.navigate("CreditCharge") },
+                        onClick = {
+                            navController.navigate("CreditCharge")
+                            viewModel.GetPacks()
+                        },
                         colors = ButtonDefaults.buttonColors(
                             backgroundColor = Color.White,
                             contentColor = Color(0xFF0066CC),
@@ -133,109 +194,46 @@ fun CreditPayment(navController: NavController) {
                         )
                     }
                 }
-                Box (
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                ) {
-                    Text(
-                        text = "Historiques",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = Color.Black,
-                    )
+                Spacer(modifier = Modifier.height(16.dp))
+
+
+                // Display Reservation List
+                Text(
+                    text = "Historiques - Réservation",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.Black,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                reservations.forEach { credit ->
+                    CreditCard(credit)
                 }
 
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Display Alimentation List
+                Text(
+                    text = "Historiques - Alimentation",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = Color.Black,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                alimentations.forEach { credit ->
+                    CreditCard(credit)
+                }
             }
         }
     }
+}
 
-    Column() {
-
-    Card(
-        shape = RoundedCornerShape(8.dp),
-        elevation = 4.dp,
-        modifier = Modifier
-            .fillMaxWidth()
-            .offset(y = 300.dp)
-            .padding(8.dp)
-            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(50.dp)
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.drawable.raquettebl),
-                            contentDescription = "Reservation Icon",
-                            modifier = Modifier
-                                .size(30.dp)
-                                .align(Alignment.Center)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-// 2 chifres apres virgule money......Pach sans verule
-                    //control.....pack 300----<300 credit.....not "seulement
-                        Column(
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = "Réservation",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Spacer(modifier = Modifier.height(7.dp))
-                            Text(
-                                text = "05/12/2024 13:28",
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 12.sp
-                            )
-
-                            Spacer(modifier = Modifier.height(7.dp))
-
-
-                        }
-                    Spacer(modifier = Modifier.width(130.dp))
-
-                        Column(
-                           // modifier = Modifier.weight(1f),
-                            horizontalAlignment = Alignment.End
-                        ) {
-                            Text(
-                                text = "-30.50",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "crédits",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
-                        }
-
-                    }
-                }
-            }
-        Spacer(modifier = Modifier.height(16.dp))
+    @Composable
+    fun CreditCard(credit: CreditPayResponse) {
         Card(
             shape = RoundedCornerShape(8.dp),
             elevation = 4.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(y = 300.dp)
                 .padding(8.dp)
                 .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
         ) {
@@ -249,65 +247,56 @@ fun CreditPayment(navController: NavController) {
                         modifier = Modifier.weight(1f)
                     ) {
                         Box(
-                            modifier = Modifier
-                                .size(50.dp)
+                            modifier = Modifier.size(50.dp)
                         ) {
                             Image(
-                                painter = painterResource(id = R.drawable.creditcard),
+                                painter = painterResource(id = R.drawable.raquettebl),
                                 contentDescription = "Reservation Icon",
                                 modifier = Modifier
                                     .size(30.dp)
-                                    .align(Alignment.Center)  // Control the position (centered in this case)
+                                    .align(Alignment.Center)
                             )
                         }
-                        Spacer(modifier = Modifier.width(13.dp)) // Space between image and text
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                        // Column for text content
                         Column(
-                            verticalArrangement = Arrangement.Center,  // Center the text vertically in the column
-                            horizontalAlignment = Alignment.Start  // Align the text to the start (left)
+                            verticalArrangement = Arrangement.Center,
+                            horizontalAlignment = Alignment.Start
                         ) {
                             Text(
-                                    text = "Alimentation",
+                                text = credit.userAvoirTypeName,
                                 fontWeight = FontWeight.Bold,
                                 fontSize = 16.sp
                             )
                             Spacer(modifier = Modifier.height(7.dp))
                             Text(
-                                text = "05/12/2024 13:55",
+                                text = credit.createdStr,
                                 fontWeight = FontWeight.Normal,
                                 fontSize = 12.sp
                             )
-                            Spacer(modifier = Modifier.height(7.dp))
                         }
+                    }
 
-                        Spacer(modifier = Modifier.width(130.dp)) // Space between image and text
+                    Spacer(modifier = Modifier.width(130.dp))
 
-                        // Column for right-aligned text content
-                        Column(
-                            horizontalAlignment = Alignment.End
-                        ) {
-                            Text(
-                                text = "400.50",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "crédits",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                        }
+                    Column(
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        Text(
+                            text = "${credit.amount}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = "crédits",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
                 }
             }
         }
-    } }
+    }
 
 
-@Preview(showBackground = true)
-@Composable
-fun CreditPaymentPreview() {
-    CreditPayment( navController = rememberNavController())
-}

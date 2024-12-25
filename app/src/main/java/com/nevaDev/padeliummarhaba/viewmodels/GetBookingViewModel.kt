@@ -10,6 +10,8 @@ import com.padelium.data.mappers.GetBookingMapper
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.usecases.GetBookingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -29,9 +31,13 @@ class GetBookingViewModel @Inject constructor(
     val dataResultBooking = MutableLiveData<DataResultBooking<List<GetBookingResponseDTO>>>()
 
     private val _timeSlots = MutableLiveData<List<TimeSlot>>()
-
     private val _filteredTimeSlots = MutableLiveData<List<TimeSlot>>()
+    private val _selectedFromStr = MutableLiveData<String?>()
+
     val filteredTimeSlots: LiveData<List<TimeSlot>> get() = _filteredTimeSlots
+    val selectedFromStr: LiveData<String?> get() = _selectedFromStr
+
+
 
     fun getBooking(key: String) {
         dataResultBooking.value = DataResultBooking.Loading
@@ -44,9 +50,10 @@ class GetBookingViewModel @Inject constructor(
 
                         val uniqueTimeSlots = mutableSetOf<TimeSlot>()
                         val currentDateTime = ZonedDateTime.now(ZoneId.of("GMT+1"))
+
                         mappedData.forEach { booking ->
+
                             booking.plannings.forEach { planning ->
-                                Log.d("GetBooking", "fromStr: ${planning.fromStr}")
                             }
                         }
 
@@ -86,6 +93,29 @@ class GetBookingViewModel @Inject constructor(
             }
         }
     }
+    private val _filteredBookingsState = MutableStateFlow<List<GetBookingResponseDTO>?>(null)
+    val filteredBookingsState: StateFlow<List<GetBookingResponseDTO>?> = _filteredBookingsState
+
+    fun updateFilteredBooking(establishmentId: Long) {
+        val currentBookings = (dataResultBooking.value as? DataResultBooking.Success)?.data
+        Log.d("UpdateFilteredBooking", "currentBookings: $currentBookings")
+        if (currentBookings == null) {
+            Log.d("UpdateFilteredBooking", "No current bookings available.")
+            return
+        }
+
+        val filteredList = currentBookings.filter { it.establishmentDTO?.id == establishmentId }
+        _filteredBookingsState.value = filteredList
+
+        // Log the filtered list
+        Log.d("UpdateFilteredBooking", "Filtered List Size: ${filteredList.size}")
+        filteredList.forEach { booking ->
+        }
+    }
+
+
+
+    // Update the function signature to accept the selectedTimeSlot parameter
     fun filterSlotsByDate(selectedDate: LocalDate) {
         val currentDateTime = ZonedDateTime.now(ZoneId.systemDefault())
 
@@ -119,11 +149,6 @@ class GetBookingViewModel @Inject constructor(
         Log.d("FilteredSlots", "Filtered Slots: $filteredSlots")
         _filteredTimeSlots.postValue(filteredSlots)
     }
-
-
-
-
-
 
 
     private fun parseTimeSlot(fromStr: String): TimeSlot {

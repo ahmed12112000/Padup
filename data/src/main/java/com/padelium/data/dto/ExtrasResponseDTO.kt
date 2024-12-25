@@ -10,6 +10,6 @@ data class ExtrasResponseDTO(
     val picture: String,
     val amount: BigDecimal,
     val currencyId: Long,
-    val currencyName: Long,
+    val currencyName: String,
     val isShared: Boolean
 )

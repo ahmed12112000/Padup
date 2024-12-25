@@ -4,6 +4,7 @@ plugins {
     alias(libs.plugins.hilt.android.plugin)
     id("kotlin-kapt")
 
+
 }
 
 android {
@@ -77,6 +78,7 @@ dependencies {
     implementation(libs.androidx.material3.android)
     implementation(libs.identity.jvm)
     implementation(libs.androidx.preference.ktx)
+    implementation(libs.core.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -148,6 +150,10 @@ dependencies {
     implementation ("androidx.compose.material3:material3:1.0.0")
     implementation ("com.google.code.gson:gson:2.10.1")
     implementation ("com.google.accompanist:accompanist-pager:0.28.0")
+    implementation ("com.squareup.moshi:moshi-kotlin:1.12.0")
+    implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
+    implementation ("com.squareup.moshi:moshi:1.12.0")
+
 
 
 }

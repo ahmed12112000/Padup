@@ -1,4 +1,5 @@
 package com.nevaDev.padeliummarhaba.ui.views
+
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -7,69 +8,92 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration.Companion.Underline
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
+import com.nevaDev.padeliummarhaba.repository.LoginRequestDto
+import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.padelium.domain.dto.LoginRequest
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
 import com.nevadev.padeliummarhaba.R
-import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dataresult.Resulta
+import kotlinx.coroutines.launch
+
+
 
 @Composable
 fun LoginScreen(
-        onLoginSuccess: () -> Unit,
-        viewModel : UserViewModel = hiltViewModel(),
-        navController: NavHostController
-
+    onLoginSuccess: () -> Unit,
+    viewModel: UserViewModel = hiltViewModel(),
+    getProfileViewModel: GetProfileViewModel = hiltViewModel(),
+    navController: NavHostController,
+    loginRequest: LoginRequest
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf(loginRequest.username) }
+    var password by remember { mutableStateOf(loginRequest.password) }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
-    viewModel.dataResult.observe(lifecycleOwner) { result ->
+    viewModel.dataResult1.observe(lifecycleOwner) { result ->
         isLoading = false
-
         when (result) {
-            is DataResult.Loading -> {
-                Log.e("TAG", "Loading")
+            is Resulta.Loading -> {
+                // Show loading state
+                isLoading = true
             }
-            is DataResult.Success -> {
-                Log.e("TAG", "Success")
-                onLoginSuccess() // Navigate on success
+            is Resulta.Success -> {
+                if (result.data != null) {
+                    Log.d("LoginResponse", "Success: User logged in successfully")
+
+                    // Fetch the profile data after successful login
+                    getProfileViewModel.fetchProfileData()
+
+                    // Navigate to the main screen and trigger the onLoginSuccess callback
+                    navController.navigate("main_screen")
+                    onLoginSuccess()
+                } else {
+                    Toast.makeText(context, "Unexpected empty response from server", Toast.LENGTH_SHORT).show()
+                }
             }
-            is DataResult.Failure -> {
-                isLoading = false
-                Log.e("TAG", "Failure - Error Code: ${result.exception},${result.errorCode}, Message: ${result.errorMessage}")
+            is Resulta.Failure -> {
+                Log.e("LoginResponse", "Error: ${result.errorMessage} | Code: ${result.statusCode}")
+                Toast.makeText(
+                    context,
+                    "Error: ${result.errorMessage}",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
     }
+
+
+
+
+
+
 
     Column(
         modifier = Modifier
@@ -95,24 +119,27 @@ fun LoginScreen(
                 contentDescription = "Overlay Image",
                 modifier = Modifier
                     .size(1600.dp)
-                    .offset(x = 158.dp,y=60.dp)
+                    .offset(x = 158.dp, y = 60.dp)
                     .border(2.dp, Color.Unspecified)
             )
-
         }
-
-
 
         Spacer(modifier = Modifier.height(66.dp))
 
+        var isEmailError by remember { mutableStateOf(false) }
+        var isPasswordError by remember { mutableStateOf(false) }
+
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
+            onValueChange = {
+                email = it.trim()
+                isEmailError = false
+            },
             label = { Text("E-mail") },
             leadingIcon = {
                 Icon(
                     painter = painterResource(id = R.drawable.mail),
-                    contentDescription = "Custom Drawable Icon",
+                    contentDescription = "E-mail Icon",
                     tint = Color.Unspecified,
                     modifier = Modifier.size(24.dp)
                 )
@@ -124,14 +151,24 @@ fun LoginScreen(
                 unfocusedBorderColor = Color.Gray,
                 focusedLabelColor = Color.Black,
                 unfocusedLabelColor = Color.Black,
+            ),
+            isError = isEmailError
         )
-        )
+        if (isEmailError) {
+            Text(
+                text = "E-mail cannot be empty",
+                color = Color.Red,
+                style = MaterialTheme.typography.body2,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
         OutlinedTextField(
             value = password,
-            onValueChange = { password = it },
+            onValueChange = {password = it.trim()
+                isPasswordError = false},
             label = { Text("Mot de Passe") },
             leadingIcon = {
                 Icon(
@@ -155,13 +192,21 @@ fun LoginScreen(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(24.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
-                focusedBorderColor = Color.Black, // Border color when focused
-                unfocusedBorderColor = Color.Gray, // Border color when not focused
-                focusedLabelColor = Color.Black, // Label color when focused
-                unfocusedLabelColor = Color.Black, // Label color when not focused
-                )
+                focusedBorderColor = Color.Black,
+                unfocusedBorderColor = Color.Gray,
+                focusedLabelColor = Color.Black,
+                unfocusedLabelColor = Color.Black,
+            ),
+            isError = isPasswordError
         )
-
+        if (isPasswordError) {
+            Text(
+                text = "Password cannot be empty",
+                color = Color.Red,
+                style = MaterialTheme.typography.body2,
+                modifier = Modifier.padding(start = 16.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -195,7 +240,7 @@ fun LoginScreen(
                 color = Color(0xFF0054D8),
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
-                modifier = Modifier.clickable {  }
+                modifier = Modifier.clickable { }
             )
         }
 
@@ -203,41 +248,37 @@ fun LoginScreen(
 
         Button(
             onClick = {
-                Log.e("TAG", "onclick")
-                isLoading = true
+                coroutineScope.launch {
+                    isLoading = true
+                    isEmailError = email.isEmpty()
+                    isPasswordError = password.isEmpty()
 
-                val loginRequest = LoginRequest(email, password)
-
-                viewModel.loginUser(loginRequest)
-
-                viewModel.dataResult.observe(lifecycleOwner) { result ->
-                    when (result) {
-                        is DataResult.Loading -> {
-                        }
-                        is DataResult.Success -> {
-                            isLoading = false
-                            navController.navigate("main_screen") {
-                                //popUpTo("login_screen") { inclusive = true }
-                            }
-                        }
-                        is DataResult.Failure -> {
-                            isLoading = false
-                            Toast.makeText(
-                                context,
-                                "Login failed: ${result.errorMessage}",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
+                    // If either email or password is empty, stop further execution
+                    if (isEmailError || isPasswordError) {
+                        isLoading = false
+                        return@launch
                     }
+
+                    val updatedRequest = loginRequest.copy(
+                        username = email,
+                        password = password,
+                    )
+                    viewModel.loginUser(updatedRequest)
+
                 }
             },
+            enabled = !isLoading,
+
+
+
+
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp),
-            enabled = !isLoading,
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
             shape = RoundedCornerShape(24.dp)
-        ) {
+         )  {
+
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
             } else {

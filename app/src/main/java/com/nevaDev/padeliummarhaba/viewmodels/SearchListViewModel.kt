@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
+import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -12,6 +13,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -39,10 +42,14 @@ class SearchListViewModel @Inject constructor(
                 is DataResultBooking.Success -> {
                     // Map the response from SearchListResponse to SearchListResponseDTO
                     val searchListResponseDTO = searchListMapper.SearchListResponseToSearchListResponseDto(result.data)
-
+                    // Logging the "name" property from SearchListResponse
+                    result.data.forEach { searchListResponse ->
+                        Log.d("SearchList", "Name: ${searchListResponse.name}")
+                    }
                     // Return success with the mapped DTO
                     DataResultBooking.Success(searchListResponseDTO)
                 }
+
                 is DataResultBooking.Failure -> {
                     // Handle failure by forwarding the failure details
                     DataResultBooking.Failure(

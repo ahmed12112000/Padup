@@ -1,101 +1,94 @@
 package com.padelium.domain.dto
 
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.annotations.JsonAdapter
 import java.math.BigDecimal
 import java.time.Instant
+import java.lang.reflect.Type
+
 //    java.lang.IllegalStateException: Expected BEGIN_ARRAY but was BEGIN_OBJECT at line 1 column 23 path $[0].establishmentDTO
+
+//    java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 242 path $[0].establishmentDTO.created
+
 //    Parameter specified as non null is
 data class GetBookingResponse(
-    val EstablishmentDTO: List<EstablishmentDTO>,
-    val key: String,
-    val id: Long,
-    val code: String,
-    val description: String,
-    val email: String,
-    val adress: String,
-    val latitude: BigDecimal,
-    val longitude: BigDecimal,
-    val created: Instant,
-    val updated: Instant,
-    val createdBy: Long,
-    val updatedBy: Long,
-    val cityId: Long,
-    val activityId: Long,
-    val jhiEntityId: Long,
-    val validated: Boolean,
-    val maxNumberPlayer: Int,
-    val timeSpan: BigDecimal,
-    val cityName: String,
-    val activityName: String,
-    val userId: Long,
-    val userEmail: String,
-    val activityCode: String,
-    val detailDescription: String,
-    val activityValide: Boolean,
-    val phone: String,
-    val establishmentFeatureDTOList: List<EstablishmentDTO>,
-    val contacts: List<contactDTO>,
-    val createdByName: String,
-    val createdByEmail: String,
-    val logo: String,
-    val pictures: List<Unit>,
-    val facadePict: Boolean,
-    val facadePict1: Boolean,
-    val facadePict2: Boolean,
-    val facadePict3: Boolean,
-    val color: String,
-    val establishmentTypeId: Long,
-    val establishmentTypeCode: String,
-    val isEvent: Boolean = false,
-    val isSpace: Boolean = false,
-    val showAsGold: Boolean = false,
-    val activityActive: Boolean,
-    val activitySmallIcon: String,
-    val activityIcon: String,
-    val establishmentId: Long,
-    val createdDate: Instant,
+    @JsonAdapter(EstablishmentDTOAdapter::class)
+    val privateExtrasIds:List<Long?>,
+    val reduction: BigDecimal?,
+    val sharedExtrasIds: List<Long?>,
+    val usersIds: List<Long?>,
+
+    val numberOfPart: Double?,
+    val establishmentDTO: EstablishmentDTO,
+
+    val description: String?,
 
 
-    val amount: Double,
-    val decimalNumber: Int,
-    val currencySymbol: String,
-    val facadeUrl: String,
-    val openTime: Instant,
-    val closeTime: Instant,
-    val searchDate: String,
-    val from: String,
-    val to: String,
-    val numberOfPlayer: Int,
-    val currencyId: Long,
-    val mgAmount: BigDecimal,
-    val totalFeed: Int,
-    val moyFeed: Double,
+    // val establishmentFeatureDTOList: EstablishmentDTO,
+
+
+
+
+
+
+    val amount: Double?,
+    val decimalNumber: Int?,
+    val currencySymbol: String?,
+    val facadeUrl: String?,
+
+    val openTime: String?,
+    val closeTime: String?,
+
+    val searchDate: String?,
+    val from: String?,
+    val to: String?,
+    val numberOfPlayer: Int?,
+    val currencyId: Long?,
+    val mgAmount: BigDecimal?,
+    val totalFeed: Int?,
+    val moyFeed: Double?,
     val bookingAnnulationDTOSet: List<Unit>,
-    val secondAmount: BigDecimal,
-    val secondAamount: BigDecimal,
+    val secondAmount: BigDecimal?,
+    val secondAamount: BigDecimal?,
 
     val HappyHours: List<HappyHours>,
 
-    val withSecondPrice: Boolean,
-    val reductionAmount: BigDecimal,
-    val reductionSecondAmount: BigDecimal,
-    val payFromAvoir: Boolean,
-    val reduction: Int,
-    val reductionaAmount: BigDecimal,
-    val reductionaSecondAmount: BigDecimal,
-    val start: String,
-    val end: String,
-    val amountfeeTrans: BigDecimal,
-    val samountfeeTrans: BigDecimal,
-    val ramountfeeTrans: BigDecimal,
-    val rsamountfeeTrans: BigDecimal,
-    val couponCode: String,
+    val withSecondPrice: Boolean?,
+    val reductionAmount: BigDecimal?,
+    val reductionSecondAmount: BigDecimal?,
+    val payFromAvoir: Boolean?,
+    val reductionaAmount: BigDecimal?,
+    val reductionaSecondAmount: BigDecimal?,
+    val start: String?,
+    val end: String?,
+    val amountfeeTrans: BigDecimal?,
+    val samountfeeTrans: BigDecimal?,
+    val ramountfeeTrans: BigDecimal?,
+    val rsamountfeeTrans: BigDecimal?,
+    val couponCode: String?,
     val establishmentPacksDTO: List<EstablishmentPacksDTO>,
-    val establishmentPacksId: Long,
+    val establishmentPacksId: Long?,
     val plannings: List<PlanningDTO>,
-    val users: List<Long>,
+    val users: List<Long?>,
     val isClient: Boolean = true,
-    val secondReduction: Int,
-    val aamount: BigDecimal,
+    val secondReduction: Int?,
+    val aamount: BigDecimal?,
     val EstablishmentPictureDTO: List<EstablishmentPictureDTO>,
 
     )
+
+class EstablishmentDTOAdapter : JsonDeserializer<EstablishmentDTO?> {
+    override fun deserialize(
+        json: JsonElement,
+        typeOfT: Type,
+        context: JsonDeserializationContext
+    ): EstablishmentDTO? {
+        return if (json.isJsonObject) {
+            context.deserialize(json, EstablishmentDTO::class.java)
+        } else {
+            null // Handle or log cases where it's a string
+        }
+    }
+}

@@ -8,9 +8,11 @@ import com.padelium.data.mappers.InitBookingMapper
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.InitBookingRequest
 import com.padelium.domain.usecases.InitBookingUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@HiltViewModel
 
 class InitBookingViewModel @Inject constructor(
     private val initBookingUseCase: InitBookingUseCase,

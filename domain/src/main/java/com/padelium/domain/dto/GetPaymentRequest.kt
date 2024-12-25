@@ -1,7 +1,7 @@
 package com.padelium.domain.dto
 
 data class GetPaymentRequest(
-    //val bookingIds: List<bookingIds>,
+    val bookingIds: List<bookingIds>,
     val couponIds: String,
     val numberOfPart:Int,
     val orderId: String,

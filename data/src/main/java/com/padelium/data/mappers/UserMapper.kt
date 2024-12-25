@@ -10,7 +10,7 @@ import com.padelium.domain.dto.SignupRequest
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
-class UserMapper @Inject constructor(){
+class UserMapper @Inject constructor() {
 
     fun loginRequestToLoginRequestDto(loginRequest: LoginRequest): LoginRequestDto {
         return LoginRequestDto(

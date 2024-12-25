@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -19,21 +17,34 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
+import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.nevadev.padeliummarhaba.R
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.GetPacksResponse
+
+
 
 @Composable
-fun CreditCharge() {
+fun CreditCharge(viewModel: GetPacksViewModel = hiltViewModel()) {
+    LaunchedEffect(Unit) {
+        viewModel.GetPacks()
+    }
+    val packsData by viewModel.packsData.observeAsState(DataResult.Loading)
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -82,29 +93,40 @@ fun CreditCharge() {
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    PricingCard(
-                        title = "Premium",
-                        price = "300",
-                        credits = "Payer seulement 150 DT"
-                    )
-                    PricingCard(
-                        title = "Gold",
-                        price = "600",
-                        credits = "Payer seulement 360 DT"
-                    )
-                    PricingCard(
-                        title = "Standard",
-                        price = "30",
-                        credits = "Payer seulement 50 DT"
-                    )
+
+                    when (val result = packsData) {
+                        is DataResult.Success -> {
+                            val packs = result.data as? List<GetPacksResponse>
+                            if (packs != null) {
+                                packs.forEach { pack ->
+                                    PricingCard(
+                                        title = pack.title,
+                                        price = pack.description.toString(),
+                                        credits = pack.amount.toString(),
+                                        currencySymbol = pack.currency.currencySymbol
+
+                                    )
+                                }
+                            } else {
+                                Text(text = "No packs available")
+                            }
+                        }
+                        is DataResult.Loading -> {
+                            Text(text = "Loading...")
+                        }
+                        is DataResult.Failure -> {
+                            Text(text = "Error: ${result.errorMessage}")
+                        }
+                    }
                 }
             }
         }
     }
 }
 
+
 @Composable
-fun PricingCard(title: String, price: String, credits: String) {
+fun PricingCard(title: String, price: String, credits: String, currencySymbol: String) {
     Card(
         shape = RoundedCornerShape(8.dp),
         backgroundColor = Color.White,
@@ -127,7 +149,7 @@ fun PricingCard(title: String, price: String, credits: String) {
             Row(
                 verticalAlignment = Alignment.CenterVertically // Aligns text vertically
             ) {
-            Text(
+            Text( //"description":"200 crédits"
                 text = price,
                 fontWeight = FontWeight.Bold,
                 fontSize = 28.sp,
@@ -135,12 +157,7 @@ fun PricingCard(title: String, price: String, credits: String) {
             )
             Spacer(modifier = Modifier.width(4.dp)) // Adds space between the texts
 
-            Text(
-                text = "crédits",
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp,
-                color = Color.Black
-            )
+
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -155,7 +172,11 @@ fun PricingCard(title: String, price: String, credits: String) {
                     .height(40.dp),
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text(text =credits, fontSize = 20.sp,fontWeight = FontWeight.Bold,)
+                Text(
+                    text = "$credits $currencySymbol",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )//"amount":150 ---->credits
             }
         }
     }

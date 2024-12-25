@@ -5,6 +5,35 @@ import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.Instant
 
+data class EstablishmentPictureBasicDTO(
+    val id: String,
+): Serializable
+
+data class happyHoursBasicDTO(
+    val id: String,
+    val from: String,
+    val to: String,
+    val establishmentPriceId: Long,
+
+    ) : Serializable
+
+
+data class PlanningBasicDTO(
+
+    val from:String,
+    val to: String,
+    val available: Int = 0,
+
+    ) : Serializable
+
+data class EstablishmentBasicDTO(
+    val name: String,
+    val id: String,
+    val code: String,
+
+    )
+
+
 data class EstablishmentDTO(
     val name: String,
     val id: Long,
@@ -14,8 +43,8 @@ data class EstablishmentDTO(
     val adress: String,
     val latitude: Number,
     val longitude: Number,
-    val created: Instant,
-    val updated: Instant,
+    val created: String,
+    val updated: String,
     val createdBy: Long,
     val updatedBy: Long,
     val cityId: Long,
@@ -32,12 +61,9 @@ data class EstablishmentDTO(
     val detailDescription: String,
     val activityValide: Boolean,
     val phone: String,
-    val establishmentFeatureDTOList: List<establishmentFeatureDTO>,
-    val contacts: List<contactDTO>,
     val createdByName: String,
     val createdByEmail: String,
     val logo: String,
-    val pictures: List<Unit>,
     val facadePict: Boolean,
     val facadePict1: Boolean,
     val facadePict2: Boolean,
@@ -53,15 +79,31 @@ data class EstablishmentDTO(
     val activityIcon: String,
     val isClient: Boolean = true,
     val establishmentId: Long,
-    val createdDate: Instant,
+    val createdDate: String,
     val amount: Double,
     val currencySymbol: String,
-    val plannings: List<PlanningDTO>,
-    val HappyHours: List<HappyHours> ,
-    val EstablishmentPictureDTO: List<EstablishmentPictureDTO>,
 
 
     ): Serializable
+
+data class bookingIds(
+
+    val id: Long,
+)
+
+data class currency (
+    val id: Long,
+    val name: String,
+    val decimalNumber: Int,
+    val currencySymbol: String,
+    val isactive:Boolean,
+    val created: String,
+    val updated: String,
+    val createdBy: Long,
+    val updatedBy: Long,
+
+    ): Serializable
+
 
 data class EstablishmentPacksDTO(
     val name:String,
@@ -111,9 +153,9 @@ data class EstablishmentPictureDTO(
     val facade: String?
 ): Serializable
 
-data class HappyHours (
+data class HappyHourss (
     val secondAmount: BigDecimal,
-    val happyHours: List<happyHoursDTO>,
+    // val happyHours: List<happyHoursDTO>,
     val withSecondPrice: Boolean,
     val reductionAmount: BigDecimal,
     val reductionSecondAmount: BigDecimal,
@@ -134,6 +176,7 @@ data class HappyHours (
 ): Serializable
 
 data class PlanningDTO(
+    val name: String,
     val fromStr: String,
     val toStr: String,
     val from:String, // Default value
@@ -227,12 +270,14 @@ data class bookingAnnulationDTO(
     val notRefundable:Boolean
 ) : Serializable
 
-data class happyHoursDTO(
+data class HappyHours(
     val id:Long,
     val from: Instant,
     val to: Instant,
-    val establishmentPriceId: Long
-) : Serializable
+    val establishmentPriceId: Long,
+    val available:Int,
+
+    ) : Serializable
 
 data class bookingDTO(
     val id: Long,
@@ -378,7 +423,7 @@ data class establishmentSearchDTO(
 
 
 data class bookingAnnulationDTOSet(
-  val id: Long,
+    val id: Long,
     val label: String,
     val cancelLimitTime: String,
     val amount: BigDecimal,

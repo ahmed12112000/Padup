@@ -1,14 +1,17 @@
 package com.padelium.domain.dto
 
+import android.os.Parcel
+import android.os.Parcelable
+import com.google.gson.annotations.JsonAdapter
 import java.math.BigDecimal
 import java.time.Instant
 
 data class SaveBookingResponse(
 
     val id: Long?,
-    val from:String,
-    val to: String,
-    val annulationDate: String = "",
+    val from:Instant,
+    val to: Instant,
+    val annulationDate: String ,
     val sellAmount: BigDecimal,
     val purchaseAmount: BigDecimal,
     val numberOfPlayer: Int,
@@ -72,5 +75,6 @@ data class SaveBookingResponse(
     val userLastName:String,
     val extras:List<bookingExtrasDTO>,
     val numberOfPart:Int,
-    val createdStr:String,
+    val createdStr:Instant,
     )
+

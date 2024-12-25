@@ -65,11 +65,7 @@ class KeyViewModel @Inject constructor(
                 is DataResultBooking.Success -> {
                     val fetchKeyResponseDTO = keyMapper.fetchKeyResponseToFetchKeyResponseDTO(result.data)
 
-                    fetchKeyResponseDTO.key?.let {
-                        fetchInitData(it)
-                        fetchListData1(it)
-                        fetchListData2(it)
-                    }
+
 
                     DataResultBooking.Success(fetchKeyResponseDTO)
                 }

@@ -3,26 +3,28 @@ package com.padelium.data.repositoriesImp
 
 import com.padelium.domain.dto.LoginRequest
 import com.padelium.data.datasource.remote.PadeliumApi
-import com.padelium.data.dto.FetchKeyResponseDTO
-import com.padelium.data.mappers.KeyMapper
 import com.padelium.data.mappers.UserMapper
-import com.padelium.domain.dto.FetchKeyRequest
-import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.SignupRequest
 import com.padelium.domain.repositories.IUserRepository
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.ResponseBody
 import retrofit2.Response
 import javax.inject.Inject
-
- class UserRepositoryImp @Inject constructor(
-    private val api: PadeliumApi,
-    private val mapper: UserMapper,
-
+class UserRepositoryImp @Inject constructor(
+    private val apiService: PadeliumApi,
+    private val mapper: UserMapper
 ) : IUserRepository {
-    override suspend fun loginUser(loginRequest: LoginRequest): Response<Void> {
-        return api.login(mapper.loginRequestToLoginRequestDto(loginRequest))
+
+    override suspend fun loginUser(loginRequest: LoginRequest): Response<ResponseBody> {
+        // Directly pass the username and password as strings
+        return apiService.loginUser(loginRequest.username, loginRequest.password)
     }
+
+
+
     override suspend fun signupUser(signupRequest: SignupRequest): Response<Void> {
-        return api.signup(mapper.signupRequestToSignupRequestDto(signupRequest))
+        return apiService.signup(mapper.signupRequestToSignupRequestDto(signupRequest))
     }
 
 }

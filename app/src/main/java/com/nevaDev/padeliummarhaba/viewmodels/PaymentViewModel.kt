@@ -11,33 +11,30 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
-
 @HiltViewModel
-class PaymentViewModel @Inject constructor(private val paymentUseCase: PaymentUseCase):ViewModel() {
-
+class PaymentViewModel @Inject constructor(private val paymentUseCase: PaymentUseCase) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
-    val paymentRequest = MutableLiveData<PaymentRequest>()
 
-    /**
-     * Start getting data
-     */
     fun Payment(paymentRequest: PaymentRequest) {
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
             try {
-                val result = paymentUseCase.Payment(paymentRequest)  // Should return DataResult
-                Log.d("PaymentViewModel", "Payment result: $result") // Log the result
+                val result = paymentUseCase.Payment(paymentRequest)
+                if (result is DataResult.Success && result.data == null) {
+                    Log.d("PaymentViewModel", "Payment success with no body")
+                }
                 dataResult.value = result
             } catch (e: Exception) {
                 Log.e("PaymentViewModel", "Error during payment: ${e.message}")
                 dataResult.value = DataResult.Failure(
                     exception = e,
-                    errorCode = null,  // You can pass null if you don't have an error code
-                    errorMessage = "Payment failed: ${e.message}"  // The error message string
-                )            }
+                    errorCode = null,
+                    errorMessage = "Payment failed: ${e.message}"
+                )
+            }
         }
     }
+
 }
-//PaymentFAILED .JAVA LANG object cannot be cast
+

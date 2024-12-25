@@ -1,0 +1,24 @@
+package com.padelium.data.dto
+
+data class GetProfileResponseDTO(
+    val activated: Boolean = false,
+    val authorities: List<String> = emptyList(),
+    val avoir: Long = 0L,
+    val createdBy: String = "",
+    val valcreatedDate: String = "",
+    val email: String = "",
+    val establishmentsIds: String = "",
+    val file: String = "",
+    val firstName: String = "",
+    val id: Long = 0L,
+    val image: String = "",
+    val imageUrl: String = "",
+    val isOwnerestablishmentsIds: String = "",
+    val langKey: String = "",
+    val lastModifiedBy: String = "",
+    val lastModifiedDate: String = "",
+    val lastName: String = "",
+    val login: String = "",
+    val phone: String = "",
+    val socialMediaId: String = ""
+)
