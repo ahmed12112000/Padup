@@ -32,8 +32,9 @@ class GetBookingMapper @Inject constructor() {
                 description = dto.description ?: "",
                 end = dto.end ?: "",
                 establishmentDTO = dto.establishmentDTO,
-                establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),
+                establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),  //   orderId
                 establishmentPacksId = dto.establishmentPacksId ?: 0L,
+                orderId = dto.orderId ?: 0L,
                 EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
                 facadeUrl = dto.facadeUrl ?: "",
                 from = dto.from ?: "",
@@ -66,6 +67,7 @@ class GetBookingMapper @Inject constructor() {
                 users = dto.users ?: emptyList(),
                 usersIds = dto.usersIds ?: emptyList(),
                 withSecondPrice = dto.withSecondPrice ?: false,
+                id = dto.id ?: 0L,
                 )
         }
     }
@@ -119,6 +121,8 @@ class GetBookingMapper @Inject constructor() {
                 couponCode = response.couponCode ?: "",
                 establishmentPacksDTO = response.establishmentPacksDTO ?: emptyList(),
                 establishmentPacksId = response.establishmentPacksId ?: 0L,
+                orderId = response.orderId ?: 0L,
+
                 plannings = response.plannings ?: emptyList(),
                 users = response.users ?: emptyList(),
                 isClient = response.isClient ?: true,
@@ -129,7 +133,7 @@ class GetBookingMapper @Inject constructor() {
                 privateExtrasIds = response.privateExtrasIds ?: emptyList(),
                 sharedExtrasIds = response.sharedExtrasIds ?: emptyList(),
                 usersIds = response.usersIds ?: emptyList(),
-
+                id = response.id ?: 0L,
                 )
         }
     }

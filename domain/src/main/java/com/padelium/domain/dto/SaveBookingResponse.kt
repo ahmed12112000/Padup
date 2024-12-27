@@ -8,9 +8,9 @@ import java.time.Instant
 
 data class SaveBookingResponse(
 
-    val id: Long?,
-    val from:Instant,
-    val to: Instant,
+    val id: Long,
+    val from:String,
+    val to: String,
     val annulationDate: String ,
     val sellAmount: BigDecimal,
     val purchaseAmount: BigDecimal,
@@ -18,8 +18,8 @@ data class SaveBookingResponse(
     val reference:String,
     val description: String,
     val isRefundable:Boolean,
-    val created: Instant,
-    val updated: Instant,
+    val created: String,
+    val updated: String,
     val createdBy: Long,
     val updatedBy: Long,
     val currencyFromId:Long,
@@ -75,6 +75,6 @@ data class SaveBookingResponse(
     val userLastName:String,
     val extras:List<bookingExtrasDTO>,
     val numberOfPart:Int,
-    val createdStr:Instant,
+    val createdStr:String,
     )
 

@@ -170,11 +170,11 @@ fun ReservationScreen(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(filteredTimeSlots) { timeSlot ->
+            items(filteredTimeSlots.distinctBy { it.time }) { timeSlot ->
                 TimeSlotButton(
-                    slot = " ${timeSlot.time}",
-                    isSelected = selectedTimeSlot.value == " ${timeSlot.time}",
-                    onClick = { selectedTimeSlot.value = " ${timeSlot.time}" }
+                    slot = timeSlot.time,
+                    isSelected = selectedTimeSlot.value == timeSlot.time,
+                    onClick = { selectedTimeSlot.value = timeSlot.time }
                 )
             }
         }
@@ -307,7 +307,8 @@ fun ReservationSummary(
     selectedRaquette: String,
     includeBalls: Boolean,
     amountSelected: Pair<Double, String>?, // Update to accept Pair
-    onTotalAmountCalculated: (Double, String) -> Unit, // Update to pass both amount and currency
+    onTotalAmountCalculated: (Double, String) -> Unit,
+
 ) {
     // Tracking the total cost of the extras selected
     val reservationPrice = selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
@@ -591,17 +592,7 @@ fun ReservationScreenPreview() {
     )
 }
 
-@Preview(showBackground = true)
-@Composable
-fun TimeSlotButtonPreview() {
-    TimeSlotButton(
-        slot = "10:00 AM",
-        isSelected = true,
-        onClick = {
-            Log.d("TimeSlotButtonPreview", "Time slot selected")
-        }
-    )
-}
+
 
 @Preview(showBackground = true)
 @Composable

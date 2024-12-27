@@ -29,6 +29,7 @@ class GetBookingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<List<GetBookingResponseDTO>>>()
+    //val getBookingResponseDTO: LiveData<DataResultBooking<List<GetBookingResponseDTO>>> get() = dataResultBooking
 
     private val _timeSlots = MutableLiveData<List<TimeSlot>>()
     private val _filteredTimeSlots = MutableLiveData<List<TimeSlot>>()
@@ -36,8 +37,6 @@ class GetBookingViewModel @Inject constructor(
 
     val filteredTimeSlots: LiveData<List<TimeSlot>> get() = _filteredTimeSlots
     val selectedFromStr: LiveData<String?> get() = _selectedFromStr
-
-
 
     fun getBooking(key: String) {
         dataResultBooking.value = DataResultBooking.Loading
@@ -47,33 +46,13 @@ class GetBookingViewModel @Inject constructor(
                 dataResultBooking.value = when (result) {
                     is DataResultBooking.Success -> {
                         val mappedData = getBookingMapper.GetBookingResponseToGetBookingResponseDto(result.data)
-
-                        val uniqueTimeSlots = mutableSetOf<TimeSlot>()
-                        val currentDateTime = ZonedDateTime.now(ZoneId.of("GMT+1"))
-
-                        mappedData.forEach { booking ->
-
-                            booking.plannings.forEach { planning ->
-                            }
-                        }
-
-                        val timeList = mappedData.flatMap { booking ->
+                        _timeSlots.postValue(mappedData.flatMap { booking ->
                             booking.plannings.mapNotNull { planning ->
-                                val slot = parseTimeSlot(planning.fromStr)
-
-                                if (isTimeSlotValid(slot, currentDateTime) && uniqueTimeSlots.add(slot)) {
-                                    slot
-                                } else {
-                                    null
-                                }
+                                parseTimeSlot(planning.fromStr)
                             }
-                        }
-
-
-                        _timeSlots.postValue(timeList)
+                        })
                         DataResultBooking.Success(mappedData)
                     }
-
                     is DataResultBooking.Failure -> {
                         DataResultBooking.Failure(
                             exception = result.exception,
@@ -81,7 +60,6 @@ class GetBookingViewModel @Inject constructor(
                             errorMessage = result.errorMessage
                         )
                     }
-
                     else -> DataResultBooking.Failure(null, null, "Unexpected error occurred.")
                 }
             } catch (e: Exception) {
@@ -93,6 +71,8 @@ class GetBookingViewModel @Inject constructor(
             }
         }
     }
+
+
     private val _filteredBookingsState = MutableStateFlow<List<GetBookingResponseDTO>?>(null)
     val filteredBookingsState: StateFlow<List<GetBookingResponseDTO>?> = _filteredBookingsState
 

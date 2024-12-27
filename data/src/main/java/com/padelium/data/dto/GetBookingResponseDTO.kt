@@ -4,6 +4,7 @@ import com.google.gson.JsonDeserializationContext
 import com.google.gson.JsonDeserializer
 import com.google.gson.JsonElement
 import com.google.gson.annotations.JsonAdapter
+import com.google.gson.annotations.SerializedName
 import com.padelium.domain.dto.EstablishmentPacksDTO
 import com.padelium.domain.dto.EstablishmentPictureDTO
 import com.padelium.domain.dto.PlanningDTO
@@ -14,72 +15,67 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.lang.reflect.Type
 
-
 data class GetBookingResponseDTO(
     @JsonAdapter(EstablishmentDTOAdapter::class)
-        val privateExtrasIds:List<Long?>,
-    val reduction: BigDecimal?,
-    val sharedExtrasIds: List<Long?>,
-    val usersIds: List<Long?>,
+    @SerializedName("privateExtrasIds") val privateExtrasIds: List<Long?>,
+    @SerializedName("reduction") val reduction: BigDecimal?,
+    @SerializedName("sharedExtrasIds") val sharedExtrasIds: List<Long?>,
+    @SerializedName("usersIds") val usersIds: List<Long?>,
+    @SerializedName("orderId") val orderId: Long?,
+    @SerializedName("id") val id: Long?,
 
-    val numberOfPart: Double?,
-    val establishmentDTO: EstablishmentDTO,
+    @SerializedName("numberOfPart") val numberOfPart: Double?,
+    @SerializedName("establishmentDTO") val establishmentDTO: EstablishmentDTO,
 
-    val description: String?,
+    @SerializedName("description") val description: String?,
 
+    // @SerializedName("establishmentFeatureDTOList") val establishmentFeatureDTOList: EstablishmentDTO,
 
-   // val establishmentFeatureDTOList: EstablishmentDTO,
+    @SerializedName("amount") val amount: Double?,
+    @SerializedName("decimalNumber") val decimalNumber: Int?,
+    @SerializedName("currencySymbol") val currencySymbol: String?,
+    @SerializedName("facadeUrl") val facadeUrl: String?,
 
+    @SerializedName("openTime") val openTime: String?,
+    @SerializedName("closeTime") val closeTime: String?,
 
+    @SerializedName("searchDate") val searchDate: String?,
+    @SerializedName("from") val from: String?,
+    @SerializedName("to") val to: String?,
+    @SerializedName("numberOfPlayer") val numberOfPlayer: Int?,
+    @SerializedName("currencyId") val currencyId: Long?,
+    @SerializedName("mgAmount") val mgAmount: BigDecimal?,
+    @SerializedName("totalFeed") val totalFeed: Int?,
+    @SerializedName("moyFeed") val moyFeed: Double?,
+    @SerializedName("bookingAnnulationDTOSet") val bookingAnnulationDTOSet: List<Unit>,
+    @SerializedName("secondAmount") val secondAmount: BigDecimal?,
+    @SerializedName("secondAamount") val secondAamount: BigDecimal?,
 
+    @SerializedName("HappyHours") val HappyHours: List<HappyHours>,
 
+    @SerializedName("withSecondPrice") val withSecondPrice: Boolean?,
+    @SerializedName("reductionAmount") val reductionAmount: BigDecimal?,
+    @SerializedName("reductionSecondAmount") val reductionSecondAmount: BigDecimal?,
+    @SerializedName("payFromAvoir") val payFromAvoir: Boolean?,
+    @SerializedName("reductionaAmount") val reductionaAmount: BigDecimal?,
+    @SerializedName("reductionaSecondAmount") val reductionaSecondAmount: BigDecimal?,
+    @SerializedName("start") val start: String?,
+    @SerializedName("end") val end: String?,
+    @SerializedName("amountfeeTrans") val amountfeeTrans: BigDecimal?,
+    @SerializedName("samountfeeTrans") val samountfeeTrans: BigDecimal?,
+    @SerializedName("ramountfeeTrans") val ramountfeeTrans: BigDecimal?,
+    @SerializedName("rsamountfeeTrans") val rsamountfeeTrans: BigDecimal?,
+    @SerializedName("couponCode") val couponCode: String?,
+    @SerializedName("establishmentPacksDTO") val establishmentPacksDTO: List<EstablishmentPacksDTO>,
+    @SerializedName("establishmentPacksId") val establishmentPacksId: Long?,
+    @SerializedName("plannings") val plannings: List<PlanningDTO>,
+    @SerializedName("users") val users: List<Long?>,
+    @SerializedName("isClient") val isClient: Boolean = true,
+    @SerializedName("secondReduction") val secondReduction: Int?,
+    @SerializedName("aamount") val aamount: BigDecimal?,
+    @SerializedName("EstablishmentPictureDTO") val EstablishmentPictureDTO: List<EstablishmentPictureDTO>
+)
 
-
-    val amount: Double?,
-    val decimalNumber: Int?,
-    val currencySymbol: String?,
-    val facadeUrl: String?,
-
-    val openTime: String?,
-    val closeTime: String?,
-
-    val searchDate: String?,
-    val from: String?,
-    val to: String?,
-    val numberOfPlayer: Int?,
-    val currencyId: Long?,
-    val mgAmount: BigDecimal?,
-    val totalFeed: Int?,
-    val moyFeed: Double?,
-    val bookingAnnulationDTOSet: List<Unit>,
-    val secondAmount: BigDecimal?,
-    val secondAamount: BigDecimal?,
-
-    val HappyHours: List<HappyHours>,
-
-    val withSecondPrice: Boolean?,
-    val reductionAmount: BigDecimal?,
-    val reductionSecondAmount: BigDecimal?,
-    val payFromAvoir: Boolean?,
-    val reductionaAmount: BigDecimal?,
-    val reductionaSecondAmount: BigDecimal?,
-    val start: String?,
-    val end: String?,
-    val amountfeeTrans: BigDecimal?,
-    val samountfeeTrans: BigDecimal?,
-    val ramountfeeTrans: BigDecimal?,
-    val rsamountfeeTrans: BigDecimal?,
-    val couponCode: String?,
-    val establishmentPacksDTO: List<EstablishmentPacksDTO>,
-    val establishmentPacksId: Long?,
-    val plannings: List<PlanningDTO>,
-    val users: List<Long?>,
-    val isClient: Boolean = true,
-    val secondReduction: Int?,
-    val aamount: BigDecimal?,
-    val EstablishmentPictureDTO: List<EstablishmentPictureDTO>,
-
-    )
 class EstablishmentDTOAdapter : JsonDeserializer<EstablishmentDTO?> {
     override fun deserialize(
         json: JsonElement,
@@ -93,3 +89,4 @@ class EstablishmentDTOAdapter : JsonDeserializer<EstablishmentDTO?> {
         }
     }
 }
+// @JsonAdapter(EstablishmentDTOAdapter::class)

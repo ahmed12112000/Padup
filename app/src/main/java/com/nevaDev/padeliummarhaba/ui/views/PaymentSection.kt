@@ -139,8 +139,9 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             users = dto.users ?: emptyList(),
             usersIds = dto.usersIds ?: emptyList(),
             withSecondPrice = dto.withSecondPrice ?: false,
-
-        )
+            orderId = dto.orderId ?: 0L,
+            id = dto.id ?: 0L,
+            )
     }
 }
 
@@ -161,11 +162,11 @@ fun PaymentSection1(
     paymentRequest: PaymentRequest,
     amountSelected: Double,
     currencySymbol: String,
-    bookingViewModel: BookingViewModel = hiltViewModel(), // Use the shared BookingViewModel
+    bookingViewModel: BookingViewModel, // Use the shared BookingViewModel
 
 ) {
     val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
-
+    val paymentViewModel: PaymentViewModel = hiltViewModel()
     val viewModel2: ExtrasViewModel = hiltViewModel()
 
     var additionalExtrasEnabled by remember { mutableStateOf(false) }
@@ -191,8 +192,15 @@ fun PaymentSection1(
 
 
 
-    val selectedBookingsJson = navController.previousBackStackEntry?.arguments?.getString("selectedBookings")
-    val selectedBookings = Gson().fromJson(selectedBookingsJson, Array<GetBookingResponseDTO>::class.java).toList()
+    val selectedBookingsJson = navController.previousBackStackEntry
+        ?.arguments
+        ?.getString("selectedBookings")
+    val selectedBookings = remember {
+        selectedBookingsJson?.let {
+            Gson().fromJson(it, Array<GetBookingResponseDTO>::class.java).toList()
+        } ?: emptyList()
+    }
+
 
     // Map the DTOs to domain objects
     val dataResult by viewModel.dataResult.observeAsState()
@@ -355,6 +363,7 @@ fun PaymentSection1(
         ) {
             var selectedExtras by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
             var totalExtrasCost by remember { mutableStateOf(0.0) }
+
             ExtrasSection(
                 onExtrasUpdate = { extras, cost ->
                     selectedExtras = extras
@@ -375,7 +384,8 @@ fun PaymentSection1(
                 },
                 onTotalAmountCalculated = { totalAmountSelected, currencySymbol ->
                     Log.d("TotalAmountSelected", "The total amount is $totalAmountSelected and currency symbol is $currencySymbol")
-                }
+                },
+
             )
 
 
@@ -400,15 +410,84 @@ fun PaymentSection1(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
 
-                // Card Payment Button
+
+                val selectedBookings by bookingViewModel.selectedBookings.observeAsState(emptyList())
+
                 Button(
                     onClick = {
                         isLoading = true
+
+                        selectedBookings.forEach { booking ->
+                            Log.d("SelectedBooking", "Establishment: ${booking.establishmentDTO?.name}")
+                            Log.d("SelectedBooking", "Amount: ${booking.amount} ${booking.currencySymbol}")
+                        }
+                        val totalAmount1 = selectedBookings.sumOf {
+                            it.amount.toString().toDoubleOrNull() ?: 0.0
+                        }
+
                         val mappedBookings = selectedBookings.toDomain()
+                        val paymentRequest = PaymentRequest(
+                            amount = totalAmount1.toString(),
+                            currency = selectedBookings.firstOrNull()?.currencySymbol ?: "",
+                            orderId = "OrderID-${System.currentTimeMillis()}"
+                        )
+
 
                         saveBookingViewModel.SaveBooking(mappedBookings)
-                        Log.d("SelectedBookings", "Selected bookings: $selectedBookingsJson")
-                        Log.d("MappedBookings", "Mapped bookings: $mappedBookings")
+                        saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
+                            when (result) {
+                                is DataResult.Loading -> {
+                                    // Show a loading state (e.g., a progress indicator)
+                                    isLoading = true
+                                    Log.d("SaveBooking", "Saving booking...")
+                                }
+                                is DataResult.Success -> {
+                                    // Handle the success case, navigate to the next screen, or show a success message
+                                    isLoading = false
+                                    Log.d("SaveBooking", "Booking saved successfully!")
+                                    result.data?.let { savedData ->
+                                        Log.d("SaveBooking", "Saved Data: $savedData")
+                                    }
+
+                                    paymentViewModel.Payment(paymentRequest)
+                                    paymentViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
+                                        when (paymentResult) {
+                                            is DataResult.Loading -> {
+                                                // Handle loading state for payment
+                                                Log.d("Payment", "Processing payment...")
+                                            }
+                                            is DataResult.Success -> {
+                                                // Handle success, navigate to confirmation or show success message
+                                                Log.d("Payment", "Payment processed successfully!")
+                                                navController.navigate("confirmation_screen") {
+                                                    popUpTo("payment_screen") { inclusive = true }
+                                                }
+                                            }
+                                            is DataResult.Failure -> {
+                                                // Handle payment failure
+                                                Log.e("Payment", "Payment failed: ${paymentResult.errorMessage}")
+                                                Toast.makeText(
+                                                    context,
+                                                    "Payment failed: ${paymentResult.errorMessage}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+                                        }
+                                    }
+                                }
+                                is DataResult.Failure -> {
+                                    // Show an error message or handle failure
+                                    isLoading = false
+                                    Log.e("SaveBooking", "Error saving booking: ${result.errorMessage}")
+                                    Toast.makeText(
+                                        context,
+                                        "Failed to save booking: ${result.errorMessage}",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                }
+                            }
+                        }
+
 
 
                     },
@@ -458,8 +537,8 @@ fun PaymentSection1(
             }
         }
 
-        }
     }
+}
 
 
 @Composable

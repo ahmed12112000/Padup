@@ -13,9 +13,12 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import com.nevaDev.padeliummarhaba.models.ReservationOption
+import com.nevaDev.padeliummarhaba.repository.Booking.BookingViewModel
 import com.nevaDev.padeliummarhaba.ui.views.*
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
 import com.padelium.domain.dto.EstablishmentBasicDTO
 import com.padelium.domain.dto.EstablishmentPictureBasicDTO
 import com.padelium.domain.dto.LoginRequest
@@ -182,7 +185,7 @@ fun AppNavHost(
                     key = null,
                     navController = navController,
                     selectedDate = LocalDate.now(), // Example value
-                    selectedTimeSlot = "12:00 PM" // Example value
+                     selectedTimeSlot = "12:00 PM" // Example value
                 )
             }
 
@@ -195,7 +198,7 @@ fun AppNavHost(
                     navArgument("date") { type = NavType.StringType },
                     navArgument("currencySymbol") { type = NavType.StringType },
 
-                )
+                    )
             ) { backStackEntry ->
 
                 val amountSelected = backStackEntry.arguments?.getFloat("amountSelected")?.toDouble() ?: 0.0
@@ -214,6 +217,9 @@ fun AppNavHost(
                     orderId = orderId
                 )
 
+                val viewModel = hiltViewModel<SaveBookingViewModel>()
+                val viewModel1 = hiltViewModel<PaymentViewModel>()
+                val viewModel2 = hiltViewModel<com.nevaDev.padeliummarhaba.ui.views.BookingViewModel>()
 
                 PaymentSection1(
                     selectedDate = LocalDate.now(),
@@ -224,12 +230,13 @@ fun AppNavHost(
                     totalAmount = "$amountSelected",
                     navController = navController,
                     paymentRequest = paymentRequest,
-                    viewModel = hiltViewModel(),
-                    viewModel1 = hiltViewModel(),
+                    viewModel = viewModel,
+                    viewModel1 = viewModel1,
+                    bookingViewModel = viewModel2,
                     amountSelected = amountSelected,
                     currencySymbol = currencySymbol,
 
-                )
+                    )
             }
 
 

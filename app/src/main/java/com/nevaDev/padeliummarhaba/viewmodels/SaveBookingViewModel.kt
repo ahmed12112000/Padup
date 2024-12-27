@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SaveBookingViewModel @Inject constructor(
-    private val saveBookingUseCase: SaveBookingUseCase // Use the SaveBookingUseCase instead of calling API directly
+    private val saveBookingUseCase: SaveBookingUseCase
 ) : ViewModel() {
 
     private val _dataResult = MutableLiveData<DataResult>()

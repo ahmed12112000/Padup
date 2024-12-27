@@ -51,7 +51,6 @@ import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.ExtrasResponse
 import java.math.BigDecimal
-
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun ReservationDetailsCard(
@@ -63,8 +62,6 @@ fun ReservationDetailsCard(
     var partnerName by remember { mutableStateOf("") }
     var selectedParts by remember { mutableStateOf("1") }
     var extrasEnabled by remember { mutableStateOf(false) }
-    var includeBalls by remember { mutableStateOf(false) }
-    var selectedRaquette by remember { mutableStateOf(1) }
     var totalExtrasCost by remember { mutableStateOf(0.0) } // Track total cost of extras
 
     // Fetch extra data
@@ -84,8 +81,6 @@ fun ReservationDetailsCard(
         // Card for selecting parts
         ReservationCard(title = "Je veux payer pour") {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text(text = "Je veux payer pour", fontSize = 16.sp, fontWeight = FontWeight.Bold)
-                Spacer(modifier = Modifier.width(100.dp))
                 ExposedDropdownMenuBox(
                     expanded = extrasEnabled,
                     onExpandedChange = { extrasEnabled = !extrasEnabled }
@@ -130,7 +125,6 @@ fun ReservationDetailsCard(
         // Card for partner selection
         ReservationCard(title = "Sélectionnez votre partenaire") {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Text(text = "Sélectionnez votre partenaire", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 Switch(
                     checked = extrasEnabled,
                     onCheckedChange = { extrasEnabled = it },
@@ -143,8 +137,6 @@ fun ReservationDetailsCard(
                 )
             }
             if (extrasEnabled) {
-                Text("Votre partenaire doit avoir un compte sur PADELIUM", fontSize = 16.sp, color = Color.Gray)
-                Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
                     value = partnerName,
                     onValueChange = { partnerName = it },
@@ -160,16 +152,7 @@ fun ReservationDetailsCard(
         Spacer(modifier = Modifier.height(16.dp))
 
         // Call ExtrasSection
-        ExtrasSection(
-            onExtrasUpdate = { updatedExtras, updatedTotalCost ->
-                selectedExtras.clear()
-                selectedExtras.addAll(updatedExtras)
-                totalExtrasCost = updatedTotalCost
 
-                // Update parent with new extras and total cost
-                onExtrasUpdate(selectedExtras, totalExtrasCost)
-            }
-        )
     }
 }
 
@@ -195,11 +178,6 @@ fun ExtrasSection(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = "Je commande des extras?",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold
-                )
                 Switch(
                     checked = additionalExtrasEnabled,
                     onCheckedChange = { additionalExtrasEnabled = it },
@@ -224,13 +202,6 @@ fun ExtrasSection(
 
             if (additionalExtrasEnabled) {
                 Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = "Article(s) réserver à mon usage",
-                    fontSize = 14.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
 
                 when (val state = extrasState) {
                     is DataResult.Loading -> {
@@ -292,8 +263,6 @@ fun ExtrasSection(
     )
 }
 
-
-
 @Composable
 fun ReservationCard(title: String, content: @Composable () -> Unit) {
     Card(
@@ -304,7 +273,7 @@ fun ReservationCard(title: String, content: @Composable () -> Unit) {
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(text = title, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(88.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             content()
         }
     }
@@ -372,6 +341,7 @@ fun ExtraItemCard(
         }
     }
 }
+
 
 
 
