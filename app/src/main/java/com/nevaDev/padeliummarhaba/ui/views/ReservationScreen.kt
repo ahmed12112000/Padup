@@ -5,19 +5,16 @@ import android.content.SharedPreferences
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
@@ -35,7 +32,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Button
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -48,27 +44,25 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
-import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetInitViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.InitBookingViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
-import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dto.ExtrasRequest
-import java.math.BigDecimal
+import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
 
+import java.time.ZoneId
+import java.time.ZonedDateTime
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReservationScreen(
     navController: NavController,
-    isUserLoggedIn: Boolean,
+    isUserLoggedIn: Boolean = false,
     context: Context,
     sharedPreferences: SharedPreferences,
     onFetchSuccess: () -> Unit,
@@ -77,50 +71,66 @@ fun ReservationScreen(
     viewModel2: GetInitViewModel = hiltViewModel(),
     viewModel3: SearchListViewModel = hiltViewModel(),
     viewModel4: InitBookingViewModel = hiltViewModel(),
+    paymentPayAvoirViewModel : PaymentPayAvoirViewModel
 
-    ) {
+) {
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
     var showLoginPopup by remember { mutableStateOf(false) }
     val selectedReservation = remember { mutableStateOf<ReservationOption?>(null) }
+    val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
     val selectedDate = remember { mutableStateOf(LocalDate.now()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
-    val filteredTimeSlots by getBookingViewModel.filteredTimeSlots.observeAsState(emptyList())
-    val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
 
-    LaunchedEffect(filteredTimeSlots) {
-        if (filteredTimeSlots.isNotEmpty() && selectedTimeSlot.value == null) {
-            selectedTimeSlot.value = " ${filteredTimeSlots.first().time}"
-        }
-    }
-    viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
-        when (result) {
-            is DataResultBooking.Loading -> isLoading = true
-            is DataResultBooking.Success -> {
-                reservationKey.value = result.data.key
-                isLoading = false
-                onFetchSuccess()
-                reservationKey.value?.let { key ->
-                    viewModel2.GetInit(key)
-                    viewModel3.searchList(key)
-                    viewModel4.InitBooking(key)
-                    getBookingViewModel.getBooking(key)
+    // Observing parsed time slots from ViewModel
+    val parsedTimeSlots by getBookingViewModel.parsedTimeSlots.collectAsState(initial = emptyList())
+
+    // Function to fetch reservation data
+    fun fetchReservationData(date: LocalDate) {
+        val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
+        val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
+
+        isLoading = true
+        viewModel.getReservationKey(fetchKeyRequest, date, selectedTimeSlot.value)
+
+
+        viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
+            when (result) {
+                is DataResultBooking.Loading -> isLoading = true
+                is DataResultBooking.Success -> {
+                    reservationKey.value = result.data.key
+                    isLoading = false
+                    onFetchSuccess()
+                    reservationKey.value?.let { key ->
+                     // getBookingViewModel.getBooking(key)
+                    }
+                }
+                is DataResultBooking.Failure -> {
+                    isLoading = false
+                    errorMessage = result.errorMessage ?: "Unknown error occurred"
+                    Log.e("ReservationScreen", "Error: ${result.errorMessage}")
+
                 }
             }
-            is DataResultBooking.Failure -> {
-                isLoading = false
-                errorMessage = result.errorMessage ?: "Unknown error occurred"
-            }
         }
     }
 
+    // Function to fetch time slots based on selected date
+    fun filterSlotsByDate(newDate: LocalDate) {
+        reservationKey.value?.let { key ->
+            getBookingViewModel.getBooking(key)
+        } ?: run {
+            errorMessage = "Reservation key is not available. Please try again."
+        }
+    }
+
+
     LaunchedEffect(selectedDate.value) {
-        val fetchKeyRequest = FetchKeyRequest(dateTime = selectedDate.value.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00")
-        viewModel.getReservationKey(fetchKeyRequest)
+        fetchReservationData(selectedDate.value)
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
@@ -134,14 +144,8 @@ fun ReservationScreen(
                 title = "CHOISIR UN CRÉNEAU",
                 icon = painterResource(id = R.drawable.calendre),  // Load drawable icon
                 onClick = { showPaymentSection = false },
-                onBackClick = {
-
-                }
+                onBackClick = {}
             )
-
-
-
-
         }
 
         Spacer(modifier = Modifier.height(8.dp))
@@ -150,9 +154,16 @@ fun ReservationScreen(
             selectedDate = selectedDate.value,
             onDateSelected = { newDate ->
                 selectedDate.value = newDate
-                getBookingViewModel.filterSlotsByDate(newDate)
-            },
+                filterSlotsByDate(newDate)
+            }
         )
+
+
+
+
+
+
+//      ZoneId.of("GMT+1")
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -163,21 +174,20 @@ fun ReservationScreen(
                 Text(text = it, color = Color.Red, textAlign = TextAlign.Center)
             }
         }
+/*
 
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4),
-            contentPadding = PaddingValues(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredTimeSlots.distinctBy { it.time }) { timeSlot ->
-                TimeSlotButton(
-                    slot = timeSlot.time,
-                    isSelected = selectedTimeSlot.value == timeSlot.time,
-                    onClick = { selectedTimeSlot.value = timeSlot.time }
+                TimeSlotSelector(
+                    timeSlots = parsedTimeSlots,
+                    onTimeSlotSelected = { selectedTimeSlot.value = it },
+                    selectedTimeSlot = selectedTimeSlot.value
                 )
-            }
+
+*/
+
+        if (parsedTimeSlots.isEmpty()) {
+            Text(text = "No available time slots.", color = Color.Red, textAlign = TextAlign.Center)
         }
+    }
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -189,7 +199,9 @@ fun ReservationScreen(
                 viewModel = getBookingViewModel,
                 navController = navController,
                 selectedDate = selectedDate.value ,
-                selectedTimeSlot = selectedTimeSlot.value
+                selectedTimeSlot = selectedTimeSlot.value,
+                paymentPayAvoirViewModel = paymentPayAvoirViewModel
+
 
             )
         }
@@ -216,23 +228,46 @@ fun ReservationScreen(
                     )
                 }*/
     }
-}
-
 @Composable
-fun TimeSlotButton(slot: String, isSelected: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        colors = ButtonDefaults.buttonColors(
-            containerColor = if (isSelected) Color(0xFF0054D8) else Color.White,
-            contentColor = if (isSelected) Color.White else Color(0xFF0054D8)
-        ),
-        border = BorderStroke(1.dp, Color(0xFF0054D8)),
-        shape = RoundedCornerShape(8.dp),
-        modifier = Modifier.padding(2.dp)
-    ) {
-        Text(text = slot, fontWeight = FontWeight.Bold)
+fun TimeSlotButton(
+    timeSlots: List<TimeSlot>,
+    onTimeSlotSelected: (String) -> Unit,
+    selectedTimeSlot: String?
+) {
+    val uniqueTimeSlots = timeSlots.distinctBy { it.time } // Deduplicate time slots
+
+    // Use Box or set a fixed height for LazyVerticalGrid to avoid infinite height constraints
+    Box(modifier = Modifier.fillMaxSize()) {
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(4), // Four buttons per row
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .heightIn(max = 400.dp), // Limit the height to avoid infinite height constraints
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(uniqueTimeSlots) { timeSlot ->
+                val formattedTime = timeSlot.time.format(DateTimeFormatter.ofPattern("H:mm"))
+
+                Button(
+                    onClick = { onTimeSlotSelected(formattedTime) },
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
+                    modifier = Modifier.fillMaxWidth() // Ensures proper spacing
+                ) {
+                    Text(
+                        text = formattedTime,
+                        color = if (selectedTimeSlot == formattedTime) Color.White else Color.Black,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        }
     }
 }
+
+
 
 
 @Composable
@@ -295,65 +330,53 @@ fun TabItem(
     }
 }
 
-
-
-
 @Composable
 fun ReservationSummary(
     selectedDate: LocalDate,
     selectedTimeSlot: String,
     selectedReservation: ReservationOption,
-    selectedExtras: List<Triple<String, String, Int>>, // Now it's passed as a parameter
-    selectedRaquette: String,
-    includeBalls: Boolean,
-    amountSelected: Pair<Double, String>?, // Update to accept Pair
+    selectedExtras: List<Triple<String, String, Int>>,
+    amountSelected: Pair<Double, String>?,
     onTotalAmountCalculated: (Double, String) -> Unit,
-
 ) {
-    // Tracking the total cost of the extras selected
-    val reservationPrice = selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
-    val totalExtrasCost = selectedExtras.sumOf { (name, priceString, _) ->
-        priceString.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0
+    // Extract and parse reservation price
+    val reservationPrice = try {
+        val priceString = selectedReservation.price.replace("[^\\d.,]".toRegex(), "")
+        priceString.replace(",", ".").toDoubleOrNull() ?: 0.0
+    } catch (e: Exception) {
+        Log.e("ReservationSummary", "Error parsing reservation price: ${selectedReservation.price}", e)
+        0.0
     }
 
-    // Calculate the total amount selected (price + extras) and remember it
-    val totalAmountSelected = remember(amountSelected, totalExtrasCost) {
-        val baseAmount = amountSelected?.first ?: reservationPrice
-        baseAmount + totalExtrasCost // Use amountSelected.first for price
+    // Set currency symbol
+    val currencySymbol = amountSelected?.second ?: "DT" // Default to DT if not provided
+
+    Log.d("ReservationSummary", "Parsed reservationPrice: $reservationPrice, Currency: $currencySymbol")
+
+    // Calculate total cost including extras
+    val totalExtrasCost = selectedExtras.sumOf { (_, priceString, _) ->
+        priceString.replace("[^\\d.,]".toRegex(), "").replace(",", ".").toDoubleOrNull() ?: 0.0
     }
 
-    val currencySymbol = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
+    val totalAmountSelected = reservationPrice + totalExtrasCost
+    Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected, Currency: $currencySymbol")
 
-    // Update the total amount and send both the amount and currency symbol to the callback
     onTotalAmountCalculated(totalAmountSelected, currencySymbol)
 
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
+        modifier = Modifier.fillMaxWidth().padding(16.dp)
     ) {
         Text(
-            text = "Détails réservation",
+            text = "Détails Réservation",
             fontSize = 20.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
 
-        HorizontalDivider(
-            modifier = Modifier
-                .width(900.dp)
-                .padding(horizontal = 10.dp)
-                .offset(y = -10.dp),
-            color = Color.Gray,
-            thickness = 1.dp
-        )
-
+        // Display reservation details...
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
-        ReservationDetailRow(label = "Prix", value = "${currencySymbol} ${String.format("%.2f", amountSelected?.first ?: 0.0)}") // Display currency symbol next to price
-        ReservationDetailRow(
-            label = "Date",
-            value = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy").format(selectedDate)
-        )
+        ReservationDetailRow(label = "Prix", value = selectedReservation.price)
+        ReservationDetailRow(label = "Date", value = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy").format(selectedDate))
         ReservationDetailRow(label = "Heure", value = selectedTimeSlot)
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -365,60 +388,54 @@ fun ReservationSummary(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        ReservationDetailRow(label = "Prix de Réservation", value = "${currencySymbol} ${String.format("%.2f", amountSelected?.first ?: 0.0)}")
+        ReservationDetailRow(label = "Prix de Réservation", value = "$currencySymbol ${String.format("%.2f", reservationPrice)}")
 
         selectedExtras.forEach { (name, price, _) ->
             ReservationDetailRow(label = "Extra: $name", value = price)
         }
 
-        // Display summary of extras
-        val extrasSummary = selectedExtras.joinToString(separator = ", ") { (name, price, _) ->
-            "$name ($price)"
-        }
-        ReservationDetailRow(label = "Extras", value = extrasSummary)
-
-        // Display the total cost including the added extras
-        ReservationDetailRow(label = "Total", value = "${currencySymbol} ${String.format("%.2f", totalAmountSelected)}") // Display currency symbol with total amount
-        onTotalAmountCalculated(totalAmountSelected, currencySymbol)
-
+        ReservationDetailRow(label = "Total", value = "$currencySymbol ${String.format("%.2f", totalAmountSelected)}")
     }
 }
-
-
 
 
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DaySelectorWithArrows(
-    selectedDate: LocalDate,
-    onDateSelected: (LocalDate) -> Unit,
+    selectedDate: LocalDate?,
+    onDateSelected: (LocalDate) -> Unit
 ) {
     val dayFormatter = DateTimeFormatter.ofPattern("EEE", Locale.FRENCH)
     val dateFormatter = DateTimeFormatter.ofPattern("d", Locale.FRENCH)
     val monthFormatter = DateTimeFormatter.ofPattern("MMM", Locale.FRENCH)
 
-    val daysInWeek = (0..6).map { offset ->
-        selectedDate.minusDays(selectedDate.dayOfWeek.value.toLong() - 1L).plusDays(offset.toLong())
-    }
-    val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
+    val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
 
+    val finalSelectedDate = selectedDate ?: currentDate
+
+
+    val startOfWeek = finalSelectedDate.minusDays(finalSelectedDate.dayOfWeek.value.toLong() - 1L)
+
+    val daysInWeek = (0..6).map { offset -> startOfWeek.plusDays(offset.toLong()) }
+
+    val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
 
     val listState = rememberLazyListState()
 
-    LaunchedEffect(selectedDate) {
-        val selectedIndex = daysInWeek.indexOf(selectedDate)
+    LaunchedEffect(finalSelectedDate) {
+        val selectedIndex = daysInWeek.indexOf(finalSelectedDate)
         if (selectedIndex != -1) {
-            listState.animateScrollToItem(
-                index = selectedIndex,
-                scrollOffset = -listState.layoutInfo.viewportEndOffset / 2
-            )
+            listState.animateScrollToItem(selectedIndex)
         }
     }
+
+    var timeslots by remember { mutableStateOf<List<String>?>(null) }
+
     Column(modifier = Modifier.fillMaxWidth()) {
         // Month-Year Header
         Text(
-            text = monthYearFormatter.format(selectedDate).uppercase(Locale.FRENCH),
+            text = monthYearFormatter.format(finalSelectedDate).uppercase(Locale.FRENCH),
             color = Color(0xFF0054D8),
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
@@ -427,6 +444,7 @@ fun DaySelectorWithArrows(
                 .fillMaxWidth()
                 .padding(vertical = 8.dp)
         )
+
         // Navigation Row with Arrows and "AUJOURD'HUI"
         Row(
             modifier = Modifier
@@ -435,15 +453,17 @@ fun DaySelectorWithArrows(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Left Arrow
-            IconButton(onClick = { onDateSelected(selectedDate.minusDays(1)) }) {
+            IconButton(onClick = {
+                val newDate = finalSelectedDate.minusDays(1)
+                onDateSelected(newDate)
+            }) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Previous day", tint = Color.Gray)
             }
 
-            // "AUJOURD'HUI" Button
             Row(
-                modifier = Modifier
-                    .clickable { onDateSelected(LocalDate.now()) }
+                modifier = Modifier.clickable {
+                    onDateSelected(currentDate) // Set to current date explicitly
+                }
                     .border(1.dp, Color.Gray, shape = RoundedCornerShape(8.dp))
                     .padding(vertical = 8.dp, horizontal = 16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -464,78 +484,81 @@ fun DaySelectorWithArrows(
                 )
             }
 
-            // Right Arrow
-            IconButton(onClick = { onDateSelected(selectedDate.plusDays(1)) }) {
+            IconButton(onClick = {
+                val newDate = finalSelectedDate.plusDays(1)
+                onDateSelected(newDate)
+            }) {
                 Icon(Icons.Default.ArrowForward, contentDescription = "Next day", tint = Color.Gray)
             }
-        } }
-    LazyRow(
-        state = listState,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(0.dp) // No space between boxes, add gray line manually
-    ) {
-        items(daysInWeek) { day ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Box for each day with reduced size
-                Column(
-                    modifier = Modifier
-                        .clickable { onDateSelected(day) }
-                        .background(
-                            color = if (day == selectedDate) Color(0xFF0054D8) else Color.White,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .border(
-                            width = if (day == selectedDate) 0.dp else 1.dp,
-                            color = Color.Gray,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(vertical = 8.dp, horizontal = 8.dp) // Reduced padding
-                        .width(60.dp),  // Smaller width
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    // Abbreviated day name (e.g., "Sam")
-                    Text(
-                        text = dayFormatter.format(day).uppercase(),
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = if (day == selectedDate) Color.White else Color.Gray,
-                        fontSize = 12.sp  // Smaller font size for day name
-                    )
+        }
 
-                    // Day of the month (e.g., "29")
-                    Text(
-                        text = dateFormatter.format(day),
-                        fontWeight = FontWeight.Bold,
-                        textAlign = TextAlign.Center,
-                        color = if (day == selectedDate) Color.White else Color.Black,
-                        fontSize = 18.sp  // Smaller font size for day number
-                    )
-
-                    // Abbreviated month name (e.g., "Nov")
-                    Text(
-                        text = monthFormatter.format(day).uppercase(),
-                        fontWeight = FontWeight.Normal,
-                        textAlign = TextAlign.Center,
-                        color = if (day == selectedDate) Color.White else Color.Gray,
-                        fontSize = 12.sp  // Smaller font size for month
-                    )
-                }
-
-                // Gray line separator (except after the last item)
-                if (day != daysInWeek.last()) {
-                    Box(
+        LazyRow(
+            state = listState,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(0.dp)
+        ) {
+            items(daysInWeek) { day ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(
                         modifier = Modifier
-                            .height(40.dp) // Match the reduced height of the day box
-                            .width(1.dp)
-                            .background(Color.Gray)
-                    )
+                            .clickable {
+                                onDateSelected(day)
+                            }
+                            .background(
+                                color = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                width = if (day == finalSelectedDate) 0.dp else 1.dp,
+                                color = Color.Gray,
+                                shape = RoundedCornerShape(8.dp)
+                            )
+                            .padding(vertical = 8.dp, horizontal = 8.dp)
+                            .width(60.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = dayFormatter.format(day).uppercase(),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            color = if (day == finalSelectedDate) Color.White else Color.Gray,
+                            fontSize = 12.sp
+                        )
+                        Text(
+                            text = dateFormatter.format(day),
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center,
+                            color = if (day == finalSelectedDate) Color.White else Color.Black,
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = monthFormatter.format(day).uppercase(),
+                            fontWeight = FontWeight.Normal,
+                            textAlign = TextAlign.Center,
+                            color = if (day == finalSelectedDate) Color.White else Color.Gray,
+                            fontSize = 12.sp
+                        )
+                    }
+
+                    if (day != daysInWeek.last()) {
+                        Box(
+                            modifier = Modifier
+                                .height(40.dp)
+                                .width(1.dp)
+                                .background(Color.Gray)
+                        )
+                    }
                 }
             }
         }
     }
+
 }
+
+
+
 
 
 
@@ -570,28 +593,6 @@ fun PopLoginDialog(onDismiss: () -> Unit, onLoginSuccess: () -> Unit) {
 
 */
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(showBackground = true, widthDp = 400, heightDp = 800)
-@Composable
-fun ReservationScreenPreview() {
-    // Mock data to simulate context and shared preferences
-    val mockContext = LocalContext.current
-    val mockSharedPreferences = mockContext.getSharedPreferences("MockPrefs", Context.MODE_PRIVATE)
-
-    // Preview for the ReservationScreen
-    ReservationScreen(
-        navController = rememberNavController(),
-        isUserLoggedIn = true,
-        context = mockContext,
-        sharedPreferences = mockSharedPreferences,
-        onFetchSuccess = {
-            Log.d("ReservationScreenPreview", "Fetch successful")
-        },
-        viewModel = hiltViewModel<KeyViewModel>(), // You might need to provide a mocked ViewModel for testing
-        getBookingViewModel = hiltViewModel<GetBookingViewModel>()
-    )
-}
-
 
 
 @Preview(showBackground = true)
@@ -617,34 +618,6 @@ fun TabItemPreview() {
     }
 }
 
-
-@RequiresApi(Build.VERSION_CODES.O)
-@Preview(showBackground = true, widthDp = 400, heightDp = 150)
-@Composable
-fun PreviewDaySelectorWithArrows() {
-    val today = LocalDate.of(2024, 11, 29)
-
-    DaySelectorWithArrows(
-        selectedDate = today,
-        onDateSelected = { selectedDay ->
-            println("Selected date: $selectedDay")
-        }
-    )
-}
-@Preview(showBackground = true)
-@Composable
-fun ReservationOptionsPreview() {
-    val navController = rememberNavController()
-
-    ReservationOptions(
-        onReservationSelected = {},
-        isUserLoggedIn = true,
-        key = "dummyKey",
-        navController = navController,
-        selectedDate = LocalDate.now(),
-        selectedTimeSlot = "12:00"
-    )
-}
 
 
 

@@ -13,6 +13,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
@@ -20,16 +21,15 @@ import javax.inject.Inject
 @HiltViewModel
 class SearchListViewModel @Inject constructor(
     private val searchListUseCase: SearchListUseCase,
-    private val searchListMapper: SearchListMapper
+    private val searchListMapper: SearchListMapper,
+    private val initBookingViewModel: InitBookingViewModel
 ) : ViewModel() {
 
     private val establishments4 = MutableStateFlow<List<EstablishmentDTO>>(emptyList())
     val establishments: StateFlow<List<EstablishmentDTO>> = establishments4
     val dataResultBooking = MutableLiveData<DataResultBooking<List<SearchListResponseDTO>>>()
 
-
-
-    fun searchList(key: String) {
+    fun searchList(key: String, selectedDate: LocalDate, selectedTimeSlot: String?) {
         // Set to loading state
         dataResultBooking.value = DataResultBooking.Loading
 
@@ -42,10 +42,12 @@ class SearchListViewModel @Inject constructor(
                 is DataResultBooking.Success -> {
                     // Map the response from SearchListResponse to SearchListResponseDTO
                     val searchListResponseDTO = searchListMapper.SearchListResponseToSearchListResponseDto(result.data)
-                    // Logging the "name" property from SearchListResponse
                     result.data.forEach { searchListResponse ->
-                        Log.d("SearchList", "Name: ${searchListResponse.name}")
                     }
+
+                    // Trigger InitBookingViewModel's InitBooking method
+                    initBookingViewModel.InitBooking(key, selectedDate, selectedTimeSlot)
+
                     // Return success with the mapped DTO
                     DataResultBooking.Success(searchListResponseDTO)
                 }
@@ -70,4 +72,5 @@ class SearchListViewModel @Inject constructor(
         }
     }
 }
+
 

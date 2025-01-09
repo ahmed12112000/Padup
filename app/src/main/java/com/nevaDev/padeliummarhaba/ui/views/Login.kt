@@ -29,6 +29,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import com.nevaDev.padeliummarhaba.repository.LoginRequestDto
+import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.padelium.domain.dto.LoginRequest
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
@@ -48,6 +49,7 @@ fun LoginScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val balanceViewModel: BalanceViewModel = hiltViewModel()
 
     var email by remember { mutableStateOf(loginRequest.username) }
     var password by remember { mutableStateOf(loginRequest.password) }
@@ -70,6 +72,7 @@ fun LoginScreen(
 
                     // Fetch the profile data after successful login
                     getProfileViewModel.fetchProfileData()
+                    balanceViewModel.fetchAndBalance()
 
                     // Navigate to the main screen and trigger the onLoginSuccess callback
                     navController.navigate("main_screen")

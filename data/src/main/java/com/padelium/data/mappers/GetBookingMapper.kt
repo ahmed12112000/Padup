@@ -10,80 +10,30 @@ import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.EstablishmentDTO
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 class GetBookingMapper @Inject constructor() {
 
-    fun GetBookingResponseDtoToGetBookingResponse(dtos: List<GetBookingResponseDTO>): List<GetBookingResponse> {
-        return dtos.map { dto ->
-            GetBookingResponse(
-                // Map fields from GetBookingResponseDTO to GetBookingResponse
-                aamount = dto.aamount ?: BigDecimal.ZERO,
-                amount = dto.amount ?: 0.0,
-                amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
-                bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptyList(),
-                isClient = dto.isClient ?: true,
-                closeTime = dto.closeTime?.toString() ?: Instant.now().toString(),
-
-                couponCode = dto.couponCode ?: "",
-                currencyId = dto.currencyId ?: 0L,
-                currencySymbol = dto.currencySymbol ?: "",
-                decimalNumber = dto.decimalNumber ?: 0,
-                description = dto.description ?: "",
-                end = dto.end ?: "",
-                establishmentDTO = dto.establishmentDTO,
-                establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),  //   orderId
-                establishmentPacksId = dto.establishmentPacksId ?: 0L,
-                orderId = dto.orderId ?: 0L,
-                EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
-                facadeUrl = dto.facadeUrl ?: "",
-                from = dto.from ?: "",
-                HappyHours = dto.HappyHours ?: emptyList(),
-                mgAmount = dto.mgAmount ?: BigDecimal.ZERO,
-                moyFeed = dto.moyFeed ?: 0.0,
-                numberOfPart = dto.numberOfPart ?: 0.0,
-                numberOfPlayer = dto.numberOfPlayer ?: 0,
-                openTime = dto.openTime?.toString() ?: Instant.now().toString(),
-                payFromAvoir = dto.payFromAvoir ?: false,
-                plannings = dto.plannings ?: emptyList(),
-                privateExtrasIds = dto.privateExtrasIds ?: emptyList(),
-                ramountfeeTrans = dto.ramountfeeTrans ?: BigDecimal.ZERO,
-                reduction = dto.reduction ?: BigDecimal.ZERO,
-                reductionAmount = dto.reductionAmount ?: BigDecimal.ZERO,
-                reductionSecondAmount = dto.reductionSecondAmount ?: BigDecimal.ZERO,
-                reductionaAmount = dto.reductionaAmount ?: BigDecimal.ZERO,
-                reductionaSecondAmount = dto.reductionaSecondAmount ?: BigDecimal.ZERO,
-                rsamountfeeTrans = dto.rsamountfeeTrans ?: BigDecimal.ZERO,
-                samountfeeTrans = dto.samountfeeTrans ?: BigDecimal.ZERO,
-                searchDate = dto.searchDate ?: "",
-                secondAamount = dto.secondAamount ?: BigDecimal.ZERO,
-                secondAmount = dto.secondAmount ?: BigDecimal.ZERO,
-                secondReduction = dto.secondReduction ?: 0,
-                sharedExtrasIds = dto.sharedExtrasIds ?: emptyList(),
-                start = dto.start?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
-                to = dto.to?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
-
-                totalFeed = dto.totalFeed ?: 0,
-                users = dto.users ?: emptyList(),
-                usersIds = dto.usersIds ?: emptyList(),
-                withSecondPrice = dto.withSecondPrice ?: false,
-                id = dto.id ?: 0L,
-                )
-        }
-    }
-
-
-
-
 
 
     fun GetBookingResponseToGetBookingResponseDto(getBookingResponse: List<GetBookingResponse>): List<GetBookingResponseDTO> {
+
+
         return getBookingResponse.map { response ->
+
+
+            // Function to safely parse the date and return the formatted result or fallback
+
 
             GetBookingResponseDTO(
                 establishmentDTO = response.establishmentDTO,
                 description = response.description ?: "",
-                amount = response.amount ?: 0.0,
+                amount = response.amount ?: BigDecimal.ZERO,
                 decimalNumber = response.decimalNumber ?: 0,
                 currencySymbol = response.currencySymbol ?: "",
                 facadeUrl = response.facadeUrl ?: "",
@@ -91,10 +41,8 @@ class GetBookingMapper @Inject constructor() {
                 closeTime = response.closeTime?.toString() ?: Instant.now().toString(),
 
                 searchDate = response.searchDate ?: "",
-                from = response.from?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
-
-                to = response.to?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
-
+                from = response.from,
+                to = response.to,
                 numberOfPlayer = response.numberOfPlayer ?: 0,
                 currencyId = response.currencyId ?: 0L,
                 mgAmount = response.mgAmount ?: BigDecimal.ZERO,
@@ -108,36 +56,40 @@ class GetBookingMapper @Inject constructor() {
                 reductionAmount = response.reductionAmount ?: BigDecimal.ZERO,
                 reductionSecondAmount = response.reductionSecondAmount ?: BigDecimal.ZERO,
                 payFromAvoir = response.payFromAvoir ?: false,
-                reduction = response.reduction ?: BigDecimal.ZERO,
+                reduction = response.reduction ?: 0,
                 reductionaAmount = response.reductionaAmount ?: BigDecimal.ZERO,
                 reductionaSecondAmount = response.reductionaSecondAmount ?: BigDecimal.ZERO,
                 start = response.start?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
-
-                end = response.end ?: "",
+                end = response.end,
                 amountfeeTrans = response.amountfeeTrans ?: BigDecimal.ZERO,
                 samountfeeTrans = response.samountfeeTrans ?: BigDecimal.ZERO,
                 ramountfeeTrans = response.ramountfeeTrans ?: BigDecimal.ZERO,
                 rsamountfeeTrans = response.rsamountfeeTrans ?: BigDecimal.ZERO,
                 couponCode = response.couponCode ?: "",
                 establishmentPacksDTO = response.establishmentPacksDTO ?: emptyList(),
-                establishmentPacksId = response.establishmentPacksId ?: 0L,
-                orderId = response.orderId ?: 0L,
 
+                establishmentPacksId = if (response.establishmentPacksId == 0L) null else response.establishmentPacksId,
+
+                orderId = response.orderId ?: 0L,
                 plannings = response.plannings ?: emptyList(),
                 users = response.users ?: emptyList(),
                 isClient = response.isClient ?: true,
                 secondReduction = response.secondReduction ?: 0,
                 aamount = response.aamount ?: BigDecimal.ZERO,
                 EstablishmentPictureDTO = response.EstablishmentPictureDTO ?: emptyList(),
-                numberOfPart = response.numberOfPart ?: 0.0,
-                privateExtrasIds = response.privateExtrasIds ?: emptyList(),
+                numberOfPart =  response.numberOfPart ?: 0,
                 sharedExtrasIds = response.sharedExtrasIds ?: emptyList(),
-                usersIds = response.usersIds ?: emptyList(),
+                userIds = response.userIds ?: emptyList(),
                 id = response.id ?: 0L,
+                privateExtrasIds = response.privateExtrasIds ?: emptyList(),
+                buyerId = response.buyerId ?: "",
+                couponIds = response.couponIds ?: emptyMap(),
+
                 )
         }
     }
 }
+
 fun deserializeEstablishmentDTO(jsonElement: JsonElement): List<EstablishmentDTO> {
     val gson = Gson()
     return if (jsonElement.isJsonArray) {

@@ -20,7 +20,7 @@ class GetProfileMapper @Inject constructor(){
                         establishmentsIds = getPacksResponseList.establishmentsIds ?: "",
                         file = getPacksResponseList.file ?: "",
                         firstName = getPacksResponseList.firstName ?: "",
-                        id = (getPacksResponseList.id ?: 0L).toString(),
+                        id = getPacksResponseList.id ,
                         image = getPacksResponseList.image ?: "",
                         imageUrl = getPacksResponseList.imageUrl ?: "",
                         isOwnerestablishmentsIds = getPacksResponseList.isOwnerestablishmentsIds ?: "",

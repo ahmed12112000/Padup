@@ -1,5 +1,6 @@
 package com.padelium.domain.dto
 
+import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -136,7 +137,6 @@ data class EstablishmentPacksDTO(
     val showPosition: Int,
     var id: Long
 ): Serializable
-
 data class EstablishmentPictureDTO(
     val created: String?,
     val createdBy: String?,
@@ -160,7 +160,7 @@ data class HappyHourss (
     val withSecondPrice: Boolean,
     val reductionAmount: BigDecimal,
     val reductionSecondAmount: BigDecimal,
-    val payFromAvoir: Boolean,
+    val payFromAvoir: Boolean ,
     val reduction: Int,
     val secondReduction: Int,
     val start: String,
@@ -180,13 +180,13 @@ data class PlanningDTO(
     val name: String,
     val fromStr: String,
     val toStr: String,
-    val from:String, // Default value
-    val to: String, // Default value
-    val available: Int = 0, // Default value
-    val openTime: Instant = Instant.now(), // Default value
-    val closeTime: Instant = Instant.now(), // Default value
-    val bookings: List<bookingDTO> = emptyList(), // Default value
-    val availableBol: Boolean = false, // Default value
+    val from:String,
+    val to: String,
+    val available: Int,
+   /* val openTime: Instant = Instant.now(),
+    val closeTime: Instant = Instant.now(),
+    val bookings: List<bookingDTO> = emptyList(),
+    val availableBol: Boolean ,
     val dayWithBooking: Boolean = false, // Default value
     val price: BigDecimal = BigDecimal.ZERO, // Default value
     val feeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
@@ -196,7 +196,7 @@ data class PlanningDTO(
     val reductionPriceBol: Boolean = false, // Default value
     val secondPrice: Boolean = false, // Default value
     val isHappyHours: Boolean = false, // Default value
-    val annulationDate: String = "" // Default value
+    val annulationDate: String = "" */ // Default value
 ) : Serializable
 
 data class establishmentFeatureDTO(

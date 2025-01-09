@@ -27,21 +27,20 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
-
 class KeyViewModel @Inject constructor(
     private val keyUseCase: KeyUseCase,
     private val keyMapper: KeyMapper,
-    private val getInitUseCase: GetInitUseCase,
-    private val getInitMapper: GetInitMapper,
+    private val getInitViewModel: GetInitViewModel, // Inject GetInitViewModel
     private val searchListUseCase: SearchListUseCase,
     private val searchListMapper : SearchListMapper,
     private val initBookingUseCase: InitBookingUseCase,
     private val initBookingMapper : InitBookingMapper,
     private val getBookingUseCase: GetBookingUseCase,
-    private val getBookingMapper : GetBookingMapper,
+    private val getBookingMapper : GetBookingMapper
 ) : ViewModel() {
 
     private val establishments4 = MutableStateFlow<List<EstablishmentDTO>>(emptyList())
@@ -56,7 +55,7 @@ class KeyViewModel @Inject constructor(
     /**
      * Fetch reservation key and on success, call GetInit with the key.
      */
-    fun getReservationKey(fetchKeyRequest: FetchKeyRequest) {
+    fun getReservationKey(fetchKeyRequest: FetchKeyRequest, selectedDate: LocalDate, selectedTimeSlot: String?) {
         dataResultBooking.value = DataResultBooking.Loading
 
         viewModelScope.launch {
@@ -65,7 +64,8 @@ class KeyViewModel @Inject constructor(
                 is DataResultBooking.Success -> {
                     val fetchKeyResponseDTO = keyMapper.fetchKeyResponseToFetchKeyResponseDTO(result.data)
 
-
+                    // Trigger GetInitViewModel's GetInit method after fetching the key
+                    result.data.key?.let { getInitViewModel.GetInit(it, selectedDate, selectedTimeSlot) }
 
                     DataResultBooking.Success(fetchKeyResponseDTO)
                 }
@@ -86,7 +86,9 @@ class KeyViewModel @Inject constructor(
             }
         }
     }
+}
 
+/*
 
     // Function to call GetInit
     private fun fetchInitData(key: String) {
@@ -225,7 +227,7 @@ class KeyViewModel @Inject constructor(
 
 
 }
-
+*/
 
 
 

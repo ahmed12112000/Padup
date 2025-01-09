@@ -3,7 +3,7 @@ package com.padelium.domain.dto
 
 // Updated SaveBookingRequest class to hold the list directly
 data class SaveBookingRequest(
-    val bookings: List<GetBookingResponse> // This should be the actual list you are sending
+    val bookings: List<GetBookingResponse>
 )
 
 

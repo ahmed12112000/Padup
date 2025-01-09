@@ -17,6 +17,8 @@ class PaymentViewModel @Inject constructor(private val paymentUseCase: PaymentUs
     val dataResult = MutableLiveData<DataResult>()
 
     fun Payment(paymentRequest: PaymentRequest) {
+        Log.d("PaymentViewModel", "Payment method called with orderId: ${paymentRequest.orderId}")
+
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
             try {
@@ -35,6 +37,7 @@ class PaymentViewModel @Inject constructor(private val paymentUseCase: PaymentUs
             }
         }
     }
-
 }
+
+
 

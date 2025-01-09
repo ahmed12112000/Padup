@@ -12,8 +12,11 @@ import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
 import com.padelium.data.dto.ProfileRequestDTO
 import com.padelium.data.dto.SignupRequestDTO
+import com.padelium.data.dto.UserAvoirPayRequestDTO
+import com.padelium.data.dto.UserAvoirPayResponseDTO
 import com.padelium.data.dto.UserAvoirRequestDTO
 import com.padelium.data.dto.UserAvoirResponseDTO
+import com.padelium.domain.dto.BalanceResponse
 import com.padelium.domain.dto.ConfirmBookingResponse
 import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.GetBookingResponse
@@ -21,14 +24,15 @@ import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.dto.PaymentResponse
-import com.padelium.domain.dto.SaveBookingRequest
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
+import com.padelium.domain.dto.UserAvoirPayResponse
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
+import java.math.BigDecimal
 
 class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
 
@@ -100,6 +104,14 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
         return endPoint.Extras()
     }
 
+    suspend fun PaymentPayAvoir (amount: BigDecimal): Response<UserAvoirPayResponse> {
+        return endPoint.PaymentPayAvoir(amount)
+    }
+
+    suspend fun Balance (Id: Long): Response<BalanceResponse> {
+        return endPoint.Balance(Id)
+    }
+
     suspend fun PaymentAvoir (userAvoirRequest: UserAvoirRequestDTO):  Response<UserAvoirResponseDTO> {
         return endPoint.PaymentAvoir(userAvoirRequest)
     }
@@ -107,6 +119,8 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
     suspend fun Payment (paymentRequest: PaymentRequestDTO): Response<PaymentResponse?> {
         return endPoint.Payment(paymentRequest)
     }
+
+
 
 
     suspend fun GetPayment (getPaymentRequest: GetPaymentRequestDTO): Response<GetPaymentResponse> {

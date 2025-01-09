@@ -10,7 +10,7 @@ data class GetProfileResponse(
     val establishmentsIds: String = "",
     val file: String = "",
     val firstName: String = "",
-    val id: String = 0L.toString(),
+    val id: Long,
     val image: String = "",
     val imageUrl: String = "",
     val isOwnerestablishmentsIds: String = "",

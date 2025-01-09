@@ -8,4 +8,6 @@ data class ReservationOption(
     val time: String,
     val price: String,
     val date: String,
+    val mappedBookings: String,
+
 )

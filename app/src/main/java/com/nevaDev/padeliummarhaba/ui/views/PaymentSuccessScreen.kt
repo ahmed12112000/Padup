@@ -22,8 +22,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 
 @Composable
 fun PaymentSuccessScreen(navController: NavController) {
@@ -69,4 +71,11 @@ fun PaymentSuccessScreen(navController: NavController) {
             }
         }
     }
+}
+@Preview(showBackground = true)
+@Composable
+fun PaymentSuccessScreenPreview() {
+    // Mock a NavController for preview purposes
+    val mockNavController = rememberNavController()
+    PaymentSuccessScreen(navController = mockNavController)
 }

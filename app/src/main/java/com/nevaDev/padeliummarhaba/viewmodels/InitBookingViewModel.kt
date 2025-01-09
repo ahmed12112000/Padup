@@ -10,33 +10,34 @@ import com.padelium.domain.dto.InitBookingRequest
 import com.padelium.domain.usecases.InitBookingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
-
 @HiltViewModel
-
 class InitBookingViewModel @Inject constructor(
     private val initBookingUseCase: InitBookingUseCase,
-    private val initBookingMapper: InitBookingMapper
+    private val initBookingMapper: InitBookingMapper,
+    private val getBookingViewModel: GetBookingViewModel // Inject the GetBookingViewModel
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<List<InitBookingResponseDTO>>>()
 
-    fun InitBooking (key: String)  {
+    fun InitBooking(key: String, selectedDate: LocalDate, selectedTimeSlot: String?) {
         dataResultBooking.value = DataResultBooking.Loading // Set to loading state
 
         viewModelScope.launch {
-            // Call the use case directly with the string key
             val result = initBookingUseCase.execute(key)
 
-            // Handle the result of the use case call
             dataResultBooking.value = when (result) {
                 is DataResultBooking.Success -> {
-                    // Map the response from GetInitResponse to GetInitResponseDTO
                     val initBookingDTO = initBookingMapper.initBookingResponseToInitBookingResponseDTO(result.data)
+                    DataResultBooking.Success(initBookingDTO)
+
+                    // Trigger GetBookingViewModel's getBooking method on success
+                    getBookingViewModel.getBooking(key)
+
                     DataResultBooking.Success(initBookingDTO)
                 }
                 is DataResultBooking.Failure -> {
-                    // Forward failure details
                     DataResultBooking.Failure(
                         exception = result.exception,
                         errorCode = result.errorCode,
@@ -54,3 +55,4 @@ class InitBookingViewModel @Inject constructor(
         }
     }
 }
+

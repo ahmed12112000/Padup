@@ -1,43 +1,51 @@
 package com.padelium.domain.dto
 
-import com.google.gson.JsonDeserializationContext
-import com.google.gson.JsonDeserializer
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import com.google.gson.JsonElement
-import com.google.gson.annotations.JsonAdapter
+import com.google.gson.JsonNull
+import com.google.gson.JsonPrimitive
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import com.google.gson.annotations.SerializedName
 import java.math.BigDecimal
-import java.time.Instant
 import java.lang.reflect.Type
+import java.time.LocalDateTime
 
-//    java.lang.IllegalStateException: Expected BEGIN_ARRAY but was BEGIN_OBJECT at line 1 column 23 path $[0].establishmentDTO
+class LongNullSerializer : JsonSerializer<Long?> {
+    override fun serialize(src: Long?, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        return if (src == null) {
+            JsonNull.INSTANCE
+        } else {
+            JsonPrimitive(src)
+        }
+    }
+}
 
-//    java.lang.IllegalStateException: Expected BEGIN_OBJECT but was STRING at line 1 column 242 path $[0].establishmentDTO.created
 
-//    Parameter specified as non null is
+// Gson configuration with the custom serializer
+val gson: Gson = GsonBuilder()
+    .registerTypeAdapter(Long::class.java, LongNullSerializer()) // Register custom serializer for Long?
+    .serializeNulls() // Ensure null values are serialized as "null"
+    .create()
+
 data class GetBookingResponse(
-    @JsonAdapter(EstablishmentDTOAdapter::class)
     @SerializedName("privateExtrasIds") val privateExtrasIds: List<Long?>,
-    @SerializedName("reduction") val reduction: BigDecimal?,
+    @SerializedName("reduction") val reduction: Int?,
     @SerializedName("sharedExtrasIds") val sharedExtrasIds: List<Long?>,
-    @SerializedName("usersIds") val usersIds: List<Long?>,
     @SerializedName("orderId") val orderId: Long?,
     @SerializedName("id") val id: Long?,
-
-    @SerializedName("numberOfPart") val numberOfPart: Double?,
+    @SerializedName("numberOfPart") val numberOfPart: Int,
     @SerializedName("establishmentDTO") val establishmentDTO: EstablishmentDTO,
-
     @SerializedName("description") val description: String?,
-
-    // @SerializedName("establishmentFeatureDTOList") val establishmentFeatureDTOList: EstablishmentDTO,
-
-    @SerializedName("amount") val amount: Double?,
+    @SerializedName("buyerId") val buyerId: String?,
+    @SerializedName("couponIds") val couponIds: Map<Long, Long>?,
+    @SerializedName("amount") val amount: BigDecimal?,
     @SerializedName("decimalNumber") val decimalNumber: Int?,
     @SerializedName("currencySymbol") val currencySymbol: String?,
     @SerializedName("facadeUrl") val facadeUrl: String?,
-
     @SerializedName("openTime") val openTime: String?,
     @SerializedName("closeTime") val closeTime: String?,
-
     @SerializedName("searchDate") val searchDate: String?,
     @SerializedName("from") val from: String?,
     @SerializedName("to") val to: String?,
@@ -49,9 +57,7 @@ data class GetBookingResponse(
     @SerializedName("bookingAnnulationDTOSet") val bookingAnnulationDTOSet: List<Unit>,
     @SerializedName("secondAmount") val secondAmount: BigDecimal?,
     @SerializedName("secondAamount") val secondAamount: BigDecimal?,
-
     @SerializedName("HappyHours") val HappyHours: List<HappyHours>,
-
     @SerializedName("withSecondPrice") val withSecondPrice: Boolean?,
     @SerializedName("reductionAmount") val reductionAmount: BigDecimal?,
     @SerializedName("reductionSecondAmount") val reductionSecondAmount: BigDecimal?,
@@ -69,23 +75,9 @@ data class GetBookingResponse(
     @SerializedName("establishmentPacksId") val establishmentPacksId: Long?,
     @SerializedName("plannings") val plannings: List<PlanningDTO>,
     @SerializedName("users") val users: List<Long?>,
+    @SerializedName("userIds") val userIds: List<Long?>,
     @SerializedName("isClient") val isClient: Boolean = true,
     @SerializedName("secondReduction") val secondReduction: Int?,
     @SerializedName("aamount") val aamount: BigDecimal?,
     @SerializedName("EstablishmentPictureDTO") val EstablishmentPictureDTO: List<EstablishmentPictureDTO>
-
-    )
-
-class EstablishmentDTOAdapter : JsonDeserializer<EstablishmentDTO?> {
-    override fun deserialize(
-        json: JsonElement,
-        typeOfT: Type,
-        context: JsonDeserializationContext
-    ): EstablishmentDTO? {
-        return if (json.isJsonObject) {
-            context.deserialize(json, EstablishmentDTO::class.java)
-        } else {
-            null // Handle or log cases where it's a string
-        }
-    }
-}
+)

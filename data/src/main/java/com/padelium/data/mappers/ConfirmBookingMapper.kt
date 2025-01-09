@@ -18,10 +18,10 @@ class ConfirmBookingMapper @Inject constructor(){
             token = confirmBookingRequest.token,
             transactionId = confirmBookingRequest.transactionId,
             payFromAvoir = confirmBookingRequest.payFromAvoir,
-            numberOfPart = confirmBookingRequest.numberOfPart,
-            privateExtrasIds = confirmBookingRequest.privateExtrasIds,
-            sharedExtrasIds = confirmBookingRequest.sharedExtrasIds,
-            userIds = confirmBookingRequest.userIds,
+            numberOfPart = confirmBookingRequest.numberOfPart, // Updated to Double?
+            privateExtrasIds = confirmBookingRequest.privateExtrasIds?: emptyList(),
+            sharedExtrasIds = confirmBookingRequest.sharedExtrasIds.filterNotNull(), // Filter out null values
+            userIds = confirmBookingRequest.userIds.filterNotNull()?: emptyList(),
             bookingIds = confirmBookingRequest.bookingIds,
 
 

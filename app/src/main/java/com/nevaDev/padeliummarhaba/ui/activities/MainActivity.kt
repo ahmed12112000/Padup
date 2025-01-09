@@ -107,10 +107,8 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences) {
     val getReservationViewModel: GetReservationViewModel = hiltViewModel()
     val currentBackStackEntry = navController.currentBackStackEntryAsState()
 
-    // List of screens where you want to show the top bar
     val screensWithTopBar = listOf("main_screen")  // Only main_screen will show the top bar
 
-    // Check if the current screen should have a top bar
     val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
 
     ModalNavigationDrawer(

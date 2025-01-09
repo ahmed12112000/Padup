@@ -9,17 +9,19 @@ import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.usecases.GetInitUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 @HiltViewModel
 class GetInitViewModel @Inject constructor(
     private val getInitUseCase: GetInitUseCase,
-    private val getInitMapper: GetInitMapper
+    private val getInitMapper: GetInitMapper,
+    private val searchListViewModel: SearchListViewModel // Inject SearchListViewModel
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<GetInitResponseDTO>>()
 
-    fun GetInit(key: String) {
+    fun GetInit(key: String, selectedDate: LocalDate, selectedTimeSlot: String?) {
         dataResultBooking.value = DataResultBooking.Loading // Set to loading state
 
         viewModelScope.launch {
@@ -31,6 +33,11 @@ class GetInitViewModel @Inject constructor(
                 is DataResultBooking.Success -> {
                     // Map the response from GetInitResponse to GetInitResponseDTO
                     val getInitResponseDTO = getInitMapper.GetInitResponseToGetInitResponseDto(result.data)
+
+                    // Trigger SearchListViewModel's searchList method
+                    searchListViewModel.searchList(key, selectedDate, selectedTimeSlot)
+
+                    // Return success with the mapped DTO
                     DataResultBooking.Success(getInitResponseDTO)
                 }
                 is DataResultBooking.Failure -> {

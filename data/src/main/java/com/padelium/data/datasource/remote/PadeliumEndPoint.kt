@@ -4,7 +4,6 @@ import com.padelium.data.dto.ConfirmBookingRequestDTO
 import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.data.dto.ExtrasResponseDTO
 import com.padelium.data.dto.FetchKeyRequestDTO
-import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.data.dto.GetPacksResponseDTO
 import com.padelium.data.dto.GetPaymentRequestDTO
 import com.padelium.data.dto.GetProfileResponseDTO
@@ -12,23 +11,22 @@ import com.padelium.data.dto.GetReservationResponseDTO
 import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
 import com.padelium.data.dto.ProfileRequestDTO
-import com.padelium.data.dto.SaveBookingRequestDTO
-import com.padelium.data.dto.SaveBookingResponseDTO
 import com.padelium.data.dto.SignupRequestDTO
+import com.padelium.data.dto.UserAvoirPayRequestDTO
+import com.padelium.data.dto.UserAvoirPayResponseDTO
 import com.padelium.data.dto.UserAvoirRequestDTO
 import com.padelium.data.dto.UserAvoirResponseDTO
+import com.padelium.domain.dto.BalanceResponse
 import com.padelium.domain.dto.ConfirmBookingResponse
-import com.padelium.domain.dto.ExtrasResponse
 import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.dto.PaymentResponse
-import com.padelium.domain.dto.SaveBookingRequest
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
-import okhttp3.MultipartBody
+import com.padelium.domain.dto.UserAvoirPayResponse
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -37,13 +35,14 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Headers
-import retrofit2.http.Multipart
 import retrofit2.http.POST
-import retrofit2.http.Part
+import java.math.BigDecimal
 
 interface PadeliumEndPoint {
     @Headers(
-        "Accept: application/json", "Content-Type: application/x-www-form-urlencoded")
+        "Accept: application/json",
+        "Content-Type: application/x-www-form-urlencoded"
+    )
     @FormUrlEncoded
     @POST("api/authentication")
     suspend fun loginUser(
@@ -51,10 +50,11 @@ interface PadeliumEndPoint {
         @Field("password") password: String
     ): Response<ResponseBody>
 
+    @Headers("Content-Type: application/json")
     @POST("/api/register")
     suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
-
+    @Headers("Content-Type: application/json")
     @POST("/api/establishments/search/init")
     suspend fun getReservationKey(@Body request: FetchKeyRequestDTO): Response<FetchKeyResponse>
 
@@ -115,8 +115,14 @@ interface PadeliumEndPoint {
     suspend fun Payment(@Body paymentRequest: PaymentRequestDTO): Response<PaymentResponse?>
 
 
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/user-avoirs/pay/from/avoir")
+    suspend fun PaymentPayAvoir(@Body amount: BigDecimal): Response<UserAvoirPayResponse>
 
 
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/user-avoirs/balance/userId")
+    suspend fun Balance(@Body Id: Long): Response<BalanceResponse>
 
     @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("api/payment/user/avoir")

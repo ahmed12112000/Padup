@@ -12,15 +12,21 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
+import androidx.navigation.navDeepLink
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.repository.Booking.BookingViewModel
 import com.nevaDev.padeliummarhaba.ui.views.*
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
+import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.domain.dto.EstablishmentBasicDTO
 import com.padelium.domain.dto.EstablishmentPictureBasicDTO
+import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.domain.dto.PlanningBasicDTO
@@ -59,6 +65,23 @@ fun AppNavHost(
             navController = navController,
             startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
         {
+
+
+            composable(
+                route = "WebViewScreen?paymentUrl={paymentUrl}",
+                arguments = listOf(navArgument("paymentUrl") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
+                WebViewScreen(formUrl = paymentUrl, navController = navController)
+            }
+
+            composable("WebViewScreen?paymentUrl={paymentUrl}") { backStackEntry ->
+                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
+                WebViewScreen(formUrl = paymentUrl, navController = navController)
+            }
+            composable("PaymentSuccessScreen") {
+                PaymentSuccessScreen(navController = navController)
+            }
             // MainScreen with top bar
             composable("main_screen") {
                 MainScreen(
@@ -99,6 +122,7 @@ fun AppNavHost(
             ) { backStackEntry ->
                 val viewModel: KeyViewModel = hiltViewModel()
                 val getBookingViewModel: GetBookingViewModel = hiltViewModel()
+                val paymentPayAvoirViewModel: PaymentPayAvoirViewModel = hiltViewModel()
 
                 ReservationScreen(
                     navController = navController,
@@ -107,26 +131,61 @@ fun AppNavHost(
                     sharedPreferences = sharedPreferences,
                     onFetchSuccess = { /* Handle fetch success */ },
                     viewModel = viewModel,
-                    getBookingViewModel = getBookingViewModel
+                    getBookingViewModel = getBookingViewModel,
+                    paymentPayAvoirViewModel = paymentPayAvoirViewModel
+
+
                 )
             }
 
 
             composable(
-                route = "WebViewScreen?paymentUrl={paymentUrl}",
-                arguments = listOf(navArgument("paymentUrl") { type = NavType.StringType })
+                "payment_section1/{name}/{time}/{date}/{price}/{mappedBookings}",
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{date}/{price}/{mappedBookings}"
+                    }
+                ),
+                arguments = listOf(
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("time") { type = NavType.StringType },
+                    navArgument("date") { type = NavType.StringType },
+                    navArgument("price") { type = NavType.StringType },
+                    navArgument("mappedBookings") { type = NavType.StringType }
+                )
             ) { backStackEntry ->
-                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
-                WebViewScreen(paymentUrl = paymentUrl, navController = navController)
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val time = backStackEntry.arguments?.getString("time").orEmpty()
+                val date = backStackEntry.arguments?.getString("date").orEmpty()
+                val price = backStackEntry.arguments?.getString("price").orEmpty()
+
+                // Get mappedBookingsJson from arguments
+                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
+
+                // Deserialize JSON into List<GetBookingResponse>
+                val type = object : TypeToken<List<GetBookingResponse>>() {}.type
+                val mappedBookings: List<GetBookingResponse> = Gson().fromJson(mappedBookingsJson, type)
+
+                // Use the deserialized mappedBookings in your UI
+                PaymentSection1(
+                    selectedDate = LocalDate.now(),
+                    selectedReservation = ReservationOption(name, time, date, price, mappedBookingsJson), // Pass JSON string here
+                    onExtrasUpdate = { _, _, _ -> },
+                    navController = navController,
+                    bookingViewModel = hiltViewModel(),
+                    selectedTimeSlot = time,
+                    mappedBookingsJson = mappedBookingsJson,
+                    price = price
+
+                )
             }
 
-            composable("WebViewScreen?paymentUrl={paymentUrl}") { backStackEntry ->
-                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
-                WebViewScreen(paymentUrl = paymentUrl, navController = navController)
-            }
-            composable("PaymentSuccessScreen") {
-                PaymentSuccessScreen(navController = navController)
-            }
+
+
+
+
+
+
 
             composable("CreditPayment") { CreditPayment(navController = navController) }
             composable("CreditCharge") { CreditCharge() }
@@ -140,6 +199,13 @@ fun AppNavHost(
             composable("Profile_screen") {
                 ProfileScreen(onLogout = onLogout)
             }
+
+
+
+
+
+
+
             composable("summary_screen") {
                 SummaryScreen()
             }
@@ -176,68 +242,10 @@ fun AppNavHost(
             }
 
 
-            composable("reservation_options") { backStackEntry ->
-                ReservationOptions(
-                    onReservationSelected = { reservationOption ->
-                        navController.navigate("payment_section1/${reservationOption.name}/${reservationOption.time}/${reservationOption.date}/${reservationOption.price}")
-                    },
-                    isUserLoggedIn = true, // Example value
-                    key = null,
-                    navController = navController,
-                    selectedDate = LocalDate.now(), // Example value
-                     selectedTimeSlot = "12:00 PM" // Example value
-                )
-            }
 
-            composable(
-                "PaymentSection1/{amountSelected}/{currencySymbol}/{name}/{time}/{date}",
-                arguments = listOf(
-                    navArgument("amountSelected") { type = NavType.FloatType },
-                    navArgument("name") { type = NavType.StringType },
-                    navArgument("time") { type = NavType.StringType },
-                    navArgument("date") { type = NavType.StringType },
-                    navArgument("currencySymbol") { type = NavType.StringType },
 
-                    )
-            ) { backStackEntry ->
 
-                val amountSelected = backStackEntry.arguments?.getFloat("amountSelected")?.toDouble() ?: 0.0
-                val currencySymbol = backStackEntry.arguments?.getString("currencySymbol") ?: ""
-                val name = backStackEntry.arguments?.getString("name") ?: ""
-                val time = backStackEntry.arguments?.getString("time") ?: ""
-                val date = backStackEntry.arguments?.getString("date") ?: ""
 
-                val amount = backStackEntry.arguments?.getString("amount") ?: ""
-                val currency = backStackEntry.arguments?.getString("currency") ?: ""
-                val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
-
-                val paymentRequest = PaymentRequest(
-                    amount = amount,
-                    currency = currency,
-                    orderId = orderId
-                )
-
-                val viewModel = hiltViewModel<SaveBookingViewModel>()
-                val viewModel1 = hiltViewModel<PaymentViewModel>()
-                val viewModel2 = hiltViewModel<com.nevaDev.padeliummarhaba.ui.views.BookingViewModel>()
-
-                PaymentSection1(
-                    selectedDate = LocalDate.now(),
-                    selectedTimeSlot = time,
-                    selectedReservation = ReservationOption(name, time, "$amountSelected", date),
-                    onExtrasUpdate = { extra1, extra2, extra3 -> },
-                    onPayWithCardClick = { /* Handle pay click */ },
-                    totalAmount = "$amountSelected",
-                    navController = navController,
-                    paymentRequest = paymentRequest,
-                    viewModel = viewModel,
-                    viewModel1 = viewModel1,
-                    bookingViewModel = viewModel2,
-                    amountSelected = amountSelected,
-                    currencySymbol = currencySymbol,
-
-                    )
-            }
 
 
         }
