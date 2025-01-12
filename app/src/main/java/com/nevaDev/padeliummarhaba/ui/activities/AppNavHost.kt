@@ -5,6 +5,10 @@ import android.content.SharedPreferences
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -140,23 +144,23 @@ fun AppNavHost(
 
 
             composable(
-                "payment_section1/{name}/{time}/{date}/{price}/{mappedBookings}",
+                "payment_section1/{name}/{time}/{price}/{mappedBookings}",
                 deepLinks = listOf(
                     navDeepLink {
-                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{date}/{price}/{mappedBookings}"
+                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{price}/{mappedBookings}"
                     }
                 ),
                 arguments = listOf(
                     navArgument("name") { type = NavType.StringType },
                     navArgument("time") { type = NavType.StringType },
-                    navArgument("date") { type = NavType.StringType },
+                  //  navArgument("date") { type = NavType.StringType },
                     navArgument("price") { type = NavType.StringType },
                     navArgument("mappedBookings") { type = NavType.StringType }
                 )
             ) { backStackEntry ->
                 val name = backStackEntry.arguments?.getString("name").orEmpty()
                 val time = backStackEntry.arguments?.getString("time").orEmpty()
-                val date = backStackEntry.arguments?.getString("date").orEmpty()
+               // val date = backStackEntry.arguments?.getString("date").orEmpty()
                 val price = backStackEntry.arguments?.getString("price").orEmpty()
 
                 // Get mappedBookingsJson from arguments
@@ -169,18 +173,52 @@ fun AppNavHost(
                 // Use the deserialized mappedBookings in your UI
                 PaymentSection1(
                     selectedDate = LocalDate.now(),
-                    selectedReservation = ReservationOption(name, time, date, price, mappedBookingsJson), // Pass JSON string here
+                    selectedReservation = ReservationOption(name, time, price, mappedBookingsJson), // Pass JSON string here
                     onExtrasUpdate = { _, _, _ -> },
                     navController = navController,
                     bookingViewModel = hiltViewModel(),
                     selectedTimeSlot = time,
                     mappedBookingsJson = mappedBookingsJson,
-                    price = price
-
+                    price = price,
+                    onTotalAmountCalculated = { totalAmount, currency ->
+                        // Handle total amount calculation here
+                    },
                 )
             }
 
+            composable(
+                route = "reservation_summary/{name}/{time}/{price}/{mappedBookings}",
+                arguments = listOf(
+                    navArgument("name") { type = NavType.StringType },
+                    navArgument("time") { type = NavType.StringType },
+                   // navArgument("date") { type = NavType.StringType },
+                    navArgument("price") { type = NavType.StringType },
+                    navArgument("mappedBookings") { type = NavType.StringType }
+                )
+            ) { backStackEntry ->
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val time = backStackEntry.arguments?.getString("time").orEmpty()
+               // val date = backStackEntry.arguments?.getString("date").orEmpty()
+                val price = backStackEntry.arguments?.getString("price").orEmpty()
+                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
+                var selectedDate by remember { mutableStateOf(LocalDate.now()) }
 
+                // Use the parsed values in ReservationSummary
+                ReservationSummary(
+                    selectedDate = selectedDate, // Parse date string to LocalDate
+                    selectedTimeSlot = time,
+                    selectedReservation = ReservationOption(name, time, price, mappedBookingsJson), // Pass JSON string here
+                    selectedExtras = emptyList(), // Pass any extras if needed
+                    amountSelected = null, // Pass appropriate amount if available
+                    onTotalAmountCalculated = { totalAmount, currency ->
+                        // Handle total amount calculation here
+                    },
+                    price = price,
+                    time = time,
+                    navController = navController,
+
+                    )
+            }
 
 
 

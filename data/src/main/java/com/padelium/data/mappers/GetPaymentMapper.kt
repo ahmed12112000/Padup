@@ -14,9 +14,9 @@ class GetPaymentMapper @Inject constructor(){
             couponIds = getPaymentRequest.couponIds,
             numberOfPart = getPaymentRequest.numberOfPart,
             orderId = getPaymentRequest.orderId,
-            privateExtrasIds = getPaymentRequest.privateExtrasIds,
-            sharedExtrasIds = getPaymentRequest.sharedExtrasIds,
-            userIds = getPaymentRequest.userIds,
+            privateExtrasIds = getPaymentRequest.privateExtrasIds.filterNotNull()?: emptyList(),
+            sharedExtrasIds = getPaymentRequest.sharedExtrasIds.filterNotNull(),
+            userIds = getPaymentRequest.userIds.filterNotNull()?: emptyList(),
             bookingIds = getPaymentRequest.bookingIds,
 
 

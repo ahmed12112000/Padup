@@ -360,7 +360,7 @@ fun handleCardClick(
 
 ) {
     // Extract selectedTimeSlot for logging or further processing
-    val selectedTimeSlot = "${planning.fromStr} - ${planning.toStr}"
+
 
     // Prepare amount and price details
     val amountSelected = selectedBooking.amount ?: BigDecimal.ZERO
@@ -370,6 +370,10 @@ fun handleCardClick(
 
     // Extract establishment name safely
     val establishmentName = selectedBooking.establishmentDTO?.name ?: "Unknown"
+    val selectedTimeSlot = "${planning.fromStr} - ${planning.toStr}"
+//      val establishmentName = selectedBooking.establishmentDTO?.name ?: "Unknown"
+
+
 
     // Create a new booking object with only the relevant planning
     val updatedBooking = selectedBooking.copy(plannings = listOf(planning)) // Only include the selected planning
@@ -396,9 +400,9 @@ fun handleCardClick(
         val reservationOption = ReservationOption(
             name = establishmentName,
             time = selectedTimeSlot,
-            date = "",  // Update if necessary; ensure this is not empty if required by your navigation graph
-            price = " $formattedAmount", // Ensure this is correct
-            mappedBookings = mappedBookings  // Include mappedBookings for the selected booking
+            //date = "hello",
+            price = amountSelected.toString(),
+            mappedBookings = mappedBookings
         )
         Log.d("ReservationSummary", "selectedTimeSlot: $price")
         Log.d("ReservationSummary1111", "selectedTimeSlot: $selectedTimeSlot")
@@ -429,7 +433,7 @@ fun handleCardClick(
 
         // Navigate to payment screen with serialized mappedBookings JSON
         navController.navigate(
-            "payment_section1/${Uri.encode(reservationOption.name)}/${Uri.encode(reservationOption.time)}/${Uri.encode(reservationOption.date)}/${Uri.encode(reservationOption.price)}/$mappedBookingsJson"
+            "payment_section1/${Uri.encode(reservationOption.name)}/${Uri.encode(reservationOption.time)}/${Uri.encode(reservationOption.price)}/$mappedBookingsJson"
         )
 
     }

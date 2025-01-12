@@ -1,12 +1,13 @@
 package com.padelium.domain.dto
 
 data class GetPaymentRequest(
-    val bookingIds: List<bookingIds>,
-    val couponIds: String,
+    val bookingIds: List<Long>,
+    val couponIds: Map<Long, Long>,
     val numberOfPart:Int,
     val orderId: String,
-    val privateExtrasIds:List<Long>,
-    val sharedExtrasIds: List<Long>,
-    val userIds: List<Long>
+    val privateExtrasIds:List<Long?>,
+    val sharedExtrasIds: List<Long?>,
+    val userIds: List<Long?>
 
     )
+

@@ -33,7 +33,7 @@ class InitBookingViewModel @Inject constructor(
                     DataResultBooking.Success(initBookingDTO)
 
                     // Trigger GetBookingViewModel's getBooking method on success
-                    getBookingViewModel.getBooking(key)
+                   // getBookingViewModel.getBooking(key, selectedDate)
 
                     DataResultBooking.Success(initBookingDTO)
                 }

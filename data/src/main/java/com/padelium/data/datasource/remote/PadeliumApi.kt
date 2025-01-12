@@ -104,7 +104,7 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
         return endPoint.Extras()
     }
 
-    suspend fun PaymentPayAvoir (amount: BigDecimal): Response<UserAvoirPayResponse> {
+    suspend fun PaymentPayAvoir (amount: BigDecimal): Response<Boolean> {
         return endPoint.PaymentPayAvoir(amount)
     }
 

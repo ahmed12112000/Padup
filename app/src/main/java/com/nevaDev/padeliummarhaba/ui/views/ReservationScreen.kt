@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -47,6 +48,8 @@ import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
 import com.nevaDev.padeliummarhaba.viewmodels.GetInitViewModel
@@ -54,6 +57,7 @@ import com.nevaDev.padeliummarhaba.viewmodels.InitBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
+import com.padelium.domain.dto.GetBookingResponse
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -90,13 +94,13 @@ fun ReservationScreen(
     val parsedTimeSlots by getBookingViewModel.parsedTimeSlots.collectAsState(initial = emptyList())
 
     // Function to fetch reservation data
+    // Function to fetch reservation data
     fun fetchReservationData(date: LocalDate) {
         val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
         isLoading = true
         viewModel.getReservationKey(fetchKeyRequest, date, selectedTimeSlot.value)
-
 
         viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
             when (result) {
@@ -106,14 +110,13 @@ fun ReservationScreen(
                     isLoading = false
                     onFetchSuccess()
                     reservationKey.value?.let { key ->
-                     // getBookingViewModel.getBooking(key)
+                      //  getBookingViewModel.getBooking(key, selectedDate.value)
                     }
                 }
                 is DataResultBooking.Failure -> {
                     isLoading = false
                     errorMessage = result.errorMessage ?: "Unknown error occurred"
                     Log.e("ReservationScreen", "Error: ${result.errorMessage}")
-
                 }
             }
         }
@@ -122,15 +125,16 @@ fun ReservationScreen(
     // Function to fetch time slots based on selected date
     fun filterSlotsByDate(newDate: LocalDate) {
         reservationKey.value?.let { key ->
-            getBookingViewModel.getBooking(key)
+            getBookingViewModel.getBooking(key, newDate)
         } ?: run {
-            errorMessage = "Reservation key is not available. Please try again."
+            errorMessage = ""
         }
     }
 
 
     LaunchedEffect(selectedDate.value) {
         fetchReservationData(selectedDate.value)
+        filterSlotsByDate(selectedDate.value)
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
@@ -169,10 +173,25 @@ fun ReservationScreen(
 
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else {
-            errorMessage?.let {
-                Text(text = it, color = Color.Red, textAlign = TextAlign.Center)
+        } else if (errorMessage != null) {
+            Text(
+                text = errorMessage!!,
+                color = Color.Red,
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+        } else if (parsedTimeSlots.isNotEmpty()) {
+            // Display available time slots here, e.g., in a LazyColumn or other UI component
+            LazyColumn(modifier = Modifier.fillMaxWidth()) {
+                items(parsedTimeSlots) { timeSlot ->
+                    Text(text = timeSlot.toString(), modifier = Modifier.padding(8.dp))
+                }
             }
+        } else {
+            Text(
+                text = "",
+                modifier = Modifier.align(Alignment.CenterHorizontally)
+            )
+
         }
 /*
 
@@ -185,7 +204,7 @@ fun ReservationScreen(
 */
 
         if (parsedTimeSlots.isEmpty()) {
-            Text(text = "No available time slots.", color = Color.Red, textAlign = TextAlign.Center)
+            Text(text = "", color = Color.Red, textAlign = TextAlign.Center)
         }
     }
 
@@ -338,7 +357,13 @@ fun ReservationSummary(
     selectedExtras: List<Triple<String, String, Int>>,
     amountSelected: Pair<Double, String>?,
     onTotalAmountCalculated: (Double, String) -> Unit,
-) {
+    price: String,
+    time: String,
+    navController: NavController,
+
+    ) {
+
+
     // Extract and parse reservation price
     val reservationPrice = try {
         val priceString = selectedReservation.price.replace("[^\\d.,]".toRegex(), "")
@@ -351,7 +376,7 @@ fun ReservationSummary(
     // Set currency symbol
     val currencySymbol = amountSelected?.second ?: "DT" // Default to DT if not provided
 
-    Log.d("ReservationSummary", "Parsed reservationPrice: $reservationPrice, Currency: $currencySymbol")
+    Log.d("ReservationSummary", "Parsed reservationPrice: $reservationPrice")
 
     // Calculate total cost including extras
     val totalExtrasCost = selectedExtras.sumOf { (_, priceString, _) ->
@@ -359,7 +384,7 @@ fun ReservationSummary(
     }
 
     val totalAmountSelected = reservationPrice + totalExtrasCost
-    Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected, Currency: $currencySymbol")
+    Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected")
 
     onTotalAmountCalculated(totalAmountSelected, currencySymbol)
 
@@ -377,7 +402,7 @@ fun ReservationSummary(
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
         ReservationDetailRow(label = "Prix", value = selectedReservation.price)
         ReservationDetailRow(label = "Date", value = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy").format(selectedDate))
-        ReservationDetailRow(label = "Heure", value = selectedTimeSlot)
+        ReservationDetailRow(label = "Heure", value = selectedReservation.time)
 
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -394,7 +419,7 @@ fun ReservationSummary(
             ReservationDetailRow(label = "Extra: $name", value = price)
         }
 
-        ReservationDetailRow(label = "Total", value = "$currencySymbol ${String.format("%.2f", totalAmountSelected)}")
+        ReservationDetailRow(label = "Total", value = "${String.format("%.2f", totalAmountSelected)}")
     }
 }
 

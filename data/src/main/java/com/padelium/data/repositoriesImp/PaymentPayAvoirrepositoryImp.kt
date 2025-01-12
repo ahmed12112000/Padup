@@ -13,7 +13,7 @@ import javax.inject.Inject
 class PaymentPayAvoirrepositoryImp @Inject constructor(
     private val api: PadeliumApi // Updated naming for clarity
 ) : IPaymentPayAvoirrepository {
-    override suspend fun PaymentPayAvoir(amount: BigDecimal): Response<UserAvoirPayResponse> {
+    override suspend fun PaymentPayAvoir(amount: BigDecimal): Response<Boolean> {
         // Directly pass the amount to the API endpoint
         return api.PaymentPayAvoir(amount)
     }

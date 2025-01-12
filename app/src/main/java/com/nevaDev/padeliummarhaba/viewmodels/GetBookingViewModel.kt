@@ -47,37 +47,32 @@ class GetBookingViewModel @Inject constructor(
     fun updateBookings(newBookings: List<GetBookingResponseDTO>) {
         _selectedBookings.value = newBookings
     }
-    fun getBooking(key: String) {
+    fun getBooking(key: String, selectedDate: LocalDate) {
         dataResultBooking.value = DataResultBooking.Loading
         viewModelScope.launch {
             try {
                 val result = getBookingUseCase.execute(key)
                 dataResultBooking.value = when (result) {
                     is DataResultBooking.Success -> {
-                        val mappedData =
-                            getBookingMapper.GetBookingResponseToGetBookingResponseDto(result.data)
+                        val mappedData = getBookingMapper.GetBookingResponseToGetBookingResponseDto(result.data)
 
-                        // Determine selected date based on application logic
-                        val selectedDate = LocalDate.now() // Example: Use the current date
-
-                        // Parse and populate time slots
+                        // Parse and populate time slots using the provided selectedDate
                         val parsedTimeSlots = mappedData.flatMap { booking ->
                             booking.plannings.mapNotNull { planning ->
-                                parseTimeSlot(planning.fromStr, selectedDate)
+                                parseTimeSlot(planning.fromStr, selectedDate) // Use the passed selectedDate
                             }
                         }
 
                         // Populate _timeSlots
                         _timeSlots.postValue(parsedTimeSlots)
 
-
                         // Filter slots after populating _timeSlots
                         if (parsedTimeSlots.isNotEmpty()) {
-                            filterSlotsByDate(selectedDate, parsedTimeSlots)
+                            filterSlotsByDate(selectedDate, parsedTimeSlots) // Pass selectedDate here
                             _parsedTimeSlotss.value = parsedTimeSlots
                         } else {
+                            _filteredTimeSlots.postValue(emptyList())
                         }
-
 
                         DataResultBooking.Success(mappedData) // Return success with mapped data
                     }
@@ -102,6 +97,7 @@ class GetBookingViewModel @Inject constructor(
 
 
 
+
     private fun parseTimeSlot(fromStr: String, date: LocalDate): TimeSlot? {
         return try {
             val localTime =
@@ -115,45 +111,37 @@ class GetBookingViewModel @Inject constructor(
     fun filterSlotsByDate(selectedDate: LocalDate, parsedTimeSlots: List<TimeSlot>) {
         viewModelScope.launch {
             try {
-                // Get current date and time in local timezone
                 val currentDateTime = ZonedDateTime.now(ZoneId.of("Africa/Tunis"))
                 val isToday = selectedDate.isEqual(currentDateTime.toLocalDate())
 
-                // Check if parsedTimeSlots is null or empty
                 if (parsedTimeSlots.isEmpty()) {
                     _filteredTimeSlots.postValue(emptyList())
                     return@launch
                 }
 
-                // Filtering logic
                 val filteredSlots = parsedTimeSlots.filter { slot ->
-                    try {
-                        // Combine LocalDate and LocalTime into ZonedDateTime
-                        val slotDateTime = ZonedDateTime.of(
-                            slot.date.atTime(slot.time), // Combine LocalDate and LocalTime
-                            ZoneId.of("Africa/Tunis") // Ensure this matches your timezone
-                        )
+                    val slotDateTime = ZonedDateTime.of(slot.date.atTime(slot.time), ZoneId.of("Africa/Tunis"))
 
-
-                        // Adjusted filtering logic
-                        when {
-                            isToday -> slotDateTime.isAfter(currentDateTime) // Only keep future slots for today
-                            else -> slotDateTime.toLocalDate().isEqual(selectedDate) // Match the selected date
-                        }
-                    } catch (e: Exception) {
-                        false
+                    if (isToday) {
+                        // Include only slots for today that are after the current time
+                        slotDateTime.isAfter(currentDateTime)
+                    } else {
+                        // For any other date, include all slots on that date
+                        slot.date.isEqual(selectedDate)
                     }
                 }
 
-                // Log filtered slots for debugging purposes
-
-                // Update _filteredTimeSlots with the filtered slots
+                Log.d("FilterSlotsByDate", "Filtered slots for $selectedDate: $filteredSlots")
                 _filteredTimeSlots.postValue(filteredSlots)
 
             } catch (e: Exception) {
+                Log.e("FilterSlotsByDate", "Error filtering slots: ${e.message}", e)
+                _filteredTimeSlots.postValue(emptyList())
             }
         }
     }
+
+
 
 
 }

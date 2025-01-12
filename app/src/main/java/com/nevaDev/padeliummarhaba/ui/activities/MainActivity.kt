@@ -73,7 +73,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val sharedPreferences = getSharedPreferences("csrf_prefs", MODE_PRIVATE)
-
         setContent {
             PadeliumMarhabaTheme {
                 var showSplashScreen by remember { mutableStateOf(true) }
@@ -87,7 +86,7 @@ class MainActivity : ComponentActivity() {
                     SplashScreen()
                 } else {
                     val context = LocalContext.current
-                    MainApp(context, sharedPreferences)
+                    MainApp(context, sharedPreferences,)
                 }
             }
         }
@@ -98,7 +97,7 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun MainApp(context: Context, sharedPreferences: SharedPreferences) {
+fun MainApp(context: Context, sharedPreferences: SharedPreferences,) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -152,7 +151,8 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences) {
                         context = context,
                         sharedPreferences = sharedPreferences,
                         drawerState = drawerState,
-                        scope = scope
+                        scope = scope,
+
                     )
                 }
             }

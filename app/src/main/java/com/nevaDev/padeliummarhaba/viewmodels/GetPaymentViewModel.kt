@@ -22,7 +22,7 @@ class GetPaymentViewModel @Inject constructor(private val getPaymentUseCase: Get
     /**
      * Start getting data
      */
-    fun GetPayment(getPaymentRequest: GetPaymentRequest) {
+    fun GetPayment2(getPaymentRequest: GetPaymentRequest) {
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
             dataResult.value=getPaymentUseCase.GetPayment(getPaymentRequest)

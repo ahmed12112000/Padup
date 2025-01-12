@@ -117,7 +117,7 @@ interface PadeliumEndPoint {
 
     @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("api/user-avoirs/pay/from/avoir")
-    suspend fun PaymentPayAvoir(@Body amount: BigDecimal): Response<UserAvoirPayResponse>
+    suspend fun PaymentPayAvoir(@Body amount: BigDecimal): Response<Boolean>
 
 
     @Headers("Accept: application/json", "Content-Type: application/json")
