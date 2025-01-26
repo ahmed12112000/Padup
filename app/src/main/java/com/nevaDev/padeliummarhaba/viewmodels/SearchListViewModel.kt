@@ -29,7 +29,7 @@ class SearchListViewModel @Inject constructor(
     val establishments: StateFlow<List<EstablishmentDTO>> = establishments4
     val dataResultBooking = MutableLiveData<DataResultBooking<List<SearchListResponseDTO>>>()
 
-    fun searchList(key: String, selectedDate: LocalDate, selectedTimeSlot: String?) {
+    fun searchList(key: String, selectedDate: LocalDate) {
         // Set to loading state
         dataResultBooking.value = DataResultBooking.Loading
 
@@ -46,7 +46,7 @@ class SearchListViewModel @Inject constructor(
                     }
 
                     // Trigger InitBookingViewModel's InitBooking method
-                    initBookingViewModel.InitBooking(key, selectedDate, selectedTimeSlot)
+                    initBookingViewModel.InitBooking(key, selectedDate)
 
                     // Return success with the mapped DTO
                     DataResultBooking.Success(searchListResponseDTO)

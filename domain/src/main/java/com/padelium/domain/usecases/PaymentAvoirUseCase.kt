@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 class PaymentAvoirUseCase @Inject constructor(private val paymentAvoirRepository: IPaymentAvoirRepository) {
 
-    suspend fun Payment(userAvoirRequest: UserAvoirRequest): DataResult {
+    suspend fun PaymentAvoir(userAvoirRequest: UserAvoirRequest): DataResult {
         return try {
             val response = paymentAvoirRepository.PaymentAvoir(userAvoirRequest)
             if (response.isSuccessful) {

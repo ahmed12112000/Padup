@@ -78,10 +78,10 @@ fun TimeSlotSelector(
     onTimeSlotSelected: (String) -> Unit,
     selectedTimeSlot: String?
 ) {
-    val uniqueTimeSlots = timeSlots.distinctBy { it.time } // Deduplicate time slots
+    val uniqueTimeSlots = timeSlots.distinctBy { it.time }
 
     LazyVerticalGrid(
-        columns = GridCells.Fixed(4), // Four buttons per row
+        columns = GridCells.Fixed(4),
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
@@ -90,13 +90,20 @@ fun TimeSlotSelector(
     ) {
         items(uniqueTimeSlots) { timeSlot ->
             val formattedTime = timeSlot.time.format(DateTimeFormatter.ofPattern("H:mm"))
+            val isSelected = selectedTimeSlot == formattedTime
 
             Button(
                 onClick = { onTimeSlotSelected(formattedTime) },
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
-
-                modifier = Modifier.fillMaxWidth() // Ensures proper spacing
+                shape = RoundedCornerShape(8.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (isSelected) Color(0xFF0054D8) else Color.White // White background if not selected
+                ),
+                border = if (!isSelected) {
+                    BorderStroke(1.dp, Color.Black) // Black border if not selected
+                } else {
+                    null // No border if selected
+                },
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
                     text = formattedTime,
@@ -246,14 +253,20 @@ private fun EstablishmentCard(
     var showLoginPopup by remember { mutableStateOf(false) }
 
     availablePlannings.forEach { planning ->
+        val amountToShow = if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
+            planning.reductionPrice
+        } else {
+            getBookingResponseDTO.amount ?: BigDecimal.ZERO
+        }
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 6.dp)
                 .clickable {
+
                     handleCardClick(
-                        selectedBooking = getBookingResponseDTO,  // Pass entire DTO as the selected booking
-                        planning = planning,  // Pass only the current planning that matches the selected time slot
+                        selectedBooking = getBookingResponseDTO,
+                        planning = planning,
                         bookingViewModel = bookingViewModel,
                         navController = navController,
                         isUserLoggedIn = isUserLoggedIn,
@@ -262,8 +275,8 @@ private fun EstablishmentCard(
                         viewModel1 = viewModel1,
                         onReservationSelected = { reservationOption ->
                         },
-                        paymentPayAvoirViewModel= paymentPayAvoirViewModel
-
+                        paymentPayAvoirViewModel= paymentPayAvoirViewModel,
+                        amountToShow = amountToShow
                     )
                 },
             shape = RoundedCornerShape(12.dp),
@@ -327,8 +340,13 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.size(width = 120.dp, height = 40.dp)
         ) {
+            val amountToShow = if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
+                planning.reductionPrice
+            } else {
+                getBookingResponseDTO.amount ?: BigDecimal.ZERO
+            }
             Text(
-                text = "${getBookingResponseDTO.amount} ${getBookingResponseDTO.currencySymbol}",
+                text = "${String.format("%.2f", amountToShow)} ${getBookingResponseDTO.currencySymbol ?: "€"}",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp,
                 color = Color(0xFFD7F057),
@@ -347,8 +365,8 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
 
 
 fun handleCardClick(
-    selectedBooking: GetBookingResponseDTO, // The entire DTO as the selected booking
-    planning: PlanningDTO, // The specific planning clicked
+    selectedBooking: GetBookingResponseDTO,
+    planning: PlanningDTO,
     bookingViewModel: GetBookingViewModel,
     navController: NavController,
     isUserLoggedIn: Boolean,
@@ -356,71 +374,55 @@ fun handleCardClick(
     saveBookingViewModel: SaveBookingViewModel,
     viewModel1: ExtrasViewModel,
     onReservationSelected: (ReservationOption) -> Unit,
-     paymentPayAvoirViewModel: PaymentPayAvoirViewModel
-
+    paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
+    amountToShow: BigDecimal
 ) {
-    // Extract selectedTimeSlot for logging or further processing
 
 
-    // Prepare amount and price details
-    val amountSelected = selectedBooking.amount ?: BigDecimal.ZERO
+   // val amountSelected = selectedBooking.amount ?: BigDecimal.ZERO
+
     val currencySymbol = selectedBooking.currencySymbol ?: "€"
-    val formattedAmount = String.format("%.2f", amountSelected)
+    val formattedAmount = String.format("%.2f", amountToShow)
     val price = " $formattedAmount"
 
-    // Extract establishment name safely
     val establishmentName = selectedBooking.establishmentDTO?.name ?: "Unknown"
     val selectedTimeSlot = "${planning.fromStr} - ${planning.toStr}"
-//      val establishmentName = selectedBooking.establishmentDTO?.name ?: "Unknown"
 
 
 
-    // Create a new booking object with only the relevant planning
-    val updatedBooking = selectedBooking.copy(plannings = listOf(planning)) // Only include the selected planning
+    val updatedBooking = selectedBooking.copy(plannings = listOf(planning))
 
-    // Update bookings in the ViewModel with only the current planning
-    bookingViewModel.updateBookings(listOf(updatedBooking))  // Ensure this contains only the relevant booking
+    bookingViewModel.updateBookings(listOf(updatedBooking))
     Log.d("BookingViewModel", "updateBookings called with selected booking")
 
-    // Call Extras
-    viewModel1.Extras()
 
-    // Handle user login state
     if (!isUserLoggedIn) {
         onLoginRequired()
     } else {
-        // Save only the selected booking
         val mappedBookings = listOf(updatedBooking).toDomain().joinToString(separator = ", ") {
             it.toString()
         }
 
-      //  saveBookingViewModel.SaveBooking(listOf(updatedBooking).toDomain())
 
-        // Create ReservationOption with corrected values
         val reservationOption = ReservationOption(
             name = establishmentName,
             time = selectedTimeSlot,
             //date = "hello",
-            price = amountSelected.toString(),
+            price = amountToShow.toString(), // Use amountToShow here
             mappedBookings = mappedBookings
         )
-        Log.d("ReservationSummary", "selectedTimeSlot: $price")
-        Log.d("ReservationSummary1111", "selectedTimeSlot: $selectedTimeSlot")
-
 
 
         val mappedBookingsJson = Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))
+
         Log.d("HandleCardClick", "ReservationOption: $reservationOption")
 
-        // Notify about the selected reservation
         onReservationSelected(reservationOption)
 
         try {
-            // Trim and sanitize the price string before conversion
             val sanitizedPrice = price.trim().replace(",", "")
             val amount = BigDecimal(sanitizedPrice)
 
-            paymentPayAvoirViewModel.PaymentPayAvoir(amount)
         } catch (e: NumberFormatException) {
             Toast.makeText(
                 navController.context,
@@ -431,7 +433,6 @@ fun handleCardClick(
         }
 
 
-        // Navigate to payment screen with serialized mappedBookings JSON
         navController.navigate(
             "payment_section1/${Uri.encode(reservationOption.name)}/${Uri.encode(reservationOption.time)}/${Uri.encode(reservationOption.price)}/$mappedBookingsJson"
         )
@@ -441,12 +442,6 @@ fun handleCardClick(
 
 
 
-
-
-
-
 fun <T> List<T>.toJson(): String {
     return Gson().toJson(this)
 }
-//  persollable
-// constructor

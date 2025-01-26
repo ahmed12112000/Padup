@@ -21,7 +21,7 @@ class ConfirmBookingMapper @Inject constructor(){
             numberOfPart = confirmBookingRequest.numberOfPart, // Updated to Double?
             privateExtrasIds = confirmBookingRequest.privateExtrasIds?: emptyList(),
             sharedExtrasIds = confirmBookingRequest.sharedExtrasIds.filterNotNull(), // Filter out null values
-            userIds = confirmBookingRequest.userIds.filterNotNull()?: emptyList(),
+            userIds = confirmBookingRequest.userIds,
             bookingIds = confirmBookingRequest.bookingIds,
 
 

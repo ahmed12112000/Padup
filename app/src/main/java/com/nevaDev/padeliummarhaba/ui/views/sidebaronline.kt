@@ -1,5 +1,7 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.graphics.BitmapFactory
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -14,10 +16,12 @@ import androidx.compose.material.Text
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.IconButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -25,15 +29,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import coil.compose.rememberImagePainter
 import com.nevadev.padeliummarhaba.R
+import android.util.Base64
+
 
 @Composable
 fun DrawerContentOnline(
     navController: NavController,
     onItemSelected: (String) -> Unit,
     onCloseDrawer: () -> Unit,
-    username: String
+    firstName: String,
+    lastName: String,
+    image: String
 ) {
+    Log.d("ImageURL", "Image URL: $image")
+    val bitmap = remember(image) {
+        if (image.isNotEmpty()) {
+            val decodedString = Base64.decode(image, Base64.DEFAULT)
+            android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size) // Use fully qualified name
+        } else {
+            null
+        }
+    }
+
     Column(
         modifier = Modifier
             .offset(x = -40.dp)
@@ -88,19 +107,35 @@ fun DrawerContentOnline(
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth() .offset(y = -110.dp,x=30.dp),
+                    modifier = Modifier.fillMaxWidth().offset(y = -110.dp, x = 30.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(id = R.drawable.a9),
-                        contentDescription = "Avatar",
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(CircleShape)
-                            .background(Color.LightGray)
+                    if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray)
+                        )
+                    } else {
+                        // Fallback image if bitmap is null
+                        Image(
+                            painter = painterResource(id = R.drawable.a9),
+                            contentDescription = "Fallback Avatar",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .clip(CircleShape)
+                                .background(Color.LightGray)
                     )
+                    }
 
-                    Spacer(modifier = Modifier.width(8.dp))
+
+
+
+
+                    Spacer(modifier = Modifier.width(4.dp))
 
                     Column(
                         modifier = Modifier
@@ -111,7 +146,7 @@ fun DrawerContentOnline(
                     ) {
                         // Welcome Text
                         Text(
-                            text = "Bonjour,$username ",
+                            text = "Bonjour, $firstName $lastName ",
                             fontSize = 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White,
@@ -228,7 +263,7 @@ fun DrawerContentOnline(
                 color = Color.White
             )
             Text(
-                text = "Copyright © 2024 DEVPRO | Tous droits réservés.",
+                text = "Copyright © 2025 DEVOPRO | Tous droits réservés.",
                 fontSize = 10.sp,
                 color = Color.White
             )
@@ -265,7 +300,7 @@ fun DrawerItemonline(icon: Int, label: String, onClick: () -> Unit) {
 fun onLogout() {
     TODO("Not yet implemented")
 }
-
+/*
 @Preview(showBackground = true)
 @Composable
 fun DrawerContentPreview() {
@@ -278,6 +313,8 @@ fun DrawerContentPreview() {
         username = "John Doe"
     )
 }
+
+ */
 
 
 

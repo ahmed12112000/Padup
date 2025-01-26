@@ -2,9 +2,11 @@ package com.nevaDev.padeliummarhaba.ui.activities
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,7 +25,11 @@ import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.repository.Booking.BookingViewModel
 import com.nevaDev.padeliummarhaba.ui.views.*
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetEmailViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetManagerViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetPaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
@@ -69,20 +75,73 @@ fun AppNavHost(
             navController = navController,
             startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
         {
+            composable("main_screen") {
+                MainScreen(
+                    navController = navController,
+                    onReservationClicked = { selectedDate ->
+
+                    }
+                    ) // Your MainScreen composable
+            }
+
+            composable("CreditCharge") {
+                CreditCharge(navController = navController)
+            }
+
+            composable(
+                route = "WebViewScreen1?formUrl={formUrl}",
+                arguments = listOf(navArgument("formUrl") { type = NavType.StringType })
+            ) { backStackEntry ->
+                val formUrl = backStackEntry.arguments?.getString("formUrl") ?: ""
+                val paymentGetAvoirViewModel: PaymentGetAvoirViewModel = hiltViewModel()
+
+                WebViewScreen1(
+                    formUrl = formUrl,
+                    navController = navController,
+                    paymentGetAvoirViewModel = paymentGetAvoirViewModel
+                )
+            }
+
 
 
             composable(
-                route = "WebViewScreen?paymentUrl={paymentUrl}",
-                arguments = listOf(navArgument("paymentUrl") { type = NavType.StringType })
+                route = "WebViewScreen?paymentUrl={paymentUrl}&numberOfPart={numberOfPart}&userIds={userIds}&sharedList={sharedList}&privateList={privateList}",
+                arguments = listOf(
+                    navArgument("paymentUrl") { type = NavType.StringType },
+                    navArgument("numberOfPart") { type = NavType.IntType; defaultValue = 1 },
+                    navArgument("userIds") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("sharedList") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("privateList") { type = NavType.StringType; defaultValue = "" }
+
+                )
             ) { backStackEntry ->
                 val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
-                WebViewScreen(formUrl = paymentUrl, navController = navController)
+                val getPaymentViewModel: GetPaymentViewModel = hiltViewModel()
+                val getManagerViewModel: GetManagerViewModel = hiltViewModel()
+                val getEmailViewModel: GetEmailViewModel = hiltViewModel()
+                val numberOfPart = backStackEntry.arguments?.getInt("numberOfPart") ?: 1
+                val encodedUserIds = backStackEntry.arguments?.getString("userIds").orEmpty()
+                val encodedSharedList = backStackEntry.arguments?.getString("sharedList").orEmpty()
+                val encodedPrivateList = backStackEntry.arguments?.getString("privateList").orEmpty()
+
+                // Observe selectedParts from the StateFlow
+                WebViewScreen(
+                    formUrl = paymentUrl,
+                    navController = navController,
+                    getPaymentViewModel = getPaymentViewModel,
+                    getManagerViewModel = getManagerViewModel,
+                    getEmailViewModel = getEmailViewModel,
+                    numberOfPart = numberOfPart,
+                    userIds = encodedUserIds,
+                    sharedList = encodedSharedList,
+                    privateList = encodedPrivateList
+                    )
             }
 
-            composable("WebViewScreen?paymentUrl={paymentUrl}") { backStackEntry ->
-                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
-                WebViewScreen(formUrl = paymentUrl, navController = navController)
-            }
+
+
+
+
             composable("PaymentSuccessScreen") {
                 PaymentSuccessScreen(navController = navController)
             }
@@ -155,13 +214,17 @@ fun AppNavHost(
                     navArgument("time") { type = NavType.StringType },
                   //  navArgument("date") { type = NavType.StringType },
                     navArgument("price") { type = NavType.StringType },
-                    navArgument("mappedBookings") { type = NavType.StringType }
+                    navArgument("mappedBookings") { type = NavType.StringType },
+
                 )
             ) { backStackEntry ->
                 val name = backStackEntry.arguments?.getString("name").orEmpty()
                 val time = backStackEntry.arguments?.getString("time").orEmpty()
                // val date = backStackEntry.arguments?.getString("date").orEmpty()
                 val price = backStackEntry.arguments?.getString("price").orEmpty()
+                val adjustedAmounte = backStackEntry.arguments?.getDouble("adjustedAmounte") ?: 0.0
+                val totalExtrasCost = backStackEntry.arguments?.getDouble("totalExtrasCost") ?: 0.0
+                val totalAmountSelected = backStackEntry.arguments?.getDouble("totalAmountSelected") ?: 0.0
 
                 // Get mappedBookingsJson from arguments
                 val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
@@ -169,11 +232,12 @@ fun AppNavHost(
                 // Deserialize JSON into List<GetBookingResponse>
                 val type = object : TypeToken<List<GetBookingResponse>>() {}.type
                 val mappedBookings: List<GetBookingResponse> = Gson().fromJson(mappedBookingsJson, type)
+                val selectedParts = backStackEntry.arguments?.getInt("selectedParts") ?: 1
 
                 // Use the deserialized mappedBookings in your UI
                 PaymentSection1(
                     selectedDate = LocalDate.now(),
-                    selectedReservation = ReservationOption(name, time, price, mappedBookingsJson), // Pass JSON string here
+                    selectedReservation = ReservationOption(name, time, price, mappedBookingsJson),
                     onExtrasUpdate = { _, _, _ -> },
                     navController = navController,
                     bookingViewModel = hiltViewModel(),
@@ -181,44 +245,15 @@ fun AppNavHost(
                     mappedBookingsJson = mappedBookingsJson,
                     price = price,
                     onTotalAmountCalculated = { totalAmount, currency ->
-                        // Handle total amount calculation here
                     },
+                     viewModel9 = hiltViewModel(),
+                    //totalExtrasCost = totalExtrasCost,
+
                 )
             }
 
-            composable(
-                route = "reservation_summary/{name}/{time}/{price}/{mappedBookings}",
-                arguments = listOf(
-                    navArgument("name") { type = NavType.StringType },
-                    navArgument("time") { type = NavType.StringType },
-                   // navArgument("date") { type = NavType.StringType },
-                    navArgument("price") { type = NavType.StringType },
-                    navArgument("mappedBookings") { type = NavType.StringType }
-                )
-            ) { backStackEntry ->
-                val name = backStackEntry.arguments?.getString("name").orEmpty()
-                val time = backStackEntry.arguments?.getString("time").orEmpty()
-               // val date = backStackEntry.arguments?.getString("date").orEmpty()
-                val price = backStackEntry.arguments?.getString("price").orEmpty()
-                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
-                var selectedDate by remember { mutableStateOf(LocalDate.now()) }
 
-                // Use the parsed values in ReservationSummary
-                ReservationSummary(
-                    selectedDate = selectedDate, // Parse date string to LocalDate
-                    selectedTimeSlot = time,
-                    selectedReservation = ReservationOption(name, time, price, mappedBookingsJson), // Pass JSON string here
-                    selectedExtras = emptyList(), // Pass any extras if needed
-                    amountSelected = null, // Pass appropriate amount if available
-                    onTotalAmountCalculated = { totalAmount, currency ->
-                        // Handle total amount calculation here
-                    },
-                    price = price,
-                    time = time,
-                    navController = navController,
 
-                    )
-            }
 
 
 
@@ -226,12 +261,15 @@ fun AppNavHost(
 
 
             composable("CreditPayment") { CreditPayment(navController = navController) }
-            composable("CreditCharge") { CreditCharge() }
+
+            composable("CreditCharge") {
+                CreditCharge(navController = navController)
+            }
             composable("login_screen") {
                 LoginScreen(
                     onLoginSuccess = onLoginSuccess,
                     navController = navController,
-                    loginRequest = LoginRequest("", "") // Provide initial values as empty or pre-filled as needed.
+                    loginRequest = LoginRequest("", "")
                 )
             }
             composable("Profile_screen") {

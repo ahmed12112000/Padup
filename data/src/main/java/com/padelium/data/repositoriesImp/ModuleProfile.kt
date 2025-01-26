@@ -1,5 +1,6 @@
 package com.padelium.data.repositoriesImp
 
+import com.padelium.data.repositories.ProfileRepositoryImp
 import com.padelium.domain.repositories.IProfileRepository
 import dagger.Binds
 import dagger.Module

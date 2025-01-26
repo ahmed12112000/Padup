@@ -148,7 +148,7 @@ fun LoginScreen(
                 )
             },
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(13.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Color.Black,
                 unfocusedBorderColor = Color.Gray,
@@ -193,7 +193,7 @@ fun LoginScreen(
             },
             visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(13.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
                 focusedBorderColor = Color.Black,
                 unfocusedBorderColor = Color.Gray,
@@ -279,7 +279,7 @@ fun LoginScreen(
                 .fillMaxWidth()
                 .height(48.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
-            shape = RoundedCornerShape(24.dp)
+            shape = RoundedCornerShape(13.dp)
          )  {
 
             if (isLoading) {
@@ -316,13 +316,7 @@ fun LoginScreen(
                     color = Color(android.graphics.Color.parseColor("#999999")),
                     thickness = 1.dp
                 )
-                Text(
-                    text = "OU",
-                    modifier = Modifier.padding(horizontal = 8.dp),
-                    color = Color(android.graphics.Color.parseColor("#999999")),
 
-                    fontSize = 15.sp
-                )
                 Divider(
                     modifier = Modifier
                         .weight(1f)

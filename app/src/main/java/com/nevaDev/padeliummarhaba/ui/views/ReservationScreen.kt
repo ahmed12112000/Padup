@@ -100,7 +100,7 @@ fun ReservationScreen(
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
         isLoading = true
-        viewModel.getReservationKey(fetchKeyRequest, date, selectedTimeSlot.value)
+        viewModel.getReservationKey(fetchKeyRequest, date)
 
         viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
             when (result) {
@@ -109,8 +109,10 @@ fun ReservationScreen(
                     reservationKey.value = result.data.key
                     isLoading = false
                     onFetchSuccess()
+
                     reservationKey.value?.let { key ->
-                      //  getBookingViewModel.getBooking(key, selectedDate.value)
+                        // Now that the key is ready, call getBooking to fetch the booking data
+                        //getBookingViewModel.getBooking(key, selectedDate.value)
                     }
                 }
                 is DataResultBooking.Failure -> {
@@ -126,17 +128,25 @@ fun ReservationScreen(
     fun filterSlotsByDate(newDate: LocalDate) {
         reservationKey.value?.let { key ->
             getBookingViewModel.getBooking(key, newDate)
+            Log.e("TAGGGGGG","innnnnnnnnnnnnnnnnnnn")
+
         } ?: run {
+            Log.e("TAGGGGGG","ahhhhhhhhhhhhhhhhhhhhhh")
+
             errorMessage = ""
         }
     }
-
-
     LaunchedEffect(selectedDate.value) {
         fetchReservationData(selectedDate.value)
         filterSlotsByDate(selectedDate.value)
     }
 
+/*
+    LaunchedEffect(selectedDate.value) {
+        fetchReservationData(selectedDate.value)
+        filterSlotsByDate(selectedDate.value)
+    }
+*/
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -349,6 +359,7 @@ fun TabItem(
     }
 }
 
+
 @Composable
 fun ReservationSummary(
     selectedDate: LocalDate,
@@ -356,37 +367,22 @@ fun ReservationSummary(
     selectedReservation: ReservationOption,
     selectedExtras: List<Triple<String, String, Int>>,
     amountSelected: Pair<Double, String>?,
-    onTotalAmountCalculated: (Double, String) -> Unit,
+    onTotalAmountCalculated: (Double) -> Unit,
     price: String,
     time: String,
     navController: NavController,
+    adjustedAmount: Double,
+    adjustedSharedExtrasAmount: Double,
+    totalSharedExtrasCost: Double,
+    totalExtrasCost: Double
+) {
 
-    ) {
-
-
-    // Extract and parse reservation price
-    val reservationPrice = try {
-        val priceString = selectedReservation.price.replace("[^\\d.,]".toRegex(), "")
-        priceString.replace(",", ".").toDoubleOrNull() ?: 0.0
-    } catch (e: Exception) {
-        Log.e("ReservationSummary", "Error parsing reservation price: ${selectedReservation.price}", e)
-        0.0
-    }
-
-    // Set currency symbol
-    val currencySymbol = amountSelected?.second ?: "DT" // Default to DT if not provided
-
-    Log.d("ReservationSummary", "Parsed reservationPrice: $reservationPrice")
-
+    val totalExtrasCost = selectedExtras.sumOf { it.third * it.second.toDouble() }
     // Calculate total cost including extras
-    val totalExtrasCost = selectedExtras.sumOf { (_, priceString, _) ->
-        priceString.replace("[^\\d.,]".toRegex(), "").replace(",", ".").toDoubleOrNull() ?: 0.0
-    }
-
-    val totalAmountSelected = reservationPrice + totalExtrasCost
+    val totalAmountSelected = adjustedAmount   + totalExtrasCost
     Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected")
 
-    onTotalAmountCalculated(totalAmountSelected, currencySymbol)
+    onTotalAmountCalculated(totalAmountSelected)
 
     Column(
         modifier = Modifier.fillMaxWidth().padding(16.dp)
@@ -413,15 +409,17 @@ fun ReservationSummary(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        ReservationDetailRow(label = "Prix de Réservation", value = "$currencySymbol ${String.format("%.2f", reservationPrice)}")
+        ReservationDetailRow(label = "Prix de Réservation", value = "${String.format("%.2f", adjustedAmount)}")
 
         selectedExtras.forEach { (name, price, _) ->
             ReservationDetailRow(label = "Extra: $name", value = price)
         }
 
         ReservationDetailRow(label = "Total", value = "${String.format("%.2f", totalAmountSelected)}")
+        Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected")
     }
 }
+
 
 
 
@@ -436,16 +434,10 @@ fun DaySelectorWithArrows(
     val monthFormatter = DateTimeFormatter.ofPattern("MMM", Locale.FRENCH)
 
     val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
-
     val finalSelectedDate = selectedDate ?: currentDate
-
-
     val startOfWeek = finalSelectedDate.minusDays(finalSelectedDate.dayOfWeek.value.toLong() - 1L)
-
     val daysInWeek = (0..6).map { offset -> startOfWeek.plusDays(offset.toLong()) }
-
     val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
-
     val listState = rememberLazyListState()
 
     LaunchedEffect(finalSelectedDate) {
@@ -454,8 +446,6 @@ fun DaySelectorWithArrows(
             listState.animateScrollToItem(selectedIndex)
         }
     }
-
-    var timeslots by remember { mutableStateOf<List<String>?>(null) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Month-Year Header
@@ -522,7 +512,7 @@ fun DaySelectorWithArrows(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(0.dp)
+            horizontalArrangement = Arrangement.spacedBy(8.dp) // Add space between days
         ) {
             items(daysInWeek) { day ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -566,20 +556,10 @@ fun DaySelectorWithArrows(
                             fontSize = 12.sp
                         )
                     }
-
-                    if (day != daysInWeek.last()) {
-                        Box(
-                            modifier = Modifier
-                                .height(40.dp)
-                                .width(1.dp)
-                                .background(Color.Gray)
-                        )
-                    }
                 }
             }
         }
     }
-
 }
 
 

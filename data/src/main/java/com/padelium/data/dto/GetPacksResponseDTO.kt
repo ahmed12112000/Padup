@@ -1,6 +1,7 @@
 package com.padelium.data.dto
 
 import com.padelium.domain.dto.currency
+import java.math.BigDecimal
 
 data class GetPacksResponseDTO(
 
@@ -8,7 +9,7 @@ data class GetPacksResponseDTO(
     val name: String,
     val description: String,
     val code: String,
-    val amount: Double,
+    val amount: BigDecimal,
     val isonline:Boolean,
     val title: String,
     val currency: currency,

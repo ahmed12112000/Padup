@@ -7,10 +7,14 @@ import com.padelium.data.dto.FetchKeyRequestDTO
 import com.padelium.data.dto.GetPacksResponseDTO
 import com.padelium.data.dto.GetPaymentRequestDTO
 import com.padelium.data.dto.GetProfileResponseDTO
+import com.padelium.data.dto.GetReservationIDResponseDTO
 import com.padelium.data.dto.GetReservationResponseDTO
 import com.padelium.data.dto.InitBookingRequestDTO
+import com.padelium.data.dto.PaymentGetAvoirRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
+import com.padelium.data.dto.PrivateExtrasResponseDTO
 import com.padelium.data.dto.ProfileRequestDTO
+import com.padelium.data.dto.SharedExtrasResponseDTO
 import com.padelium.data.dto.SignupRequestDTO
 import com.padelium.data.dto.UserAvoirPayRequestDTO
 import com.padelium.data.dto.UserAvoirPayResponseDTO
@@ -19,7 +23,9 @@ import com.padelium.data.dto.UserAvoirResponseDTO
 import com.padelium.domain.dto.BalanceResponse
 import com.padelium.domain.dto.ConfirmBookingResponse
 import com.padelium.domain.dto.FetchKeyResponse
+import com.padelium.domain.dto.FindTermsResponse
 import com.padelium.domain.dto.GetBookingResponse
+import com.padelium.domain.dto.GetEmailResponse
 import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
@@ -27,6 +33,7 @@ import com.padelium.domain.dto.PaymentResponse
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
 import com.padelium.domain.dto.UserAvoirPayResponse
+import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
@@ -35,7 +42,10 @@ import retrofit2.http.Field
 import retrofit2.http.FormUrlEncoded
 import retrofit2.http.GET
 import retrofit2.http.Headers
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
+import retrofit2.http.Path
 import java.math.BigDecimal
 
 interface PadeliumEndPoint {
@@ -78,13 +88,19 @@ interface PadeliumEndPoint {
 
 
     @Headers("Accept: application/json")
-    @POST("/api/account")
-    suspend fun Profile(@Body profileRequest: ProfileRequestDTO): Response<Void>
+    @Multipart
+    @POST("/api/account") suspend fun Profile(
+        @Part("account") account: RequestBody,
+        @Part file: MultipartBody.Part
+    ): Response<Void>
+
 
 
     @Headers("Accept: application/json" )
     @GET("api/packs/online")
     suspend fun GetPacks(): Response<List<GetPacksResponseDTO>>
+
+
 
     @Headers("Accept: application/json" )
     @GET("api/user-avoirs")
@@ -95,14 +111,25 @@ interface PadeliumEndPoint {
     suspend fun GetReservation(): Response<List<GetReservationResponseDTO>>
 
     @Headers("Accept: application/json")
+    @GET("/api/bookings/{id}")
+    suspend fun GetProfileById(@Path("id") id: Long): Response<GetReservationIDResponseDTO>
+
+    @Headers("Accept: application/json")
     @GET("/api/account")
     suspend fun GetProfile(): Response<GetProfileResponseDTO>
+
 
     @Headers("Accept: application/json", "Content-Type: application/json")
     @GET("api/extras")
     suspend fun Extras(): Response<List<ExtrasResponseDTO>>
 
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @GET("api/extras/shared")
+    suspend fun SharedExtras(): Response<List<SharedExtrasResponseDTO>>
 
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @GET("api/extras/private")
+    suspend fun PrivateExtras(): Response<List<PrivateExtrasResponseDTO>>
 
 
     @Headers("Accept: application/json", "Content-Type: application/json")
@@ -133,8 +160,29 @@ interface PadeliumEndPoint {
     suspend fun GetPayment(@Body getPaymentRequest: GetPaymentRequestDTO): Response<GetPaymentResponse>
 
     @Headers("Content-Type: application/json")
+    @POST("api/bookings/confirmation/email/to/manager")
+    suspend fun GetManager(@Body bookingIds:List<Long> ): Response<Unit>
+
+    @Headers("Content-Type: application/json")
+    @POST("api/bookings/confirmation/email")
+    suspend fun GetEmail(@Body bookingIds:List<Long>): Response<Long>
+
+    @Headers("Content-Type: application/json")
     @POST("api/establishments/search/confirm/booking")
     suspend fun ConfirmBooking (@Body confirmBookingRequest: ConfirmBookingRequestDTO): Response<ConfirmBookingResponse>
 
-} // git remote add gitlab https://gitlab.com/nevadev/padelium-marhaba-android-app.git
+    @Headers("Content-Type: application/json")
+    @POST("api/payment/get/user/avoir")
+    suspend fun PaymentGetAvoir (@Body paymentGetAvoirRequest: PaymentGetAvoirRequestDTO): Response<Boolean>
+
+    @Headers("Content-Type: application/json","Content-Type: text/plain")
+    @POST("api/users/by/term")
+    suspend fun FindTerms (@Body term:RequestBody): Response<List<FindTermsResponse>>
+
+    @Headers("Content-Type: application/json","Content-Type: text/plain")
+    @POST("api/account/withPhone")
+    suspend fun UpdatePhone (@Body Phone:RequestBody): Response<Unit>
+}
+
+// git remote add gitlab https://gitlab.com/nevadev/padelium-marhaba-android-app.git                api/account/withPhone
 //git push -u -f gitlab NewArchAuthentication

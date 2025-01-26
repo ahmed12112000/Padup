@@ -16,6 +16,6 @@ data class ConfirmBookingRequestDTO(
     val status: Boolean,
     val token: String,
     val transactionId: String,
-    val userIds: List<Long?>
+    val userIds: List<Long?>,
 )
 

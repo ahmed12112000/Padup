@@ -61,11 +61,10 @@ import com.nevadev.padeliummarhaba.R
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
-import com.nevaDev.padeliummarhaba.ui.views.PricingCard
+import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dto.GetPacksResponse
-import com.padelium.domain.dto.GetReservationResponse
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -85,8 +84,9 @@ class MainActivity : ComponentActivity() {
                 if (showSplashScreen) {
                     SplashScreen()
                 } else {
+                    val viewModel: GetProfileViewModel = hiltViewModel()
                     val context = LocalContext.current
-                    MainApp(context, sharedPreferences,)
+                    MainApp(context, sharedPreferences, viewModel)
                 }
             }
         }
@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun MainApp(context: Context, sharedPreferences: SharedPreferences,) {
+fun MainApp(context: Context, sharedPreferences: SharedPreferences,viewModel: GetProfileViewModel) {
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -107,9 +107,15 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences,) {
     val currentBackStackEntry = navController.currentBackStackEntryAsState()
 
     val screensWithTopBar = listOf("main_screen")  // Only main_screen will show the top bar
+    val profileData by viewModel.profileData.observeAsState()
+    val firstName by viewModel.firstName.observeAsState("")
+    val lastName by viewModel.lastName.observeAsState("")
+    val image by viewModel.image.observeAsState("")
 
     val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
-
+    LaunchedEffect(Unit) {
+        viewModel.GetProfile()
+    }
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -120,7 +126,9 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences,) {
                     onCloseDrawer = {
                         scope.launch { drawerState.close() }
                     },
-                    username = username
+                    firstName = firstName,
+                    lastName = lastName,
+                    image =image
                 )
             } else {
                 DrawerContent(
@@ -319,7 +327,7 @@ fun MainScreen(
                 modifier = Modifier
                     .fillMaxWidth(0.5f)
                     .offset(x = 100.dp, y = -35.dp)
-                    .border(0.5.dp, Color(0xFF0054D8), RoundedCornerShape(12.dp))
+                    .border(0.5.dp, Color(0xFFD7F057), RoundedCornerShape(12.dp))
                     .height(50.dp),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -454,7 +462,7 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 @Composable
 fun AnimatedBottomBar(
     navController: NavController,
-    getReservationViewModel: GetReservationViewModel
+    getReservationViewModel: GetReservationViewModel,
 ) {
     val selectedItem = navController.currentBackStackEntry?.destination?.route ?: "main_screen"
     val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)

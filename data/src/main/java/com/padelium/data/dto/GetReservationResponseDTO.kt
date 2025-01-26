@@ -63,7 +63,6 @@ data class GetReservationResponseDTO(
     val establishmentPacksFirstTitle:String,
     val establishmentPacksSecondTitle:String,
     val usersIds:List<Long>,
-    val bookingUsersPaymentListDTO:List<bookingUsersPaymentDTO>,
     val fromStr: String,
     val toStr: String,
     val fromStrTime:String,

@@ -21,7 +21,7 @@ class InitBookingViewModel @Inject constructor(
 
     val dataResultBooking = MutableLiveData<DataResultBooking<List<InitBookingResponseDTO>>>()
 
-    fun InitBooking(key: String, selectedDate: LocalDate, selectedTimeSlot: String?) {
+    fun InitBooking(key: String, selectedDate: LocalDate) {
         dataResultBooking.value = DataResultBooking.Loading // Set to loading state
 
         viewModelScope.launch {
@@ -33,9 +33,10 @@ class InitBookingViewModel @Inject constructor(
                     DataResultBooking.Success(initBookingDTO)
 
                     // Trigger GetBookingViewModel's getBooking method on success
-                   // getBookingViewModel.getBooking(key, selectedDate)
+                    getBookingViewModel.getBooking(key, selectedDate)
 
                     DataResultBooking.Success(initBookingDTO)
+
                 }
                 is DataResultBooking.Failure -> {
                     DataResultBooking.Failure(

@@ -1,6 +1,5 @@
 package com.padelium.domain.dto
 
-import com.google.gson.annotations.SerializedName
 import java.io.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -183,20 +182,21 @@ data class PlanningDTO(
     val from:String,
     val to: String,
     val available: Int,
-   /* val openTime: Instant = Instant.now(),
-    val closeTime: Instant = Instant.now(),
-    val bookings: List<bookingDTO> = emptyList(),
-    val availableBol: Boolean ,
-    val dayWithBooking: Boolean = false, // Default value
-    val price: BigDecimal = BigDecimal.ZERO, // Default value
-    val feeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
-    val reductionPrice: BigDecimal = BigDecimal.ZERO, // Default value
-    val rfeeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
-    val currencySymbol: String = "", // Default value
-    val reductionPriceBol: Boolean = false, // Default value
-    val secondPrice: Boolean = false, // Default value
-    val isHappyHours: Boolean = false, // Default value
-    val annulationDate: String = "" */ // Default value
+    val reductionPrice: BigDecimal = BigDecimal.ZERO,
+
+    /* val openTime: Instant = Instant.now(),
+     val closeTime: Instant = Instant.now(),
+     val bookings: List<bookingDTO> = emptyList(),
+     val availableBol: Boolean ,
+     val dayWithBooking: Boolean = false, // Default value
+     val price: BigDecimal = BigDecimal.ZERO, // Default value
+     val feeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
+     val rfeeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
+     val currencySymbol: String = "", // Default value
+     val reductionPriceBol: Boolean = false, // Default value
+     val secondPrice: Boolean = false, // Default value
+     val isHappyHours: Boolean = false, // Default value
+     val annulationDate: String = "" */ // Default value
 ) : Serializable
 
 data class establishmentFeatureDTO(
@@ -357,9 +357,9 @@ data class bookingUsersPaymentDTO(
     val isactive:Boolean,
     val description: String,
     val amount: BigDecimal,
-    val amountStr:String,
+    val amountstr:String,
     val bookingId: Long,
-    val bookingDate: Instant,
+    //val bookingDate: Instant,
     val bookingDateStr:String,
     val bookingEstablishmentName:String,
     val bookingCreatedFirstName:String,
@@ -374,7 +374,7 @@ data class bookingUsersPaymentDTO(
     val BookingUsersPaymentStatusName:String,
     val paymentMode:String,
     val paymentStatus:Boolean = true,
-    val BookingUsersPaymentStatusCode:String
+    val bookingUsersPaymentStatusCode:String
 ) : Serializable
 
 data class bookingExtrasDTO(

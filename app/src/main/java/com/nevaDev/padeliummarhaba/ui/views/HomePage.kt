@@ -257,7 +257,7 @@ fun HomePage(navController: NavController, modifier: Modifier = Modifier) {
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    painter = painterResource(id = R.drawable.search),
+                                    painter = painterResource(id = R.drawable.a321),
                                     contentDescription = "Search",
                                     tint = Color.Unspecified,
                                     modifier = Modifier

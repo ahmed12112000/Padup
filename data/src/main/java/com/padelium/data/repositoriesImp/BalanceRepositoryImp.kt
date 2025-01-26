@@ -9,7 +9,7 @@ import javax.inject.Inject
 
 
 class BalanceRepositoryImp @Inject constructor(
-    private val api: PadeliumApi // Assuming you have the correct API interface
+    private val api: PadeliumApi
 ) : IBalanceRepository {
 
     override suspend fun Balance(Id: Long): Response<BalanceResponse> {

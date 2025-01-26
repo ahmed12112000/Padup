@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
@@ -57,9 +59,10 @@ import com.padelium.domain.dto.GetPacksResponse
 import com.padelium.domain.dto.GetReservationResponse
 
 @Composable
-fun CreditPayment(navController: NavController,
-                  viewModel: GetPacksViewModel = hiltViewModel(),
-                  viewModel2: CreditPayViewModel = hiltViewModel(),
+fun CreditPayment(
+    navController: NavController,
+    viewModel: GetPacksViewModel = hiltViewModel(),
+    viewModel2: CreditPayViewModel = hiltViewModel(),
 ) {
     val packsData by viewModel.packsData.observeAsState(DataResult.Loading)
 
@@ -107,6 +110,7 @@ fun CreditPayment(navController: NavController,
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
+                .verticalScroll(rememberScrollState())
                 .background(Color(0xFF0066CC)),
             contentAlignment = Alignment.CenterStart
         ) {
@@ -122,7 +126,7 @@ fun CreditPayment(navController: NavController,
                     color = Color(0xFFCCFF00),
                     fontSize = 32.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(start = 16.dp)
+                    modifier = Modifier.padding(start = 16.dp).offset(y = -25.dp)
                 )
                 Icon(
                     painter = painterResource(id = R.drawable.a90),
@@ -130,7 +134,7 @@ fun CreditPayment(navController: NavController,
                     tint = Color(0xFFCCFF00),
                     modifier = Modifier
                         .size(150.dp)
-                        .offset(x = 62.dp)
+                        .offset(x = 60.dp, y = -40.dp)
 
                 )
             }
@@ -155,6 +159,7 @@ fun CreditPayment(navController: NavController,
                         text = "Votre solde est $balance Crédits",
                         modifier = Modifier.padding(16.dp),
                         fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold,
                         color = Color.Black
                     )
                 }
@@ -179,9 +184,9 @@ fun CreditPayment(navController: NavController,
                             .padding(start = 3.dp)
                             .height(50.dp)
                             .fillMaxWidth(0.6f)
-                            .offset(x = 150.dp),
-                        border = BorderStroke(1.dp, Color(0xFF0054D8)),
-                        shape = RoundedCornerShape(12.dp)
+                            .offset(x = 150.dp)
+                            .border(1.dp, Color(0xFF0054D8), RoundedCornerShape(13.dp)),
+                        shape = RoundedCornerShape(15.dp)
                     ) {
                         Text(
                             text = "Charger votre compte",
@@ -199,7 +204,7 @@ fun CreditPayment(navController: NavController,
 
                 // Display Reservation List
                 Text(
-                    text = "Historiques - Réservation",
+                    text = "Historiques",
                     fontSize = 24.sp,
                     fontWeight = FontWeight.ExtraBold,
                     color = Color.Black,

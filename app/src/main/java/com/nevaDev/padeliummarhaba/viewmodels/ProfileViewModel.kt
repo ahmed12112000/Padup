@@ -22,19 +22,20 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class ProfileViewModel @Inject constructor(private val profileUseCase: ProfileUseCase): ViewModel(){
-
+class ProfileViewModel @Inject constructor(private val profileUseCase: ProfileUseCase) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
 
-
     /**
-     * Start getting data
+     * Start getting data for profile update
+     * @param accountJson A JSON string containing account details (e.g., "nom", "prenom").
+     * @param imagePath The file path to the image being uploaded.
      */
-    fun Profile(profileRequest: ProfileRequest) {
-        dataResult.value=  DataResult.Loading
+    fun Profile(accountJson: String, imagePath: String) {
+        dataResult.value = DataResult.Loading
         viewModelScope.launch {
-            dataResult.value=profileUseCase.Profile(profileRequest)
+            val result = profileUseCase.Profile(accountJson, imagePath)
+            dataResult.value = result
         }
     }
 }

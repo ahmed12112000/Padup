@@ -59,9 +59,17 @@ class GetBookingViewModel @Inject constructor(
                         // Parse and populate time slots using the provided selectedDate
                         val parsedTimeSlots = mappedData.flatMap { booking ->
                             booking.plannings.mapNotNull { planning ->
-                                parseTimeSlot(planning.fromStr, selectedDate) // Use the passed selectedDate
+                                // Check if the planning is available
+                                val timeSlot = parseTimeSlot(planning.fromStr, selectedDate)
+                                // Only return time slots that are available (not reserved)
+                                if (timeSlot != null && isAvailable(timeSlot)) {
+                                    timeSlot // Only return available time slots
+                                } else {
+                                    null
+                                }
                             }
                         }
+
 
                         // Populate _timeSlots
                         _timeSlots.postValue(parsedTimeSlots)
@@ -93,6 +101,16 @@ class GetBookingViewModel @Inject constructor(
                 )
             }
         }
+    }
+    private fun isAvailable(timeSlot: TimeSlot): Boolean {
+        val bookedSlots = _selectedBookings.value?.flatMap { booking ->
+            booking.plannings.mapNotNull { planning ->
+                parseTimeSlot(planning.fromStr, timeSlot.date)
+            }
+        } ?: emptyList()
+
+        // Return true if the timeSlot is not found in the list of booked slots
+        return bookedSlots.none { it.date == timeSlot.date && it.time == timeSlot.time }
     }
 
 
@@ -150,10 +168,10 @@ class GetBookingViewModel @Inject constructor(
 
 
 
-    // Updated TimeSlot data class with LocalDate and LocalTime types
+// Updated TimeSlot data class with LocalDate and LocalTime types
 
 
-    // Updated parseTimeSlot function
+// Updated parseTimeSlot function
 
 
 

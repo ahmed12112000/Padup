@@ -21,7 +21,7 @@ class GetInitViewModel @Inject constructor(
 
     val dataResultBooking = MutableLiveData<DataResultBooking<GetInitResponseDTO>>()
 
-    fun GetInit(key: String, selectedDate: LocalDate, selectedTimeSlot: String?) {
+    fun GetInit(key: String, selectedDate: LocalDate) {
         dataResultBooking.value = DataResultBooking.Loading // Set to loading state
 
         viewModelScope.launch {
@@ -35,7 +35,7 @@ class GetInitViewModel @Inject constructor(
                     val getInitResponseDTO = getInitMapper.GetInitResponseToGetInitResponseDto(result.data)
 
                     // Trigger SearchListViewModel's searchList method
-                    searchListViewModel.searchList(key, selectedDate, selectedTimeSlot)
+                    searchListViewModel.searchList(key, selectedDate)
 
                     // Return success with the mapped DTO
                     DataResultBooking.Success(getInitResponseDTO)

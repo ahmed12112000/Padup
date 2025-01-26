@@ -14,9 +14,18 @@ import javax.inject.Inject
 @HiltViewModel
 class GetProfileViewModel @Inject constructor(private val repository: IGetProfileRepository) : ViewModel() {
 
-
-  private val _profileData = MutableLiveData<DataResult>()
+    private val _profileData = MutableLiveData<DataResult>()
     val profileData: LiveData<DataResult> get() = _profileData
+
+    // LiveData for first name, last name, and image URL
+    private val _firstName = MutableLiveData<String>()
+    val firstName: LiveData<String> get() = _firstName
+
+    private val _lastName = MutableLiveData<String>()
+    val lastName: LiveData<String> get() = _lastName
+
+    private val _image = MutableLiveData<String>()
+    val image: LiveData<String> get() = _image
 
     fun GetProfile() {
         _profileData.postValue(DataResult.Loading)
@@ -26,7 +35,14 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
                 val profile = repository.GetProfile()
                 Log.d("GetProfile", "profile: $profile")  // Log the response
 
+                // Assuming profile is of type GetProfileResponseDTO
                 _profileData.postValue(DataResult.Success(profile))
+
+                // Update first name, last name, and image URL LiveData
+                _firstName.postValue(profile.firstName)
+                _lastName.postValue(profile.lastName)
+                _image.postValue(profile.image)
+
             } catch (e: Exception) {
                 _profileData.postValue(
                     DataResult.Failure(
@@ -38,6 +54,7 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
             }
         }
     }
+
 
 
 fun fetchProfileData() {

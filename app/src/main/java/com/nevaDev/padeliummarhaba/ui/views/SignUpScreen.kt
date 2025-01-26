@@ -55,9 +55,10 @@ import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.SignupRequest
 
 @Composable
-fun SignUpScreen(navController: NavController,
-                 onSignupSuccess: () -> Unit,
-                 viewModel : UserViewModel = hiltViewModel()
+fun SignUpScreen(
+    navController: NavController,
+    onSignupSuccess: () -> Unit,
+    viewModel : UserViewModel = hiltViewModel()
 ) {
    // val viewModel: SignupViewModel = viewModel() // No context needed
     val coroutineScope = rememberCoroutineScope()
@@ -587,7 +588,7 @@ fun SignUpScreen(navController: NavController,
     {
         Text(text = "Déja inscrit ?", color = Color.Gray)
         Text(
-            text = "S'identifier",
+            text = "   S'identifier",
             fontWeight = FontWeight.Bold,
             color = Color.Black,
             modifier = Modifier.clickable {  navController.navigate("login_screen") },

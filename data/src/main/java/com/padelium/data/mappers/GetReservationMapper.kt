@@ -65,7 +65,6 @@ class GetReservationMapper @Inject constructor() {
                 establishmentPacksFirstTitle = response.establishmentPacksFirstTitle ?: "",
                 establishmentPacksSecondTitle = response.establishmentPacksSecondTitle ?: "",
                 usersIds = response.usersIds ?: emptyList(),
-                bookingUsersPaymentListDTO = response.bookingUsersPaymentListDTO ?: emptyList(),
                 fromStr = response.fromStr ?: "",
                 toStr = response.toStr ?: "",
                 fromStrTime = response.fromStrTime ?: "",

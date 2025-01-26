@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -26,25 +27,45 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetProfileByIdViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.GetReservationIDResponse
 import com.padelium.domain.dto.GetReservationResponse
 import kotlinx.coroutines.launch
+
+
+
 @Composable
-fun SummaryScreen(viewModel: GetReservationViewModel = hiltViewModel()) {
+fun SummaryScreen(
+    viewModel: GetReservationViewModel = hiltViewModel(),
+    viewModel1: GetProfileByIdViewModel = hiltViewModel()
+) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
+    var selectedReservation1 by remember { mutableStateOf<GetReservationIDResponse?>(null) }
+    var showDialog by remember { mutableStateOf(false) } // Manage dialog state here
+
     val sheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
     val coroutineScope = rememberCoroutineScope()
 
     // Observe the reservation data
     val reservationData by viewModel.ReservationsData.observeAsState()
+    val profilesData by viewModel1.profilesData.observeAsState()
 
     // On data change, update reservations list
     LaunchedEffect(reservationData) {
         if (reservationData is DataResultBooking.Success) {
-            reservations.value = (reservationData as DataResultBooking.Success<List<GetReservationResponse>>).data
+            reservations.value =
+                (reservationData as DataResultBooking.Success<List<GetReservationResponse>>).data
+        }
+    }
+
+    // Observe profiles data to update selectedReservation1
+    LaunchedEffect(profilesData) {
+        if (profilesData is DataResultBooking.Success) {
+            selectedReservation1 = (profilesData as DataResultBooking.Success<GetReservationIDResponse>).data
         }
     }
 
@@ -53,11 +74,12 @@ fun SummaryScreen(viewModel: GetReservationViewModel = hiltViewModel()) {
         viewModel.GetReservation()
     }
 
-
     ModalBottomSheetLayout(
         sheetContent = {
             selectedReservation?.let { reservation ->
-                ReservationCard1(reservation)
+                selectedReservation1?.let { reservation1 ->
+                    ReservationCard1(reservation, reservation1)
+                }
             }
         },
         sheetState = sheetState,
@@ -79,7 +101,7 @@ fun SummaryScreen(viewModel: GetReservationViewModel = hiltViewModel()) {
                 color = Color.Gray
             )
 
-            // Filter and Sort Row (remains the same)
+            // Filter and Sort Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -142,20 +164,48 @@ fun SummaryScreen(viewModel: GetReservationViewModel = hiltViewModel()) {
 
             // Use the dynamic list of reservations
             reservations.value.forEach { reservation ->
-                ReservationCard(reservation) {
-                    selectedReservation = reservation
-                    coroutineScope.launch { sheetState.show() }
-                }
+                ReservationCard(
+                    reservation = reservation,
+                    onClick = {
+                        selectedReservation = reservation
+                        // Fetch profile data based on the selected reservation
+                        viewModel1.fetchProfileById(reservation.id)
+                        coroutineScope.launch { sheetState.show() }
+                    },
+                    viewModel1 = viewModel1,
+                    onShowDialog = { showDialog = true } // Pass the dialog state handler
+                )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
 
+    // Show dialog if needed
+    if (showDialog) {
+        selectedReservation?.let { reservation ->
+            selectedReservation1?.let { reservation1 ->
+                Dialog(onDismissRequest = { showDialog = false }) {
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    ) {
+                        ReservationCard1(reservation, reservation1)
+                    }
+                }
+            }
+        }
+    }
 }
 
-
 @Composable
-fun ReservationCard(reservation: GetReservationResponse, onClick: () -> Unit) {
+fun ReservationCard(
+    reservation: GetReservationResponse,
+    onClick: () -> Unit,
+    viewModel1: GetProfileByIdViewModel,
+    onShowDialog: () -> Unit // New parameter for showing the dialog
+
+) {
     var showDialog by remember { mutableStateOf(false) }
 
     Card(
@@ -173,12 +223,12 @@ fun ReservationCard(reservation: GetReservationResponse, onClick: () -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = reservation.establishmentName, // Display establishment name instead of space
+                    text = reservation.establishmentName,
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
                 Text(
-                    text = "${reservation.sellAmount} ${reservation.currencyFromSymbol}",
+                    text = "${reservation.localAmount} ${reservation.currencyFromSymbol}",
                     fontWeight = FontWeight.Bold,
                     fontSize = 18.sp
                 )
@@ -202,29 +252,21 @@ fun ReservationCard(reservation: GetReservationResponse, onClick: () -> Unit) {
                 modifier = Modifier.fillMaxWidth().offset(y = -40.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                IconButton(onClick = onClick) {
+                IconButton(onClick = {
+                    viewModel1.fetchProfileById(reservation.id)
+                    onClick()
+                }) {
                     Icon(imageVector = Icons.Default.Visibility, contentDescription = "View")
                 }
             }
         }
     }
 
-    if (showDialog) {
-        Dialog(onDismissRequest = { showDialog = false }) {
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                ReservationCard1(reservation)
-            }
-        }
-    }
 }
 
 
 @Composable
-fun ReservationCard1(reservation: GetReservationResponse) {
+fun ReservationCard1(reservation: GetReservationResponse,reservation1 : GetReservationIDResponse) {
 
     Column(
         modifier = Modifier
@@ -359,6 +401,72 @@ fun ReservationCard1(reservation: GetReservationResponse) {
 
                 )
             }
+            // Row 1: Référence
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Payée par :",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 20.sp,
+                    color = Color.Gray
+                )
+
+                Log.d("BookingUsersList", "Users: ${reservation1.bookingUsersPaymentListDTO}")
+
+                if (reservation1.bookingUsersPaymentListDTO.isNotEmpty()) {
+                    Column {
+                        reservation1.bookingUsersPaymentListDTO.forEach { user ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 4.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                val userName = if (user.userFirstName == null && user.userLastName == null) {
+                                    "Invite"
+                                } else {
+                                    "${user.userFirstName ?: ""} ${user.userLastName ?: ""}".trim()
+                                }
+                                Text(
+                                    text = userName,
+                                    fontSize = 18.sp,
+                                    color = Color.Gray
+                                )
+
+                                val paymentStatus = when (user.bookingUsersPaymentStatusCode) {
+                                    "PAY" -> "Payée"
+                                    "WAIT" -> "En attente de paiement"
+                                    else -> "Unknown"
+                                }
+                                Text(
+                                    text = "${user.amountstr}",
+                                    fontSize = 18.sp,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = paymentStatus,
+                                    fontSize = 16.sp,
+                                    color = if (user.bookingUsersPaymentStatusCode == "PAY") Color.Green else Color.Red
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    Text(
+                        text = "No payments available",
+                        fontSize = 18.sp,
+                        color = Color.Gray
+                    )
+                }
+            }
+
+
+
+            Divider(color = Color.LightGray, thickness = 1.dp)
         }
 
         Spacer(modifier = Modifier.height(16.dp))

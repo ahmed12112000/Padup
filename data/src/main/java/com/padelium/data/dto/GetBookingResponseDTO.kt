@@ -83,7 +83,9 @@ data class GetBookingResponseDTO(
     @SerializedName("establishmentPacksId") val establishmentPacksId: Long?,
     @SerializedName("plannings") val plannings: List<PlanningDTO>,
     @SerializedName("users") val users: List<Long?>,
+
     @SerializedName("userIds") val userIds: List<Long?>,
+
     @SerializedName("isClient") val isClient: Boolean = true,
     @SerializedName("secondReduction") val secondReduction: Int?,
     @SerializedName("aamount") val aamount: BigDecimal?,
