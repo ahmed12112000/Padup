@@ -32,7 +32,6 @@ class FindTermsViewModel @Inject constructor(
     private var allPlayersData: List<FindTermsResponse> = emptyList()
     private var searchJob: Job? = null
 
-
     private val _sharedExtras = MutableLiveData<List<Long>>(emptyList())
     val sharedExtras: LiveData<List<Long>> = _sharedExtras
 
@@ -48,10 +47,11 @@ class FindTermsViewModel @Inject constructor(
     fun updatePrivateExtras(newPrivateExtras: List<Long>) {
         _privateExtras.value = newPrivateExtras
     }
+
     /**
-     * Fetch players matching the search term.
+     * Fetch players matching the search term with an optional limit to restrict the number of players fetched.
      */
-    fun findTerms(term: RequestBody) {
+    fun findTerms(term: RequestBody, limit: Int? = null) {
         // Cancel the previous job if it's still running
         searchJob?.cancel()
 
@@ -63,8 +63,14 @@ class FindTermsViewModel @Inject constructor(
                 val result = findTermsUseCase.FindTerms(term)
                 if (result is DataResult.Success) {
                     allPlayersData = result.data as? List<FindTermsResponse> ?: emptyList()
-                    _players.value = DataResult.Success(allPlayersData)
-                    _playerFullNames.value = allPlayersData.map { it.fullName }
+
+                    // Apply the limit if provided, else fetch all
+                    val limitedResults = limit?.let {
+                        allPlayersData.take(it) // Limit the results to 'limit' number of players
+                    } ?: allPlayersData
+
+                    _players.value = DataResult.Success(limitedResults)
+                    _playerFullNames.value = limitedResults.map { it.fullName }
                 } else {
                     _players.value = result
                 }
@@ -80,6 +86,8 @@ class FindTermsViewModel @Inject constructor(
     fun getPlayerByFullName(fullName: String): FindTermsResponse? {
         return allPlayersData.find { it.fullName.equals(fullName, ignoreCase = true) }
     }
+
+
 
 
     /**

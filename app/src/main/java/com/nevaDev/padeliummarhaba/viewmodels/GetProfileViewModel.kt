@@ -10,7 +10,6 @@ import com.padelium.domain.repositories.IGetProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
 @HiltViewModel
 class GetProfileViewModel @Inject constructor(private val repository: IGetProfileRepository) : ViewModel() {
 
@@ -27,11 +26,17 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
     private val _image = MutableLiveData<String>()
     val image: LiveData<String> get() = _image
 
-    fun GetProfile() {
+    // LiveData to capture if the user has the role 'ROLE_USER'
+    private val _hasUserRole = MutableLiveData<Boolean>()
+    val hasUserRole: LiveData<Boolean> get() = _hasUserRole
+
+    // Method to get profile data
+    fun fetchProfileData() {
         _profileData.postValue(DataResult.Loading)
 
         viewModelScope.launch {
             try {
+                // Call the repository to fetch the profile data
                 val profile = repository.GetProfile()
                 Log.d("GetProfile", "profile: $profile")  // Log the response
 
@@ -42,6 +47,9 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
                 _firstName.postValue(profile.firstName)
                 _lastName.postValue(profile.lastName)
                 _image.postValue(profile.image)
+
+                // Check if the profile contains 'ROLE_USER' in the authorities
+                _hasUserRole.postValue(profile.authorities.contains("ROLE_USER"))
 
             } catch (e: Exception) {
                 _profileData.postValue(
@@ -55,21 +63,26 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
         }
     }
 
+    // Fetch the profile data and check the user's role
+    fun checkUserRole() {
+        _profileData.postValue(DataResult.Loading)
 
+        viewModelScope.launch {
+            try {
+                // Call the repository method to fetch the profile
+                val profile = repository.GetProfile()
 
-fun fetchProfileData() {
-    _profileData.postValue(DataResult.Loading)
+                // Post success with the fetched profile data
+                _profileData.postValue(DataResult.Success(profile))
 
-    viewModelScope.launch {
-        try {
-            // Call the repository method which returns GetProfileResponse directly
-            val profile = repository.GetProfile()
-            // Post success with the fetched profile data
-            _profileData.postValue(DataResult.Success(profile))
-        } catch (e: Exception) {
-            // Handle exceptions during the fetch operation
-            _profileData.postValue(DataResult.Failure(e, null, "Exception occurred: ${e.message}"))
+                // Check if the profile contains 'ROLE_USER' and update the LiveData accordingly
+                _hasUserRole.postValue(profile.authorities.contains("ROLE_USER"))
+
+            } catch (e: Exception) {
+                // Handle exceptions during the fetch operation
+                _profileData.postValue(DataResult.Failure(e, null, "Exception occurred: ${e.message}"))
+            }
         }
     }
 }
-}
+

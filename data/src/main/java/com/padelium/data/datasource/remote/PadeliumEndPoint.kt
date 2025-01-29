@@ -89,10 +89,12 @@ interface PadeliumEndPoint {
 
     @Headers("Accept: application/json")
     @Multipart
-    @POST("/api/account") suspend fun Profile(
+    @POST("/api/account")
+    suspend fun Profile(
         @Part("account") account: RequestBody,
-        @Part file: MultipartBody.Part
+        @Part file: MultipartBody.Part? // This can be null if no file is selected
     ): Response<Void>
+
 
 
 

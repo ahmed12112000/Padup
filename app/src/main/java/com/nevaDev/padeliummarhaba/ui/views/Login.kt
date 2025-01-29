@@ -1,5 +1,7 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.Image
@@ -38,7 +40,6 @@ import com.padelium.domain.dataresult.Resulta
 import kotlinx.coroutines.launch
 
 
-
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
@@ -63,40 +64,38 @@ fun LoginScreen(
         isLoading = false
         when (result) {
             is Resulta.Loading -> {
-                // Show loading state
                 isLoading = true
             }
             is Resulta.Success -> {
                 if (result.data != null) {
                     Log.d("LoginResponse", "Success: User logged in successfully")
 
-                    // Fetch the profile data after successful login
+                    // Fetch profile data after successful login
                     getProfileViewModel.fetchProfileData()
-                    balanceViewModel.fetchAndBalance()
-
-                    // Navigate to the main screen and trigger the onLoginSuccess callback
-                    navController.navigate("main_screen")
-                    onLoginSuccess()
                 } else {
                     Toast.makeText(context, "Unexpected empty response from server", Toast.LENGTH_SHORT).show()
                 }
             }
             is Resulta.Failure -> {
                 Log.e("LoginResponse", "Error: ${result.errorMessage} | Code: ${result.statusCode}")
-                Toast.makeText(
-                    context,
-                    "Error: ${result.errorMessage}",
-                    Toast.LENGTH_SHORT
-                ).show()
+                Toast.makeText(context, "Error: ${result.errorMessage}", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-
-
-
-
-
+    // Observe the profile data to check for user role
+    getProfileViewModel.hasUserRole.observe(lifecycleOwner) { hasRole ->
+        if (hasRole) {
+            // User has ROLE_USER, proceed to main screen
+            balanceViewModel.fetchAndBalance()
+            navController.navigate("main_screen")
+            onLoginSuccess()
+        } else {
+            // User does not have the correct role, redirect to login page
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("http://141.94.246.248/account/login"))
+            context.startActivity(intent)
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -168,10 +167,13 @@ fun LoginScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+
         OutlinedTextField(
             value = password,
-            onValueChange = {password = it.trim()
-                isPasswordError = false},
+            onValueChange = {
+                password = it.trim()
+                isPasswordError = false
+            },
             label = { Text("Mot de Passe") },
             leadingIcon = {
                 Icon(
@@ -180,7 +182,6 @@ fun LoginScreen(
                     modifier = Modifier.size(24.dp)
                 )
             },
-
             trailingIcon = {
                 val iconRes = if (passwordVisible) R.drawable.showpassword else R.drawable.hidepassword
                 IconButton(onClick = { passwordVisible = !passwordVisible }) {
@@ -253,34 +254,18 @@ fun LoginScreen(
             onClick = {
                 coroutineScope.launch {
                     isLoading = true
-                    isEmailError = email.isEmpty()
-                    isPasswordError = password.isEmpty()
-
-                    // If either email or password is empty, stop further execution
-                    if (isEmailError || isPasswordError) {
-                        isLoading = false
-                        return@launch
-                    }
-
                     val updatedRequest = loginRequest.copy(
                         username = email,
                         password = password,
                     )
                     viewModel.loginUser(updatedRequest)
-
                 }
             },
             enabled = !isLoading,
-
-
-
-
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
+            modifier = Modifier.fillMaxWidth().height(48.dp),
             colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
             shape = RoundedCornerShape(13.dp)
-         )  {
+        )  {
 
             if (isLoading) {
                 CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
@@ -293,7 +278,6 @@ fun LoginScreen(
                 )
             }
         }
-
 
         errorMessage?.let {
             Text(text = it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
@@ -322,105 +306,13 @@ fun LoginScreen(
                         .weight(1f)
                         .padding(vertical = 8.dp),
                     color = Color(android.graphics.Color.parseColor("#999999")),
-
                     thickness = 1.dp
                 )
             }
-            /*
-                        Text(
-                            text = "Utiliser votre profil social pour se connecter",
-                            modifier = Modifier.padding(horizontal = 2.dp, vertical = 17.dp),
-                            color = Color(android.graphics.Color.parseColor("#999999")),
-
-                            fontSize = 13.sp
-                        )*/
         }
-
-
-        Spacer(modifier = Modifier.height(1.dp))
-        /*
-                // Social Login Buttons
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Button(
-                        onClick = { /* Handle Facebook login */ },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 1.dp, end = 3.dp), // Padding between buttons
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF1877F2)),
-                        contentPadding = PaddingValues(1.dp) // Add padding inside the button if needed
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth() // Ensure Row takes up full width
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.fb), // Use your drawable resource ID here
-                                contentDescription = "Facebook Icon",
-                                modifier = Modifier
-                                    .padding(start = 4.dp, end = 2.dp) // Padding between icon and text
-                                    .size(24.dp) // Adjust icon size if needed
-                            )
-                            Text(
-                                text = "Login with Facebook",
-                                color = Color.White,
-                                fontSize = 13.sp,
-                                modifier = Modifier.weight(1f) // Center text horizontally within Row
-                            )
-                        }
-                    }
-
-
-                    Button(
-                        onClick = { /* Handle Google login */ },
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 3.dp), // Padding between buttons
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        contentPadding = PaddingValues(1.dp) // Remove default padding if needed
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center,
-                            modifier = Modifier.fillMaxWidth() // Ensure Row takes up full width
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.google), // Use your drawable resource ID here
-                                contentDescription = "Google Icon",
-                                modifier = Modifier
-                                    .padding(end = 8.dp) // Padding between icon and text
-                                    .size(24.dp) // Adjust icon size if needed
-                            )
-                            Text(
-                                text = "Sign in with Google",
-                                color = Color.Black,
-                                fontSize = 14.sp,
-                                textAlign = TextAlign.Center, // Center text horizontally
-                                modifier = Modifier.fillMaxWidth() // Ensure text takes up full width of the button
-                            )
-                        }
-
-                    }
-                }*/
-
-        Spacer(modifier = Modifier.height(60.dp))
-
-        Row {
-            Text(text = "vous n'avez pas de compte ?", color = Color.Gray)
-            Text(
-                text = "S'inscrire",
-                color = Color.Black,
-                modifier = Modifier.clickable {  },
-                textDecoration = Underline
-            )
-        }
-
     }
-
-}/*
+}
+/*
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun LoginScreenPreview() {

@@ -14,3 +14,4 @@ interface IProfileRepository {
      */
     suspend fun Profile(account: RequestBody, file: MultipartBody.Part?): Response<Void>
 }
+

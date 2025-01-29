@@ -79,6 +79,7 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetEmailViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetManagerViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPaymentViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
@@ -90,6 +91,7 @@ import com.padelium.data.dto.GetPaymentRequestDTO
 import com.padelium.domain.dto.ConfirmBookingRequest
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetPaymentRequest
+import com.padelium.domain.dto.GetProfileResponse
 import com.padelium.domain.dto.PaymentResponse
 import java.math.BigDecimal
 import java.time.Instant
@@ -222,8 +224,13 @@ fun PaymentSection1(
     viewModel9: SharedViewModel,
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
+    viewModel3: GetProfileViewModel = hiltViewModel()
 
     ) {
+    var firstName by remember { mutableStateOf("") }
+    var lastName by remember { mutableStateOf("") }
+    var phoneNumber by remember { mutableStateOf("") }
+    val profileData by viewModel3.profileData.observeAsState(DataResult.Loading)
 
     // var selectedParts by remember { mutableStateOf("1") }
     var amountSelected by remember { mutableStateOf(Pair(0.0, "DT")) }
@@ -253,7 +260,6 @@ fun PaymentSection1(
 
     var partnerName by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
-    var phoneNumber by remember { mutableStateOf("") }
     var extrasEnabled by remember { mutableStateOf(false) }
     var selectedRaquette by remember { mutableStateOf(1) }
     var includeBalls by remember { mutableStateOf(false) }
@@ -281,7 +287,28 @@ fun PaymentSection1(
 
     // Map the DTOs to domain objects
     val dataResult by viewModel.dataResult.observeAsState()
-
+    LaunchedEffect(Unit) {
+        viewModel3.fetchProfileData()
+    }
+    when (val result = profileData) {
+        is DataResult.Success -> {
+            // Extract profile data into variables
+            val profile = result.data as? GetProfileResponse
+            if (profile != null && !firstName.isNotEmpty()) {
+                firstName = profile.firstName
+                lastName = profile.lastName
+                phoneNumber = profile.phone
+            } else {
+                androidx.compose.material.Text(text = "")
+            }
+        }
+        is DataResult.Loading -> {
+            androidx.compose.material.Text(text = "Loading profile data...")
+        }
+        is DataResult.Failure -> {
+            androidx.compose.material.Text(text = "Error: ${result.errorMessage}")
+        }
+    }
 
 
 
@@ -319,28 +346,12 @@ fun PaymentSection1(
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                Text(
-                    text = "Téléphone",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                HorizontalDivider(
-                    modifier = Modifier
-                        .width(900.dp)
-                        .padding(horizontal = 10.dp)
-                        .offset(y = -10.dp),
-                    color = Color.Gray, thickness = 1.dp
-                )
 
                 Row(
                     verticalAlignment = Alignment.CenterVertically
-                )
-                {
+                ) {
 
-                    BasicTextField(
+                    OutlinedTextField(
                         value = phoneNumber,
                         onValueChange = {
                             // Allow digits, the plus sign (+), and restrict the length to 8 characters
@@ -354,76 +365,75 @@ fun PaymentSection1(
                         modifier = Modifier
                             .offset(x = 3.dp)
                             .width(200.dp)
+                            .height(55.dp)
                             .padding(vertical = 4.dp),
+
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        decorationBox = { innerTextField ->
-                            Row(
-                                modifier = Modifier
-                                    .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
-                                    .fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                // Phone Icon
-                                Icon(
-                                    imageVector = Icons.Default.Phone,
-                                    contentDescription = "Phone Icon",
-                                    modifier = Modifier.padding(8.dp)
-                                )
-                                androidx.compose.material.Text(
-                                    text = "|",
-                                    fontSize = 29.sp,
-                                    color = Color.Black,
-                                    modifier = Modifier.offset(x = -8.dp, y = -2.dp)
-                                )
-                                Box(
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    innerTextField()
-                                }
 
-
-                            }
-                        }
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Phone,
+                                contentDescription = "Phone Icon",
+                                modifier = Modifier.padding(8.dp)
+                            )
+                        },
+                        placeholder = { Text("Phone Number") }, // Optional placeholder
+                        shape = RoundedCornerShape(13.dp),
+                        colors = TextFieldDefaults.outlinedTextFieldColors(
+                            focusedBorderColor = Color.Gray,
+                            unfocusedBorderColor = Color.Gray,
+                            backgroundColor = Color.Transparent
+                        )
                     )
 
                     Spacer(modifier = Modifier.width(10.dp))
-
-
-                    Button(
-                        onClick = {
-                            // Call the UpdatePhone method when button is clicked
-                            val phoneBody = RequestBody.create(
-                                "text/plain".toMediaTypeOrNull(), phoneNumber
-                            )
-                            updatePhoneViewModel.UpdatePhone(phoneBody)
-                        },
+                    Row(
                         modifier = Modifier
-                            .offset(x = 28.dp)
-                            .width(120.dp)
-                            .height(48.dp)
-                            .border(1.dp, Color(0xFF0054D8), RoundedCornerShape(13.dp)),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        shape = RoundedCornerShape(15.dp)
+                            .fillMaxWidth()
+                            .offset(x = 15.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Box(
                             modifier = Modifier
-                                .background(Color.White, RoundedCornerShape(10.dp))
-                                .fillMaxSize(),
-                            contentAlignment = Alignment.Center
+                                .fillMaxWidth()
+                                .weight(1f) // Ensure both buttons take equal space
+                                .padding(1.dp) // Add spacing between the button and the border
                         ) {
-                            Text(
-                                text = "Modifier",
-                                color = Color(0xFF0054D8),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 20.sp
-                            )
+                            Button(
+                                onClick = {
+                                    val phoneBody = RequestBody.create(
+                                        "text/plain".toMediaTypeOrNull(), phoneNumber
+                                    )
+                                    updatePhoneViewModel.UpdatePhone(phoneBody)
+                                },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(1.dp), // Adjust padding to fit inside the border box
+                                colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                                shape = RoundedCornerShape(13.dp) // Same rounded corners
+                            ) {
+                                Text(
+                                    text = "Modifier",
+                                    color = Color(0xFF0054D8),
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 18.sp
+                                )
+                            }
                         }
                     }
-
                 }
             }
+
+
         }
 
+        /*
+          modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f), // Ensure both buttons take equal space
+                         colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                        shape = RoundedCornerShape(13.dp)
+         */
         Spacer(modifier = Modifier.height(16.dp))
 
         ReservationDetailsCard(
@@ -453,56 +463,62 @@ fun PaymentSection1(
             },
             viewModel1 = viewModel9
         )
-
-
-
-
-
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
+        Spacer(modifier = Modifier.height(16.dp))
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            var selectedExtras by remember {
-                mutableStateOf<List<Triple<String, String, Int>>>(
-                    emptyList()
+            // ExtrasSection Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(Color.White),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                var selectedExtras by remember {
+                    mutableStateOf<List<Triple<String, String, Int>>>(emptyList())
+                }
+
+                ExtrasSection(
+                    onExtrasUpdate = { extras, cost ->
+                        selectedExtras = extras
+                        totalExtrasCost = extras.sumOf { it.third * it.second.toDouble() }
+                        Log.d("ExtrasSection", "Extras: $extras, Total Cost: $totalExtrasCost")
+                    },
+                    selectedParts = selectedParts.toString(),
                 )
             }
-            //  var totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
 
-            ExtrasSection(
-                onExtrasUpdate = { extras, cost ->
-                    selectedExtras = extras
-                    totalExtrasCost = extras.sumOf { it.third * it.second.toDouble() }
-                    Log.d("AFAAAAAAAAAAAAAAAAF", "Extras: $extras, Total Cost: $totalExtrasCost")
+            // Spacer between ExtrasSection and ReservationSummary
+            Spacer(modifier = Modifier.height(16.dp))
 
-                },
-                selectedParts = selectedParts.toString(),
-            )
-
-            // Pass selectedTimeSlot and ReservationOption correctly
-            ReservationSummary(
-                selectedDate = selectedDate,
-                selectedTimeSlot = selectedTimeSlot.toString(), // Pass selected time
-                selectedReservation = selectedReservation, // Pass selected reservation
-                selectedExtras = selectedExtras,
-                amountSelected = Pair(
-                    selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull()
-                        ?: 0.0,
-                    selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
-                ),
-                onTotalAmountCalculated = { totalAmount ->
-                },
-                price =price,
-                time = time.toString(),
-                navController = navController,
-                adjustedAmount = adjustedAmount, // Pass updated adjustedAmount
-                adjustedSharedExtrasAmount = adjustedSharedExtrasAmount,
-                totalSharedExtrasCost = totalSharedExtrasCost,
-                totalExtrasCost = totalExtrasCost
-            )
-            Log.d("ReservationSummary", "Updated Adjusted Amount: $adjustedSharedExtrasAmount")
+            // ReservationSummary Card
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(Color.White),
+                elevation = CardDefaults.cardElevation(4.dp)
+            ) {
+                ReservationSummary(
+                    selectedDate = selectedDate,
+                    selectedTimeSlot = selectedTimeSlot.toString(), // Pass selected time
+                    selectedReservation = selectedReservation, // Pass selected reservation
+                    selectedExtras = selectedExtras,
+                    amountSelected = Pair(
+                        selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull()
+                            ?: 0.0,
+                        selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
+                    ),
+                    onTotalAmountCalculated = { totalAmount -> },
+                    price = price,
+                    time = time.toString(),
+                    navController = navController,
+                    adjustedAmount = adjustedAmount, // Pass updated adjustedAmount
+                    adjustedSharedExtrasAmount = adjustedSharedExtrasAmount,
+                    totalSharedExtrasCost = totalSharedExtrasCost,
+                    totalExtrasCost = totalExtrasCost
+                )
+                Log.d("ReservationSummary", "Updated Adjusted Amount: $adjustedSharedExtrasAmount")
+            }
 
         }
 
@@ -511,14 +527,14 @@ fun PaymentSection1(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .offset(x = 7.dp),
+                .offset(x = 15.dp),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(x = 1.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .padding(horizontal = 16.dp), // optional padding for alignment
+                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally) // Space between the buttons
             ) {
 
                 val coroutineScope = rememberCoroutineScope()
@@ -730,23 +746,24 @@ fun PaymentSection1(
 
                         enabled = !isLoading,
 
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(end = 7.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        border = BorderStroke(2.dp, Color(0xFF0054D8))
+                    modifier = Modifier
+                        .height(48.dp).offset(x = -16.dp)
+                        .weight(1f), // Ensure both buttons take equal space
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
+                    shape = RoundedCornerShape(13.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Payment,
                                 contentDescription = "Card Payment",
-                                tint = Color(0xFF0054D8)
+                                tint = Color.White
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Card Crédit",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Gray
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
                     }
@@ -833,22 +850,23 @@ fun PaymentSection1(
                             }
                         },
                         modifier = Modifier
-                            .weight(1f)
-                            .padding(start = 8.dp,end  = 16.dp),
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                        border = BorderStroke(2.dp, Color(0xFF0054D8))
+                            .height(48.dp)
+                            .weight(1f), // Ensure both buttons take equal space
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
+                        shape = RoundedCornerShape(13.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
                                 imageVector = Icons.Default.Money,
                                 contentDescription = "Credits Payment",
-                                tint = Color(0xFF0054D8)
+                                tint = Color.White
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Crédit Padelium",
-                                fontWeight = FontWeight.Bold,
-                                color = Color.Gray
+                                color = Color.White,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
                     }

@@ -4,6 +4,7 @@ import android.net.Uri
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -42,10 +44,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -258,6 +262,7 @@ private fun EstablishmentCard(
         } else {
             getBookingResponseDTO.amount ?: BigDecimal.ZERO
         }
+
         Card(
             modifier = Modifier
                 .fillMaxWidth()
@@ -291,6 +296,7 @@ private fun EstablishmentCard(
         // Handle login popup logic here (e.g., show a dialog or navigate to login screen)
     }
 }
+
 
 @Composable
 private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDTO, planning: PlanningDTO) {
@@ -332,29 +338,58 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
             )
         }
 
-        Button(
-            onClick = {
-                // Button click logic here
-            },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.size(width = 120.dp, height = 40.dp)
+        Column(
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.Center,
+            modifier = Modifier.padding(start = 8.dp)
         ) {
-            val amountToShow = if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
-                planning.reductionPrice
+            val amountToShow = getBookingResponseDTO.amount ?: BigDecimal.ZERO
+
+            if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
+                Box(modifier = Modifier.padding(bottom = 4.dp)) {
+                    Text(
+                        text = "${String.format("%.2f", amountToShow)} DT",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        color = Color(0xFF0054D8),
+                        textAlign = TextAlign.Center
+                    )
+                    Canvas(
+                        modifier = Modifier
+                            .matchParentSize()
+                    ) {
+                        val textHeight = size.height / 2
+                        drawLine(
+                            color = Color.Red,
+                            strokeWidth = 6f,
+                            start = Offset(0f, textHeight),
+                            end = Offset(size.width, textHeight)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "${String.format("%.2f", planning.reductionPrice)} DT",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color.Red, // Discounted price in Red
+                    textAlign = TextAlign.Center
+                )
             } else {
-                getBookingResponseDTO.amount ?: BigDecimal.ZERO
+                Text(
+                    text = "${String.format("%.2f", amountToShow)} DT",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF0054D8),
+                    textAlign = TextAlign.Center
+                )
             }
-            Text(
-                text = "${String.format("%.2f", amountToShow)} ${getBookingResponseDTO.currencySymbol ?: "€"}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp,
-                color = Color(0xFFD7F057),
-                textAlign = TextAlign.Center
-            )
         }
     }
 }
+
+
+
 
 @Composable
  fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {

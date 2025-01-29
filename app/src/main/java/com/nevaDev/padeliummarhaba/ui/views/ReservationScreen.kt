@@ -409,13 +409,13 @@ fun ReservationSummary(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        ReservationDetailRow(label = "Prix de Réservation", value = "${String.format("%.2f", adjustedAmount)}")
+        ReservationDetailRow(label = "Prix de Réservation", value = "${String.format("%.2f", adjustedAmount)} DT")
 
         selectedExtras.forEach { (name, price, _) ->
             ReservationDetailRow(label = "Extra: $name", value = price)
         }
 
-        ReservationDetailRow(label = "Total", value = "${String.format("%.2f", totalAmountSelected)}")
+        ReservationDetailRow(label = "Total", value = "${String.format("%.2f", totalAmountSelected)} DT")
         Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected")
     }
 }

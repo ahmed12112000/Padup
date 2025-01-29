@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
+import android.app.Application
 import android.content.Context
 import android.net.Uri
 import android.util.Log
@@ -22,23 +23,28 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class ProfileViewModel @Inject constructor(private val profileUseCase: ProfileUseCase) : ViewModel() {
+class ProfileViewModel @Inject constructor(
+    private val profileUseCase: ProfileUseCase,
+    private val application: Application // Inject Application context
+) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
 
     /**
      * Start getting data for profile update
      * @param accountJson A JSON string containing account details (e.g., "nom", "prenom").
-     * @param imagePath The file path to the image being uploaded.
+     * @param imageUri The URI of the image being uploaded.
      */
-    fun Profile(accountJson: String, imagePath: String) {
+    fun Profile(accountJson: String, imageUri: Uri?) {
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
-            val result = profileUseCase.Profile(accountJson, imagePath)
+            // Use the context from the Application to pass it to the use case
+            val result = profileUseCase.Profile(accountJson, imageUri, application.applicationContext)
             dataResult.value = result
         }
     }
 }
+
 
 
 

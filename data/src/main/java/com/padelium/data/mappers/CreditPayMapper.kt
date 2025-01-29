@@ -2,6 +2,7 @@ package com.padelium.data.mappers
 
 import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.domain.dto.CreditPayResponse
+import java.math.BigDecimal
 import javax.inject.Inject
 
 
@@ -11,7 +12,7 @@ class CreditPayMapper @Inject constructor() {
         return creditPayResponseList.map { response ->
             CreditPayResponse(
                 id = response.id,
-                amount = response.amount,
+                amount = response.amount?: BigDecimal.ZERO,
                 created = response.created ?: "", // Provide a default value for nullable fields
                 updated = response.updated ?: "", // Default to empty string if null
                 createdBy = response.createdBy,

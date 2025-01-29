@@ -56,6 +56,7 @@ import com.padelium.domain.dto.GetProfileResponse
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 import com.padelium.domain.dto.ProfileRequest
+import com.padelium.domain.usecases.uriToFile
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -100,7 +101,7 @@ fun ProfileScreen(
     var isLoading by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.GetProfile()
+        viewModel.fetchProfileData()
     }
 
     when (val result = profileData) {
@@ -164,57 +165,28 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            BasicTextField(
-                value = phoneNumber,
-                onValueChange = {
-                    // Allow digits, the plus sign (+), and restrict the length to 8 characters
-                    if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
-                        // Ensure that the plus sign only appears at the beginning
-                        if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains(
-                                '+'
-                            ))) {
-                            phoneNumber = it
-                        }
-                    }
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(x = 3.dp)
-                    .width(200.dp)
-                    .padding(vertical = 4.dp),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                decorationBox = { innerTextField ->
-                    Row(
-                        modifier = Modifier
-                            .border(1.dp, Color.Gray, RoundedCornerShape(4.dp))
-                            .fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Phone Icon
-                        Icon(
-                            imageVector = Icons.Default.Phone,
-                            contentDescription = "Phone Icon",
-                            modifier = Modifier.padding(8.dp)
-                        )
-                        androidx.compose.material.Text(
-                            text = "|",
-                            fontSize = 29.sp,
-                            color = Color.Black,
-                            modifier = Modifier.offset(x = -8.dp, y = -2.dp)
-                        )
-                        Box(
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            innerTextField()
-                        }
-
-
+        OutlinedTextField(
+            value = phoneNumber,
+            onValueChange = {
+                // Allow digits, the plus sign (+), and restrict the length to 8 characters
+                if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
+                    // Ensure that the plus sign only appears at the beginning
+                    if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains('+'))) {
+                        phoneNumber = it
                     }
                 }
-            )
-        }
-            Spacer(modifier = Modifier.width(10.dp))
+            },
+            label = { Text("Téléphone") },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(13.dp),
+            leadingIcon = {
+                Icon(
+                    imageVector = Icons.Default.Phone,
+                    contentDescription = "Phone Icon"
+                )
+            },
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+        )
 
         Spacer(modifier = Modifier.height(36.dp))
 
@@ -237,7 +209,6 @@ fun ProfileScreen(
 
             Box(
                 modifier = Modifier
-                  //  .offset(x = 100.dp)
                     .size(90.dp)
                     .align(Alignment.CenterHorizontally)
                     .drawBehind {
@@ -284,61 +255,41 @@ fun ProfileScreen(
         ) {
             Button(
                 onClick = {
-                    // Create the account JSON
+                    // Create account JSON
                     val accountData = mapOf(
                         "firstName" to firstName,
                         "lastName" to lastName,
                         "phone" to phoneNumber
                     )
                     val accountJson = JSONObject(accountData).toString()
+                    Log.d("ProfileUpdate", "Account JSON: $accountJson")
 
                     // Get the image URI from somewhere (e.g., image picker or file selection)
-                    val uri: Uri? = profileImageUri // Assuming profileImageUri is already defined and contains the URI
+                    val uri: Uri? = profileImageUri // Assuming profileImageUri is already defined
 
                     // Handle URI if available
                     if (uri != null) {
-                        val contentResolver = context.contentResolver
-                        val fileDescriptor = contentResolver.openFileDescriptor(uri, "r") ?: return@Button
-                        val inputStream = FileInputStream(fileDescriptor.fileDescriptor)
-                        val file = File(context.cacheDir, "uploaded_image.jpg")
-                        val outputStream = FileOutputStream(file)
-                        inputStream.copyTo(outputStream)
-                        inputStream.close()
-                        outputStream.close()
+                        Log.d("ProfileUpdate", "Image URI: $uri")
 
-                        // Get the absolute path of the image
-                        val imagePath = file.absolutePath
+                        // Attempt to convert URI to File
+                        val imageFile = uriToFile(uri, context)
 
-                        // Log the path for debugging
-                        Log.d("ProfileUpdate", "Image path: $imagePath")
+                        if (imageFile != null && imageFile.exists()) {
+                            Log.d("ProfileUpdate", "Image file exists at path: ${imageFile.absolutePath}")
 
-                        // Prepare the file part for upload
-                        val fileRequestBody = file.asRequestBody("image/*".toMediaType())
-                        val filePart = MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+                            // Proceed with profile update using the valid image file
+                            viewModel2.Profile(accountJson, Uri.fromFile(imageFile))
+                        } else {
+                            Log.d("ProfileUpdate", "Image conversion failed or file does not exist.")
 
-                        // Call the Profile update method
-                        viewModel2.Profile(accountJson, filePart.toString())
-
-                        // Observe the result
-                        viewModel2.dataResult.observe(lifecycleOwner) { dataResult ->
-                            when (dataResult) {
-                                is DataResult.Loading -> isLoading = true
-                                is DataResult.Success -> {
-                                    isLoading = false
-                                    Toast.makeText(context, "Profile updated successfully", Toast.LENGTH_SHORT).show()
-                                }
-                                is DataResult.Failure -> {
-                                    isLoading = false
-                                    Toast.makeText(context, "Failed to update profile: ${dataResult.errorMessage}", Toast.LENGTH_SHORT).show()
-                                }
-                            }
+                            // Proceed without image if conversion failed
+                            viewModel2.Profile(accountJson, null)
                         }
                     } else {
-                        // Handle the case where no image was selected
                         Log.d("ProfileUpdate", "No image selected")
-                        // Proceed without file upload if necessary
 
-
+                        // Proceed without image
+                        viewModel2.Profile(accountJson, null)
                     }
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -346,8 +297,8 @@ fun ProfileScreen(
                     contentColor = Color(0xFF0066CC)
                 ),
                 modifier = Modifier
-                    .weight(1f) // Ensure the button is evenly distributed within the row
-                    .padding(horizontal = 8.dp) // Add smooth padding around the button
+                    .weight(1f)
+                    .padding(horizontal = 8.dp)
             ) {
                 Text(
                     text = "Sauvegarder",
@@ -359,7 +310,6 @@ fun ProfileScreen(
                     textAlign = TextAlign.Center
                 )
             }
-
 
 
             Spacer(modifier = Modifier.width(8.dp))

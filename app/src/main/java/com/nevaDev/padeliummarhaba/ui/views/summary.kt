@@ -33,6 +33,12 @@ import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetReservationIDResponse
 import com.padelium.domain.dto.GetReservationResponse
 import kotlinx.coroutines.launch
+import java.text.ParseException
+import java.text.SimpleDateFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.TextStyle
+import java.util.Locale
 
 
 
@@ -45,16 +51,14 @@ fun SummaryScreen(
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
     var selectedReservation1 by remember { mutableStateOf<GetReservationIDResponse?>(null) }
-    var showDialog by remember { mutableStateOf(false) } // Manage dialog state here
+    var showDialog by remember { mutableStateOf(false) }
 
     val sheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
     val coroutineScope = rememberCoroutineScope()
 
-    // Observe the reservation data
     val reservationData by viewModel.ReservationsData.observeAsState()
     val profilesData by viewModel1.profilesData.observeAsState()
 
-    // On data change, update reservations list
     LaunchedEffect(reservationData) {
         if (reservationData is DataResultBooking.Success) {
             reservations.value =
@@ -62,14 +66,12 @@ fun SummaryScreen(
         }
     }
 
-    // Observe profiles data to update selectedReservation1
     LaunchedEffect(profilesData) {
         if (profilesData is DataResultBooking.Success) {
             selectedReservation1 = (profilesData as DataResultBooking.Success<GetReservationIDResponse>).data
         }
     }
 
-    // Fetch reservations when screen is launched
     LaunchedEffect(Unit) {
         viewModel.GetReservation()
     }
@@ -101,7 +103,6 @@ fun SummaryScreen(
                 color = Color.Gray
             )
 
-            // Filter and Sort Row
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -162,24 +163,22 @@ fun SummaryScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Use the dynamic list of reservations
             reservations.value.forEach { reservation ->
                 ReservationCard(
                     reservation = reservation,
                     onClick = {
                         selectedReservation = reservation
-                        // Fetch profile data based on the selected reservation
                         viewModel1.fetchProfileById(reservation.id)
                         coroutineScope.launch { sheetState.show() }
                     },
                     viewModel1 = viewModel1,
-                    onShowDialog = { showDialog = true } // Pass the dialog state handler
+                    bookingStatusCode = reservation.bookingStatusCode,
+                    onShowDialog = { showDialog = true }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
         }
     }
-
     // Show dialog if needed
     if (showDialog) {
         selectedReservation?.let { reservation ->
@@ -198,26 +197,35 @@ fun SummaryScreen(
     }
 }
 
+
 @Composable
 fun ReservationCard(
     reservation: GetReservationResponse,
     onClick: () -> Unit,
     viewModel1: GetProfileByIdViewModel,
+    bookingStatusCode: String, // New parameter for booking status code
     onShowDialog: () -> Unit // New parameter for showing the dialog
-
 ) {
-    var showDialog by remember { mutableStateOf(false) }
+    val bookingDate = reservation.bookingDate // Assuming this is a String like "22-01-2025"
+    val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.FRANCE)
+
+    val date = LocalDate.parse(bookingDate, formatter)
+
+    // Extract first 3 letters of the day and month in French
+    val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.FRANCE).replaceFirstChar { it.uppercaseChar() }
+    val month = date.month.getDisplayName(TextStyle.SHORT, Locale.FRANCE).replaceFirstChar { it.uppercaseChar() }
+
+    val formattedDate = "$dayOfWeek ${date.dayOfMonth} $month ${date.year}"
 
     Card(
         shape = RoundedCornerShape(8.dp),
-        elevation = 4.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp)
+            .padding(4.dp) // Reduce padding to shrink card size
             .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
             .clickable { onClick() }
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(6.dp)) { // Reduce padding inside
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -227,53 +235,81 @@ fun ReservationCard(
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp
                 )
+
+                val formattedAmount = if (reservation.localAmount == 0.0) {
+                    "0"
+                } else {
+                    String.format("%.2f", reservation.localAmount)
+                }
+
                 Text(
-                    text = "${reservation.localAmount} ${reservation.currencyFromSymbol}",
+                    text = "$formattedAmount ${reservation.currencyFromSymbol}",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 16.sp
+                )
+            }
+            Spacer(modifier = Modifier.height(4.dp)) // Reduce spacing
+
+            Column {
+                Text(
+                    text = formattedDate, // Use formatted date
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 12.sp
+                )
+                Spacer(modifier = Modifier.height(10.dp))
+                Text(
+                    text = "${reservation.fromStrTime} - ${reservation.toStrTime}",
+                    fontWeight = FontWeight.Normal,
+                    fontSize = 12.sp
                 )
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp)) // Reduce spacing
 
-            Text(
-                text = "${reservation.bookingDate} | ${reservation.fromStrTime} - ${reservation.toStrTime}",
-                fontWeight = FontWeight.Normal,
-                fontSize = 12.sp
-            )
+            StatusBadge(statusCode = bookingStatusCode) // Use the new parameter
 
-            Spacer(modifier = Modifier.height(8.dp))
-
-            StatusBadge(reservation.isConfirmed)
-
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(-6.dp)) // Reduce spacing
 
             Row(
-                modifier = Modifier.fillMaxWidth().offset(y = -40.dp),
+                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
-                IconButton(onClick = {
-                    viewModel1.fetchProfileById(reservation.id)
-                    onClick()
-                }) {
-                    Icon(imageVector = Icons.Default.Visibility, contentDescription = "View")
+                IconButton(
+                    onClick = {
+                        viewModel1.fetchProfileById(reservation.id)
+                        onClick()
+                    },
+                    modifier = Modifier.size(24.dp) // Reduce icon size
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Visibility,
+                        contentDescription = "View",
+                        modifier = Modifier.size(18.dp) // Smaller icon
+                    )
                 }
             }
         }
     }
-
 }
 
-
 @Composable
-fun ReservationCard1(reservation: GetReservationResponse,reservation1 : GetReservationIDResponse) {
+fun ReservationCard1(reservation: GetReservationResponse, reservation1: GetReservationIDResponse) {
+
+    // Format the bookingDate
+    val bookingDate = reservation.bookingDate // Assuming this is a String like "22-01-2025"
+    val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.FRANCE)
+    val date = LocalDate.parse(bookingDate, formatter)
+
+    // Format to "Lun. 22 Janv 2025"
+    val dayOfWeek = date.dayOfWeek.name.take(3) // Get first 3 letters of the day in French
+    val month = date.month.name.take(3) // Get first 3 letters of the month in French
+    val formattedDate = "${dayOfWeek.capitalize(Locale.ROOT)} ${date.dayOfMonth} ${month.capitalize(Locale.ROOT)} ${date.year}"
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .fillMaxHeight(0.95f)
-            .padding(8.dp),
-        // verticalArrangement = Arrangement.SpaceBetween
+            .padding(8.dp)
     ) {
         // Top Section
         Column(
@@ -288,7 +324,7 @@ fun ReservationCard1(reservation: GetReservationResponse,reservation1 : GetReser
             )
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "${reservation.bookingDate}",
+                text = formattedDate, // Use the formatted date here
                 fontWeight = FontWeight.Bold,
                 fontSize = 20.sp
             )
@@ -302,7 +338,7 @@ fun ReservationCard1(reservation: GetReservationResponse,reservation1 : GetReser
 
         Spacer(modifier = Modifier.height(26.dp))
 
-        // Middle Section (Table Layout with Dividers)
+        // Middle Section (Table Layout with Dividers)      22-01-2025
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -491,18 +527,25 @@ fun ReservationCard1(reservation: GetReservationResponse,reservation1 : GetReser
 
 
 @Composable
-fun StatusBadge(isConfirmed: Boolean) {
-    val backgroundColor = if (isConfirmed) Color(0xFF4CAF50) else Color(0xFFF44336)
-    val statusText = if (isConfirmed) "Confirmée" else "Annulée"
+fun StatusBadge(statusCode: String) {
+    val (backgroundColor, statusText) = when (statusCode) {
+        "PAY" -> Pair(Color(0xFF4CAF50), "Payée") // Green for paid
+        "WAIT" -> Pair(Color(0xFFFBC02D), "En attente de paiement") // Yellow for waiting
+        else -> Pair(Color(0xFF4CAF50), "Payée") //Green for paid
+    }
 
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
             .background(backgroundColor)
             .padding(vertical = 4.dp, horizontal = 8.dp)
-        //.offset(y = 5.dp)
     ) {
-        Text(text = statusText, color = Color.White, fontWeight = FontWeight.Bold)
+        Text(
+            text = statusText,
+            color = Color.White,
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
     }
 }
 

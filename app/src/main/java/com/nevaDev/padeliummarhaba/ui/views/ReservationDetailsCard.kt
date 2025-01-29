@@ -6,17 +6,14 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -49,26 +46,24 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.IntSize
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.rememberImagePainter
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.FindTermsViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PrivateExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SharedExtrasViewModel
-
 import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dto.ExtrasResponse
 import com.padelium.domain.dto.FindTermsResponse
 import com.padelium.domain.dto.PrivateExtrasResponse
 import com.padelium.domain.dto.SharedExtrasResponse
@@ -78,7 +73,6 @@ import kotlinx.coroutines.launch
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
-import java.math.BigDecimal
 import java.math.RoundingMode
 
 
@@ -210,8 +204,27 @@ fun ReservationDetailsCard(
     }
     Column {
         // Dropdown for selecting parts
-        ReservationCard(title = "Je veux payer pour") {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(Color.White),
+            elevation = CardDefaults.cardElevation(4.dp)
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically // Align items vertically in the center
+            ) {
+                // Text
+                Text(
+                    text = "je veut payer pour",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(end = 8.dp) // Add space between text and dropdown
+                )
+
+                // Dropdown
                 ExposedDropdownMenuBox(
                     expanded = partsDropdownExpanded,
                     onExpandedChange = { partsDropdownExpanded = !partsDropdownExpanded }
@@ -221,16 +234,19 @@ fun ReservationDetailsCard(
                         onValueChange = {},
                         readOnly = true,
                         modifier = Modifier
-                            .widthIn(min = 30.dp)
-                            .width(50.dp)
-                            .border(1.dp, Color.Gray, RoundedCornerShape(13.dp)),
+                            .width(50.dp) // Adjusted width for dropdown
+                            .border(1.dp, Color.Gray, RoundedCornerShape(6.dp)),
                         colors = TextFieldDefaults.textFieldColors(
                             backgroundColor = Color.White,
                             cursorColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent
                         ),
-                        placeholder = { Text("Select parts") }
+                        textStyle = TextStyle(
+                            fontSize = 22.sp, // Make the number bigger
+                            fontWeight = FontWeight.Bold
+                        ),
+                        placeholder = { Text("Select") }
                     )
                     ExposedDropdownMenu(
                         expanded = partsDropdownExpanded,
@@ -241,13 +257,14 @@ fun ReservationDetailsCard(
                                 viewModel1.updateSelectedParts(option)
                                 partsDropdownExpanded = false
                             }) {
-                                Text(text = option.toString())
-                            }
+                                Text(text = option.toString(), fontSize = 16.sp)
+                            } }
                         }
                     }
-                }
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(text = "Parts", fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                }
+
             }
         }
 
@@ -256,8 +273,14 @@ fun ReservationDetailsCard(
         // Only show this section if selectedParts is not 4
 
         if (viewModel1.selectedParts.collectAsState().value != 4) {
-            ReservationCard(title = "Sélectionnez votre partenaire") {
+            ReservationCard(title = "") {
                 Column {
+                    Text(
+                        text = "Sélectionnez votre partenaire",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(end = 16.dp)
+                    )
                     val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
                     val partners = remember { mutableStateListOf<Pair<String, Long?>>() }
                     val coroutineScope = rememberCoroutineScope()
@@ -368,7 +391,10 @@ fun ReservationDetailsCard(
         }
 
     }
-}
+
+
+
+
 
 @Composable
 fun PartnerField(
@@ -390,10 +416,12 @@ fun PartnerField(
 
     // Manage the Dropdown visibility and focus behavior
     LaunchedEffect(value) {
-        // Ensure dropdown is shown only if text is typed
         isTextChanged = value.isNotEmpty()
         dropdownExpanded = isTextChanged
     }
+
+    // State to hold the position of the OutlinedTextField
+    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
 
     Column {
         Box {
@@ -401,10 +429,18 @@ fun PartnerField(
                 value = value,
                 onValueChange = { text ->
                     onValueChange(text)
+                    // Trigger search with the entered text
                     if (text.isNotEmpty()) {
                         val requestBody: RequestBody =
                             text.toRequestBody("text/plain".toMediaType())
-                        findTermsViewModel.findTerms(requestBody)
+
+                        // Fetch only 9 players for the first letter and progressively fetch more as letters are typed
+                        if (text.length == 1) {
+                            findTermsViewModel.findTerms(requestBody, limit = 9) // Fetch 9 players initially
+                        } else {
+                            findTermsViewModel.findTerms(requestBody) // Continue fetching results as letters are added
+                        }
+
                         dropdownExpanded = true
                     } else {
                         dropdownExpanded = false
@@ -420,16 +456,29 @@ fun PartnerField(
                         if (focusState.isFocused) {
                             dropdownExpanded = isTextChanged  // Only show dropdown if text is entered
                         }
+                    }
+                    .onGloballyPositioned { layoutCoordinates ->
+                        textFieldSize = layoutCoordinates.size // Get the size of the OutlinedTextField
                     },
-                shape = RoundedCornerShape(15.dp)
+                shape = RoundedCornerShape(15.dp),
+                colors = TextFieldDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = Color.Black,
+                    unfocusedBorderColor = Color.Black
+                )
             )
 
             // Only show the dropdown when there is text and the dropdownExpanded is true
             if (dropdownExpanded) {
                 DropdownMenu(
                     expanded = dropdownExpanded,
-                    onDismissRequest = { dropdownExpanded = false },
-                    modifier = Modifier.width(200.dp)
+                    onDismissRequest = {
+                        dropdownExpanded = false
+                        focusRequester.requestFocus() // Request focus back to the text field
+                    },
+                    modifier = Modifier
+                        .width(200.dp)
+                        .align(Alignment.TopStart) // Align the dropdown to the top start of the Box
+                        .offset(y = with(LocalDensity.current) { textFieldSize.height.toDp() }) // Offset the dropdown below the OutlinedTextField
                 ) {
                     when (playersState) {
                         is DataResult.Loading -> {
@@ -490,6 +539,7 @@ fun PartnerField(
 }
 
 
+
 /*
         Text(
             text = "Selected Players: ${
@@ -504,11 +554,6 @@ fun PartnerField(
 
  */
 
-
-
-
-
-
 @Composable
 fun ExtrasSection(
     onExtrasUpdate: (List<Triple<String, String, Int>>, Double) -> Unit,
@@ -516,8 +561,7 @@ fun ExtrasSection(
     viewModel4: PrivateExtrasViewModel = hiltViewModel(),
     selectedParts: String,
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
-
-    ) {
+) {
     var additionalExtrasEnabled by remember { mutableStateOf(false) }
     val sharedExtrasState by viewModel3.extrasState1.observeAsState()
     val privateExtrasState by viewModel4.extrasState2.observeAsState()
@@ -536,17 +580,15 @@ fun ExtrasSection(
 
     // Notify ReservationSummary of the total amount
 
-
-    ReservationCard(
-        title = "",
-        content = {
             Row(
-                modifier = Modifier.fillMaxWidth() .offset(y = (-16).dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y = (-8).dp), // Reduced offset for tighter spacing
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Je commande des extras?",
+                    text = "  Je commande des extras?",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
@@ -563,12 +605,8 @@ fun ExtrasSection(
                 )
             }
 
-            //   Spacer(modifier = Modifier.height(12.dp))
-
-
-
             if (additionalExtrasEnabled) {
-                Spacer(modifier = Modifier.height(6.dp)) // Reduced height from 10.dp to 6.dp for tighter spacing
+                Spacer(modifier = Modifier.height(2.dp)) // Reduced height for tighter spacing
 
                 when {
                     sharedExtrasState is DataResult.Loading || privateExtrasState is DataResult.Loading -> {
@@ -586,107 +624,138 @@ fun ExtrasSection(
                         val privateExtrasList =
                             (privateExtrasState as DataResult.Success).data as? List<PrivateExtrasResponse>
 
-                        Spacer(modifier = Modifier.height(4.dp)) // Reduced height
+                        // Reduced height for tighter spacing between cards
+                        Spacer(modifier = Modifier.height(1.dp))
 
                         // Render private extras
-                        ReservationCard(title = "Article(s) réserver à mon usage") {
-                            //      minimize size Bold eliniminate
-                            privateExtrasList?.forEach { privateExtra ->
-                                val isPrivateExtraAdded = selectedExtras.any { it.first == privateExtra.name }
-                                ExtraItemCard(
-                                    extra = privateExtra,
-                                    isAdded = isPrivateExtraAdded,
-                                    onAddClick = { extraPrice ->
-                                        privateList.value.add(privateExtra.id)
-                                        Log.d("ExtrasSection", "Updated privateList: ${privateList.value}")
-                                        findTermsViewModel.updatePrivateExtras(privateList.value)
+                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) { // Reduced spacing between items
 
+                                    Text(
+                                        text = "  Article(s) réserver à mon usage",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                privateExtrasList?.forEach { privateExtra ->
+                                    val isPrivateExtraAdded =
+                                        selectedExtras.any { it.first == privateExtra.name }
+                                    ExtraItemCard(
+                                        extra = privateExtra,
+                                        isAdded = isPrivateExtraAdded,
+                                        onAddClick = { extraPrice ->
+                                            privateList.value.add(privateExtra.id)
+                                            Log.d(
+                                                "ExtrasSection",
+                                                "Updated privateList: ${privateList.value}"
+                                            )
+                                            findTermsViewModel.updatePrivateExtras(privateList.value)
 
-                                        selectedExtras += Triple(
-                                            privateExtra.name,
-                                            privateExtra.amount.toString(),
-                                            privateExtra.currencyId.toInt()
-                                        )
-                                        onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                    },
-                                    onRemoveClick = { extraPrice ->
-                                        privateList.value.remove(privateExtra.id)
-                                        Log.d("ExtrasSection", "Updated privateList: ${privateList.value}")
-                                        findTermsViewModel.updatePrivateExtras(privateList.value)
+                                            selectedExtras += Triple(
+                                                privateExtra.name,
+                                                privateExtra.amount.toString(),
+                                                privateExtra.currencyId.toInt()
+                                            )
+                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
+                                        },
+                                        onRemoveClick = { extraPrice ->
+                                            privateList.value.remove(privateExtra.id)
+                                            Log.d(
+                                                "ExtrasSection",
+                                                "Updated privateList: ${privateList.value}"
+                                            )
+                                            findTermsViewModel.updatePrivateExtras(privateList.value)
 
-                                        selectedExtras = selectedExtras.filterNot { it.first == privateExtra.name }
-                                        onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                    }
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp)) // Reduced height between cards
-
-                        // Render shared extras
-                        ReservationCard(title = "") {
-                            Column {
-                                Text(
-                                    text = "Article(s) partagé(s) entre tous les joueurs",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.Black
-                                )
-                                Text(
-                                    text = "(Frais partagé)",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.Black
-                                )
-                            }
-                            sharedExtrasList?.forEach { sharedExtra ->
-                                val isSharedExtraAdded = selectedExtras.any { it.first == sharedExtra.name }
-                                ExtraItemCard(
-                                    extra = sharedExtra,
-                                    isAdded = isSharedExtraAdded,
-                                    onAddClick = { extraPrice ->
-                                        sharedList.value.add(sharedExtra.id)
-                                        Log.d("ExtrasSection", "Updated sharedList: ${sharedList.value}")
-                                        findTermsViewModel.updateSharedExtras(sharedList.value)
-
-                                        // Calculate the cost based on selected parts
-                                        val sharedAmount = when (selectedParts.toInt()) {
-                                            1 -> (extraPrice / 4.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble() // Divided among 4
-                                            2 -> (extraPrice / 2.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble() // Divided among 2
-                                            3 -> (extraPrice / 1.33).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble() // Approximately divided among 3
-                                            4 -> (extraPrice / 1.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble() // No division
-                                            else -> extraPrice.toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble() // Default case
-
+                                            selectedExtras =
+                                                selectedExtras.filterNot { it.first == privateExtra.name }
+                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
                                         }
+                                    )
 
-                                        selectedExtras += Triple(
-                                            sharedExtra.name,
-                                            sharedAmount.toString(),
-                                            sharedExtra.currencyId.toInt()
-                                        )
-                                        onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                    },
-                                    onRemoveClick = { extraPrice ->
-                                        sharedList.value.remove(sharedExtra.id)
-                                        Log.d("ExtrasSection", "Updated sharedList: ${sharedList.value}")
-                                        findTermsViewModel.updateSharedExtras(sharedList.value)
-
-                                        // Calculate the cost based on selected parts
-                                        val sharedAmount = when (selectedParts.toInt()) {
-                                            1 -> extraPrice / 4.0 // Divided among 4
-                                            2 -> extraPrice / 2.0 // Divided among 2
-                                            3 -> extraPrice / 1.33 // Approximately divided among 3
-                                            4 -> extraPrice / 1.0 // No division
-                                            else -> extraPrice // Default case
-                                        }
-
-                                        selectedExtras = selectedExtras.filterNot { it.first == sharedExtra.name }
-                                        onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                    }
-                                )
                             }
-                        }
+                            // Reduced height between cards
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Render shared extras
+
+                                Column {
+                                    Text(
+                                        text = "  Article(s) partagé(s) entre tous les joueurs",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                    Text(
+                                        text = "  (Frais partagé)",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color.Black
+                                    )
+                                }
+                                sharedExtrasList?.forEach { sharedExtra ->
+                                    val isSharedExtraAdded =
+                                        selectedExtras.any { it.first == sharedExtra.name }
+                                    ExtraItemCard(
+                                        extra = sharedExtra,
+                                        isAdded = isSharedExtraAdded,
+                                        onAddClick = { extraPrice ->
+                                            sharedList.value.add(sharedExtra.id)
+                                            Log.d(
+                                                "ExtrasSection",
+                                                "Updated sharedList: ${sharedList.value}"
+                                            )
+                                            findTermsViewModel.updateSharedExtras(sharedList.value)
+
+                                            // Calculate the cost based on selected parts
+                                            val sharedAmount = when (selectedParts.toInt()) {
+                                                1 -> (extraPrice / 4.0).toBigDecimal()
+                                                    .setScale(2, RoundingMode.HALF_UP)
+                                                    .toDouble() // Divided among 4
+                                                2 -> (extraPrice / 2.0).toBigDecimal()
+                                                    .setScale(2, RoundingMode.HALF_UP)
+                                                    .toDouble() // Divided among 2
+                                                3 -> (extraPrice / 1.33).toBigDecimal()
+                                                    .setScale(2, RoundingMode.HALF_UP)
+                                                    .toDouble() // Approximately divided among 3
+                                                4 -> (extraPrice / 1.0).toBigDecimal()
+                                                    .setScale(2, RoundingMode.HALF_UP)
+                                                    .toDouble() // No division
+                                                else -> extraPrice.toBigDecimal()
+                                                    .setScale(2, RoundingMode.HALF_UP)
+                                                    .toDouble() // Default case
+                                            }
+
+                                            selectedExtras += Triple(
+                                                sharedExtra.name,
+                                                sharedAmount.toString(),
+                                                sharedExtra.currencyId.toInt()
+                                            )
+                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
+                                        },
+                                        onRemoveClick = { extraPrice ->
+                                            sharedList.value.remove(sharedExtra.id)
+                                            Log.d(
+                                                "ExtrasSection",
+                                                "Updated sharedList: ${sharedList.value}"
+                                            )
+                                            findTermsViewModel.updateSharedExtras(sharedList.value)
+
+                                            // Calculate the cost based on selected parts
+                                            val sharedAmount = when (selectedParts.toInt()) {
+                                                1 -> extraPrice / 4.0 // Divided among 4
+                                                2 -> extraPrice / 2.0 // Divided among 2
+                                                3 -> extraPrice / 1.33 // Approximately divided among 3
+                                                4 -> extraPrice / 1.0 // No division
+                                                else -> extraPrice // Default case
+                                            }
+
+                                            selectedExtras =
+                                                selectedExtras.filterNot { it.first == sharedExtra.name }
+                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
+                                        }
+                                    )
+                                }
+                            }
                     }
-
                     else -> {
                         Box(
                             modifier = Modifier.fillMaxWidth(),
@@ -696,27 +765,34 @@ fun ExtrasSection(
                                 text = "Failed to load extras",
                                 color = Color.Red
                             )
-                        }
+
                     }
                 }
             }
         }
-    )
+
 }
+
 
 
 
 @Composable
 fun ReservationCard(title: String, content: @Composable () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 8.dp),
+        shape = RoundedCornerShape(4.dp),
         colors = CardDefaults.cardColors(Color.White),
-        elevation = CardDefaults.cardElevation(2.dp)
+        elevation = CardDefaults.cardElevation(1.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Text(text = title, fontSize = 15.sp, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(2.dp))
+        Column(modifier = Modifier.padding(8.dp)) { // Reduce inner padding
+            Text(
+                text = title,
+                fontSize = 16.sp, // Reduce font size
+                fontWeight = FontWeight.Medium // Use medium weight for a more subtle look
+            )
+            Spacer(modifier = Modifier.height(4.dp)) // Slightly larger spacer for visual separation
             content()
         }
     }
@@ -790,11 +866,8 @@ fun ExtraItemCard(
                     is SharedExtrasResponse -> extra.amount
                     is PrivateExtrasResponse -> extra.amount
                     else -> ""
-                }} ${when (extra) {
-                    is SharedExtrasResponse -> extra.currencyName
-                    is PrivateExtrasResponse -> extra.currencyName
-                    else -> ""
-                }}"
+                }} DT"
+
             )
         }
 

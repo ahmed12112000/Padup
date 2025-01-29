@@ -332,6 +332,7 @@ fun SignUpScreen(
     )
 
     Spacer(modifier = Modifier.height(2.dp))
+
     /*
     // Repeat Password Field
     var repeatPassword by remember { mutableStateOf("") }

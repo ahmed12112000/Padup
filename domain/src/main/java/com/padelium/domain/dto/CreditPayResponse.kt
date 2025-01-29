@@ -1,8 +1,10 @@
 package com.padelium.domain.dto
 
+import java.math.BigDecimal
+
 data class CreditPayResponse(
     val id: Long,
-    val amount: Double,
+    val amount: BigDecimal,
     val created: String,
     val updated: String,
     val createdBy: Long,

@@ -51,10 +51,14 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.nevaDev.padeliummarhaba.viewmodels.CreditPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.UserAvoirViewModel
+import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.CreditPayResponse
 import com.padelium.domain.dto.GetPacksResponse
 import com.padelium.domain.dto.GetPaymentRequest
 import com.padelium.domain.dto.PaymentGetAvoirRequest
@@ -67,16 +71,19 @@ import java.math.BigDecimal
 fun CreditCharge(
     viewModel: GetPacksViewModel = hiltViewModel(),
     userAvoirViewModel: UserAvoirViewModel = hiltViewModel(),
+    creditPayViewModel: CreditPayViewModel = hiltViewModel(),
     navController: NavController
 ) {
+    // Fetch packs and credits when the screen is loaded
     LaunchedEffect(Unit) {
         viewModel.GetPacks()
+        creditPayViewModel.GetCreditPay()
     }
 
-    // Observe packsData as LiveData
+    // Observe data results
     val packsData by viewModel.packsData.observeAsState(DataResult.Loading)
-    // Observe payment response from userAvoirViewModel
     val paymentResponse by userAvoirViewModel.dataResult.observeAsState(DataResult.Loading)
+    val creditsData by creditPayViewModel.CreditsData.observeAsState(DataResultBooking.Loading)
 
     // Get context from LocalContext
     val context = LocalContext.current
@@ -84,6 +91,7 @@ fun CreditCharge(
     Column(
         modifier = Modifier.fillMaxSize().background(Color(0xFFE5E5E5)).verticalScroll(rememberScrollState())
     ) {
+        // Header Section
         Box(
             modifier = Modifier.fillMaxWidth().height(100.dp).background(Color(0xFF0066CC)),
             contentAlignment = Alignment.Center
@@ -96,6 +104,7 @@ fun CreditCharge(
             )
         }
 
+        // Content Section
         Box(
             modifier = Modifier.fillMaxWidth().background(Color.White).padding(horizontal = 16.dp, vertical = 8.dp)
         ) {
@@ -109,21 +118,24 @@ fun CreditCharge(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
+                // Display Packs
                 when (val result = packsData) {
                     is DataResult.Success -> {
                         val packs = result.data as? List<GetPacksResponse>
                         if (packs != null) {
                             packs.forEach { pack ->
+                                val amount = pack.amount
+                                val encodedAmount = Uri.encode(amount.toString()) // Correctly encode amount
+
                                 PricingCard(
                                     title = pack.title,
                                     price = pack.description,
-                                    credits = pack.amount.toString(),
+                                    credits = amount.toString(),
                                     currencySymbol = pack.currency.currencySymbol,
-                                    amount = pack.amount,
+                                    amount = amount,
                                     currency = "DT",
                                     orderId = "520",
                                     onPaymentClick = { userAvoirRequest ->
-                                        // Call PaymentAvoir
                                         userAvoirViewModel.PaymentAvoir(userAvoirRequest)
                                     }
                                 )
@@ -142,15 +154,37 @@ fun CreditCharge(
             }
         }
 
-        // Handle payment response after PaymentAvoir is called
+        // Handle Payment Response
         when (paymentResponse) {
             is DataResult.Success -> {
-                // Safely extract formUrl from UserAvoirResponse
                 val formUrl: String? = ((paymentResponse as DataResult.Success).data as? UserAvoirResponse)?.formUrl
-                if (!formUrl.isNullOrEmpty()) {
-                    navController.navigate("WebViewScreen1?formUrl=${Uri.encode(formUrl)}")
+
+                // Handling the packsData correctly
+                val amountValue: BigDecimal? = when (val result = packsData) {
+                    is DataResult.Success -> {
+                        val packs = result.data as? List<GetPacksResponse>
+                        // Get the amount from the first pack, or handle differently if needed
+                        packs?.firstOrNull()?.amount
+                    }
+                    else -> null
+                }
+                val IdValue: Long? = when (val result = packsData) {
+                    is DataResult.Success -> {
+                        val packs = result.data as? List<GetPacksResponse>
+                        // Get the id from the first pack as Long
+                        packs?.firstOrNull()?.id
+                    }
+                    else -> null
+                }
+                Log.d("amount", "Selected Parts: $amountValue")
+
+                if (!formUrl.isNullOrEmpty() && amountValue != null) {
+                    val encodedUrl = Uri.encode(formUrl)
+                    val encodedAmount = Uri.encode(amountValue.toString()) // Correctly encode amount
+                    val encodedId = Uri.encode(IdValue.toString())
+                    navController.navigate("WebViewScreen1?formUrl=${encodedUrl}&encodedAmount=${encodedAmount}&encodedId=${encodedId}")
                 } else {
-                    Toast.makeText(context, "No form URL received.", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "No form URL or amount received.", Toast.LENGTH_LONG).show()
                 }
             }
             is DataResult.Failure -> {
@@ -162,6 +196,9 @@ fun CreditCharge(
         }
     }
 }
+
+
+
 
 
 
@@ -213,7 +250,7 @@ fun PricingCard(
                         currency = currency,
                         orderId = orderId
                     )
-                    onPaymentClick(userAvoirRequest) // Call with only UserAvoirRequest
+                    onPaymentClick(userAvoirRequest)
                 },
                 colors = ButtonDefaults.buttonColors(
                     backgroundColor = Color(0xFF0066CC),
@@ -230,14 +267,22 @@ fun PricingCard(
             }
         }
     }
-}@Composable
+}
+
+
+
+@Composable
 fun WebViewScreen1(
     navController: NavController,
     formUrl: String,
-    paymentGetAvoirViewModel: PaymentGetAvoirViewModel
+    paymentGetAvoirViewModel: PaymentGetAvoirViewModel,
+    amount: BigDecimal,
+    Id: Long
 ) {
     // Access the local context for WebView
     val context = LocalContext.current
+    val amountList = amount.toPlainString().split(",").mapNotNull { it.toLongOrNull() }
+    val IdValue = Id
 
     // Observe dataResult from the ViewModel
     val dataResult by paymentGetAvoirViewModel.dataResult.observeAsState()
@@ -259,14 +304,16 @@ fun WebViewScreen1(
                 }
                 override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
                     val url = request.url.toString()
-                    val amount = extractamount(url)
-                    val packId = extractpackId3(url)
+                    val packId = extractPackId3(url)
                     val orderId = extractOrderId1(url)
+                    val amountBigDecimal = amountList.fold(BigDecimal.ZERO) { acc, amount ->
+                        acc + BigDecimal(amount) // Summing up the values in the list to form a BigDecimal
+                    }
                     if (orderId.isNotEmpty()) {
                         // Extract other parameters (e.g., booking IDs, user IDs)
                         val request1 = PaymentGetAvoirRequest(
-                            amount = amount,
-                            packId = packId,
+                            amount = amountBigDecimal,
+                            packId = IdValue,
                             paymentRef = extractpaymentRef(url),
                             orderId = orderId,
                         )
@@ -335,9 +382,10 @@ fun extractpaymentRef(url: String): String {
     val uri = Uri.parse(url)
     return uri.getQueryParameter("paymentRef") ?: ""
 }
-fun extractpackId3(url: String): String {
+fun extractPackId3(url: String): Long {
     val uri = Uri.parse(url)
-    return uri.getQueryParameter("packId") ?: ""
+    val packIdString = uri.getQueryParameter("packId")
+    return packIdString?.toLongOrNull() ?: 0L
 }
 fun extractOrderId1(url: String): String {
     val uri = Uri.parse(url)

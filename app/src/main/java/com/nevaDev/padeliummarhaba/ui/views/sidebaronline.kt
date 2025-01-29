@@ -32,10 +32,57 @@ import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberImagePainter
 import com.nevadev.padeliummarhaba.R
 import android.util.Base64
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.foundation.text.ClickableText
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalContext
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.text.SpanStyle
 
 
 @Composable
-fun DrawerContentOnline(
+fun CopyrightText() {
+    val context = LocalContext.current
+
+    // Create an annotated string with clickable text
+    val annotatedString = buildAnnotatedString {
+        append("Copyright © 2025 ")
+        // Add an annotation for "SPOFUN" to make it clickable
+        pushStringAnnotation(tag = "SPOFUN", annotation = "https://spofun.tn/")
+        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color.White)) {
+            append("SPOFUN")
+        }
+        pop()
+        append(" | Tous droits réservés.")
+    }
+
+    // Use ClickableText to make "SPOFUN" clickable
+    ClickableText(
+        text = annotatedString,
+        onClick = { offset ->
+            // Get the clicked annotation
+            val clickedTag = annotatedString.getStringAnnotations(offset, offset).firstOrNull()
+            // If the clicked part is "SPOFUN", open the URL
+            clickedTag?.let {
+                if (it.tag == "SPOFUN") {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it.item))
+                    context.startActivity(intent)
+                }
+            }
+        },
+        style = TextStyle(color = Color.White, fontSize = 10.sp) // Use TextStyle here
+    )
+}
+
+@Composable
+fun  DrawerContentOnline(
     navController: NavController,
     onItemSelected: (String) -> Unit,
     onCloseDrawer: () -> Unit,
@@ -47,7 +94,7 @@ fun DrawerContentOnline(
     val bitmap = remember(image) {
         if (image.isNotEmpty()) {
             val decodedString = Base64.decode(image, Base64.DEFAULT)
-            android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size) // Use fully qualified name
+            android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
         } else {
             null
         }
@@ -246,7 +293,7 @@ fun DrawerContentOnline(
         {
             Text("Se déconnecter", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
         }}
-        Column(
+      /*  Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(6.dp),
@@ -263,11 +310,32 @@ fun DrawerContentOnline(
                 color = Color.White
             )
             Text(
-                text = "Copyright © 2025 DEVOPRO | Tous droits réservés.",
+                text = "Copyright © 2025 SPOFUN  | Tous droits réservés.",
                 fontSize = 10.sp,
                 color = Color.White
             )
+        }  */
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            HorizontalDivider(
+                modifier = Modifier.width(900.dp).offset(y = -10.dp),
+                color = Color.White, thickness = 2.dp
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "v1.0.0",
+                fontSize = 10.sp,
+                color = Color.White
+            )
+
+
+            CopyrightText()
         }
+
     }
 }
 

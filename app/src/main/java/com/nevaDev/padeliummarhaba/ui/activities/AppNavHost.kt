@@ -87,20 +87,29 @@ fun AppNavHost(
             composable("CreditCharge") {
                 CreditCharge(navController = navController)
             }
-
+//      encodedId
             composable(
-                route = "WebViewScreen1?formUrl={formUrl}",
-                arguments = listOf(navArgument("formUrl") { type = NavType.StringType })
+                route = "WebViewScreen1?formUrl={formUrl}&encodedAmount={encodedAmount}&encodedId={encodedId}",
+                arguments = listOf(
+                    navArgument("formUrl") { type = NavType.StringType },
+                    navArgument("encodedAmount") { type = NavType.StringType; defaultValue = "0" },
+                    navArgument("encodedId") { type = NavType.LongType; defaultValue = 0L }
+                )
             ) { backStackEntry ->
                 val formUrl = backStackEntry.arguments?.getString("formUrl") ?: ""
+                val encodedAmount = backStackEntry.arguments?.getString("encodedAmount")?.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 val paymentGetAvoirViewModel: PaymentGetAvoirViewModel = hiltViewModel()
+                val encodedId = backStackEntry.arguments?.getLong("encodedId") ?: 0L
 
                 WebViewScreen1(
                     formUrl = formUrl,
                     navController = navController,
-                    paymentGetAvoirViewModel = paymentGetAvoirViewModel
+                    paymentGetAvoirViewModel = paymentGetAvoirViewModel,
+                    amount = encodedAmount,
+                    Id = encodedId
                 )
             }
+
 
 
 

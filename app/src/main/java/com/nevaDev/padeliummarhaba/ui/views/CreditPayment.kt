@@ -57,6 +57,7 @@ import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.CreditPayResponse
 import com.padelium.domain.dto.GetPacksResponse
 import com.padelium.domain.dto.GetReservationResponse
+import java.math.BigDecimal
 
 @Composable
 fun CreditPayment(
@@ -147,7 +148,8 @@ fun CreditPayment(
         ) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()) // Add scrolling
                     .padding(16.dp)
             ) {
                 Card(
@@ -287,8 +289,13 @@ fun CreditPayment(
                     Column(
                         horizontalAlignment = Alignment.End
                     ) {
+                        val formattedAmount = if (credit.amount.compareTo(BigDecimal.ZERO) == 0) {
+                            "0"
+                        } else {
+                            String.format("%.2f", credit.amount)
+                        }
                         Text(
-                            text = "${credit.amount}",
+                            text = "$formattedAmount",
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         )

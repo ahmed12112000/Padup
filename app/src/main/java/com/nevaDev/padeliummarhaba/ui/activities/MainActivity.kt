@@ -61,6 +61,7 @@ import com.nevadev.padeliummarhaba.R
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
+import com.nevaDev.padeliummarhaba.ui.views.CopyrightText
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.padelium.domain.dataresult.DataResult
@@ -114,7 +115,7 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences,viewModel: Ge
 
     val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
     LaunchedEffect(Unit) {
-        viewModel.GetProfile()
+        viewModel.fetchProfileData()
     }
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -186,7 +187,7 @@ fun TopBar(
                 .fillMaxWidth()
                 .height(100.dp)
                 .padding(top = 1.dp)
-                .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 30.dp))
+              //  .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 30.dp))
                 .background(Color(0xFF0054D8))
                 .shadow(
                     elevation = 200.dp,
@@ -554,6 +555,8 @@ fun CustomBottomNavItem(
         targetValue = if (isSelected) Color(0xFF0054D8) else Color.White,
         animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
     )
+    val textColor = if (isSelected) Color(0xFFD7F057) else Color.White
+
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
@@ -588,7 +591,7 @@ fun CustomBottomNavItem(
             Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = label,
-                color = Color(0xFFD7F057),
+                color = textColor,
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Normal
             )
@@ -650,31 +653,17 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                     .offset(y = -90.dp, x= 20.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.a9),
-                    contentDescription = "User Avatar",
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(RoundedCornerShape(70))
-                        .background(Color(0xFF0054D8))
 
-
-                )
 
                 Spacer(modifier = Modifier.width(8.dp))
 
                 Column {
-                    Text(
-                        text = "Se connecter",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
+
 
                     Row {
                         Text(
                             text = "Se connecter",
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .clickable {
@@ -683,12 +672,12 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                         )
                         Text(
                             text = " ou ",
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             color = Color.White
                         )
                         Text(
                             text = "S'inscrire",
-                            fontSize = 14.sp,
+                            fontSize = 18.sp,
                             color = Color.White,
                             modifier = Modifier
                                 .clickable {
@@ -706,7 +695,7 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(12.dp))
         }
 
         Column(
@@ -783,27 +772,22 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                 .fillMaxWidth(),
             contentAlignment = Alignment.BottomCenter
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+
+                Spacer(modifier = Modifier.height(3.dp))
                 Text(
                     text = "v1.0.0",
                     fontSize = 10.sp,
-                    color = Color.White,
-                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                    color = Color.White
                 )
-                Spacer(modifier = Modifier.height(1.dp))
 
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Copyright © 2024 DEVOPRO | Tous droits réservés.",
-                        fontSize = 9.sp,
-                        color = Color.White
-                    )
-                }
+
+                CopyrightText()
             }
         }
     }
