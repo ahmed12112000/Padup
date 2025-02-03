@@ -10,6 +10,9 @@ import com.padelium.domain.repositories.IGetProfileRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
+
+
 @HiltViewModel
 class GetProfileViewModel @Inject constructor(private val repository: IGetProfileRepository) : ViewModel() {
 
@@ -29,6 +32,21 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
     // LiveData to capture if the user has the role 'ROLE_USER'
     private val _hasUserRole = MutableLiveData<Boolean>()
     val hasUserRole: LiveData<Boolean> get() = _hasUserRole
+
+    private val _activated = MutableLiveData<Boolean>()
+    val activated: LiveData<Boolean> get() = _activated
+
+    private val _email = MutableLiveData<String>()
+    val email: LiveData<String> get() = _email
+
+    private val _authorities = MutableLiveData<Boolean>()
+    val authorities: LiveData<Boolean> get() = _authorities
+
+    private val _login = MutableLiveData<String>()
+    val login: LiveData<String> get() = _login
+
+    private val _langkey = MutableLiveData<String>()
+    val langkey: LiveData<String> get() = _langkey
 
     // Method to get profile data
     fun fetchProfileData() {

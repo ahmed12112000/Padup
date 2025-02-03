@@ -75,7 +75,6 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import java.math.RoundingMode
 
-
 @SuppressLint("StateFlowValueCalledInComposition")
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
@@ -118,8 +117,6 @@ fun ReservationDetailsCard(
         (playersState as? DataResult.Success)?.data as? List<FindTermsResponse> ?: emptyList()
     }
     Log.d("ReservationDetailsCard", "Player Full Names: $playerFullNames")
-
-
 
     val reservationPrice = try {
         val priceString = selectedReservation.price.replace("[^\\d.,]".toRegex(), "")
@@ -182,8 +179,6 @@ fun ReservationDetailsCard(
         Log.d("ReservationDetailsCard", "Adjusted Shared Extras Amount for $selectedParts parts: $amount")
     }
 
-
-
     LaunchedEffect(adjustedAmount, adjustedSharedExtrasAmount) {
         onAdjustedAmountUpdated(adjustedAmount, adjustedSharedExtrasAmount)
         Log.d("AMIR", "Adjusted Amount: $adjustedAmount, Adjusted Shared Extras Amount: $adjustedSharedExtrasAmount")
@@ -202,23 +197,27 @@ fun ReservationDetailsCard(
             }
         }
     }
-    Column {
-        // Dropdown for selecting parts
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(Color.White),
-            elevation = CardDefaults.cardElevation(4.dp)
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(8.dp),
+        colors = CardDefaults.cardColors(Color.White),
+        elevation = CardDefaults.cardElevation(4.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp)
         ) {
+            // Dropdown for selecting parts
             Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
+                    .fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically // Align items vertically in the center
             ) {
                 // Text
                 Text(
-                    text = "je veut payer pour",
+                    text = "Je veux payer pour",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(end = 8.dp) // Add space between text and dropdown
@@ -258,29 +257,41 @@ fun ReservationDetailsCard(
                                 partsDropdownExpanded = false
                             }) {
                                 Text(text = option.toString(), fontSize = 16.sp)
-                            } }
+                            }
                         }
                     }
-                Spacer(modifier = Modifier.width(10.dp))
-                Text(text = "Parts", fontSize = 20.sp, fontWeight = FontWeight.Bold)
                 }
+                Spacer(modifier = Modifier.width(10.dp))
+                val selectedPartsValue = viewModel1.selectedParts.collectAsState().value
 
+                Text(
+                    text = if (selectedPartsValue == 1) "Part ?" else "Parts ?",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
-        }
 
-        Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-        // Only show this section if selectedParts is not 4
+            if (viewModel1.selectedParts.collectAsState().value in 1..2) {
+                Text(
+                    text = "Sélectionnez vos partenaires",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(end = 16.dp)
+                )
+            } else if (viewModel1.selectedParts.collectAsState().value == 3) {
+                Text(
+                    text = "Sélectionnez votre partenaire",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(end = 16.dp)
+                )
+            }
 
-        if (viewModel1.selectedParts.collectAsState().value != 4) {
-            ReservationCard(title = "") {
+            // Only show this section if selectedParts is not 4
+            if (viewModel1.selectedParts.collectAsState().value != 4) {
                 Column {
-                    Text(
-                        text = "Sélectionnez votre partenaire",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        modifier = Modifier.padding(end = 16.dp)
-                    )
                     val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
                     val partners = remember { mutableStateListOf<Pair<String, Long?>>() }
                     val coroutineScope = rememberCoroutineScope()
@@ -367,7 +378,6 @@ fun ReservationDetailsCard(
                                         }
                                         if (!selectedPlayers.contains(selectedId)) {
                                             selectedPlayers.add(selectedId)
-
                                         }
                                     }
                                 )
@@ -381,7 +391,6 @@ fun ReservationDetailsCard(
 
                         Log.d("abdallah", "Final Selected Players IDs: $userIds")
 
-
                         LaunchedEffect(selectedPlayers) {
                             Log.d("AMANI", "Final Selected Players (in LaunchedEffect): $userIds")
                         }
@@ -389,8 +398,10 @@ fun ReservationDetailsCard(
                 }
             }
         }
-
     }
+}
+
+
 
 
 
@@ -588,8 +599,8 @@ fun ExtrasSection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "  Je commande des extras?",
-                    fontSize = 18.sp,
+                    text = "  Je commande des extras ?",
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.weight(1f)
                 )

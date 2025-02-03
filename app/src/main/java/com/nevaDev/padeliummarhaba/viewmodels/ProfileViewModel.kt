@@ -28,6 +28,7 @@ class ProfileViewModel @Inject constructor(
     private val application: Application // Inject Application context
 ) : ViewModel() {
 
+    // LiveData to observe the result of the profile update operation
     val dataResult = MutableLiveData<DataResult>()
 
     /**
@@ -36,15 +37,19 @@ class ProfileViewModel @Inject constructor(
      * @param imageUri The URI of the image being uploaded.
      */
     fun Profile(accountJson: String, imageUri: Uri?) {
+        // Set the LiveData to Loading state
         dataResult.value = DataResult.Loading
+
+        // Launch a coroutine in the ViewModelScope
         viewModelScope.launch {
             // Use the context from the Application to pass it to the use case
             val result = profileUseCase.Profile(accountJson, imageUri, application.applicationContext)
+
+            // Update the LiveData with the result
             dataResult.value = result
         }
     }
 }
-
 
 
 

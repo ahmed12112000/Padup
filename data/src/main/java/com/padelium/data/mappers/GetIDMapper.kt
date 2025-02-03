@@ -1,8 +1,6 @@
 package com.padelium.data.mappers
 import com.padelium.data.dto.GetReservationIDResponseDTO
-import com.padelium.data.dto.GetReservationResponseDTO
 import com.padelium.domain.dto.GetReservationIDResponse
-import com.padelium.domain.dto.GetReservationResponse
 import java.math.BigDecimal
 import java.time.Instant
 import javax.inject.Inject

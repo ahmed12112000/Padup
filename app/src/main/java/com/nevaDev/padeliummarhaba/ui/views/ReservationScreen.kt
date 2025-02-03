@@ -397,7 +397,14 @@ fun ReservationSummary(
         // Display reservation details...
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
         ReservationDetailRow(label = "Prix", value = selectedReservation.price)
-        ReservationDetailRow(label = "Date", value = DateTimeFormatter.ofPattern("EEEE, d MMM yyyy").format(selectedDate))
+        ReservationDetailRow(
+            label = "Date",
+            value = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.FRENCH)
+                .format(selectedDate)
+                .replace(".", "")
+                .replaceFirstChar { it.uppercaseChar() }
+        )
+
         ReservationDetailRow(label = "Heure", value = selectedReservation.time)
 
         Spacer(modifier = Modifier.height(16.dp))

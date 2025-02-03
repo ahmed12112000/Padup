@@ -9,6 +9,7 @@ import com.padelium.data.dto.GetPaymentRequestDTO
 import com.padelium.data.dto.GetProfileResponseDTO
 import com.padelium.data.dto.GetReservationIDResponseDTO
 import com.padelium.data.dto.GetReservationResponseDTO
+import com.padelium.data.dto.GetStatusesResponseDTO
 import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentGetAvoirRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
@@ -20,6 +21,7 @@ import com.padelium.data.dto.UserAvoirPayRequestDTO
 import com.padelium.data.dto.UserAvoirPayResponseDTO
 import com.padelium.data.dto.UserAvoirRequestDTO
 import com.padelium.data.dto.UserAvoirResponseDTO
+import com.padelium.data.dto.logoutRequestDTO
 import com.padelium.domain.dto.BalanceResponse
 import com.padelium.domain.dto.ConfirmBookingResponse
 import com.padelium.domain.dto.FetchKeyResponse
@@ -59,10 +61,14 @@ interface PadeliumEndPoint {
         @Field("username") username: String,
         @Field("password") password: String
     ): Response<ResponseBody>
+//api/logout
+@Headers("Content-Type: application/json")
+@POST("/api/register")
+suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
     @Headers("Content-Type: application/json")
-    @POST("/api/register")
-    suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
+    @POST("/api/logout")
+    suspend fun logoutUser(@Body request: logoutRequestDTO): Response<ResponseBody>
 
     @Headers("Content-Type: application/json")
     @POST("/api/establishments/search/init")
@@ -87,12 +93,12 @@ interface PadeliumEndPoint {
 
 
 
-    @Headers("Accept: application/json")
+    //@Headers("Accept: application/json")
     @Multipart
     @POST("/api/account")
     suspend fun Profile(
         @Part("account") account: RequestBody,
-        @Part file: MultipartBody.Part? // This can be null if no file is selected
+        @Part file: MultipartBody.Part?
     ): Response<Void>
 
 
@@ -116,6 +122,9 @@ interface PadeliumEndPoint {
     @GET("/api/bookings/{id}")
     suspend fun GetProfileById(@Path("id") id: Long): Response<GetReservationIDResponseDTO>
 
+    @Headers("Accept: application/json" )
+    @GET("api/booking-statuses")
+    suspend fun GetStatuses(): Response<List<GetStatusesResponseDTO>>
     @Headers("Accept: application/json")
     @GET("/api/account")
     suspend fun GetProfile(): Response<GetProfileResponseDTO>

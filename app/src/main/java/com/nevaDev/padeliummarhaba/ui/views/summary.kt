@@ -1,19 +1,19 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -25,16 +25,20 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileByIdViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetStatusesViewModel
+import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetReservationIDResponse
 import com.padelium.domain.dto.GetReservationResponse
+import com.padelium.domain.dto.GetStatusesResponse
 import kotlinx.coroutines.launch
-import java.text.ParseException
-import java.text.SimpleDateFormat
+import java.time.Instant
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -45,10 +49,13 @@ import java.util.Locale
 @Composable
 fun SummaryScreen(
     viewModel: GetReservationViewModel = hiltViewModel(),
-    viewModel1: GetProfileByIdViewModel = hiltViewModel()
+    viewModel1: GetProfileByIdViewModel = hiltViewModel(),
+    viewModel2: GetStatusesViewModel = hiltViewModel(),
 ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }
+    val reservations1 = remember { mutableStateOf<List<GetStatusesResponse>>(emptyList()) }
+
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
     var selectedReservation1 by remember { mutableStateOf<GetReservationIDResponse?>(null) }
     var showDialog by remember { mutableStateOf(false) }
@@ -58,6 +65,7 @@ fun SummaryScreen(
 
     val reservationData by viewModel.ReservationsData.observeAsState()
     val profilesData by viewModel1.profilesData.observeAsState()
+    val reservationData1 by viewModel2.ReservationsData1.observeAsState()
 
     LaunchedEffect(reservationData) {
         if (reservationData is DataResultBooking.Success) {
@@ -68,7 +76,15 @@ fun SummaryScreen(
 
     LaunchedEffect(profilesData) {
         if (profilesData is DataResultBooking.Success) {
-            selectedReservation1 = (profilesData as DataResultBooking.Success<GetReservationIDResponse>).data
+            selectedReservation1 =
+                (profilesData as DataResultBooking.Success<GetReservationIDResponse>).data
+        }
+    }
+
+    LaunchedEffect(reservationData1) {
+        if (reservationData1 is DataResultBooking.Success) {
+            reservations1.value =
+                (reservationData1 as DataResultBooking.Success<List<GetStatusesResponse>>).data
         }
     }
 
@@ -76,16 +92,30 @@ fun SummaryScreen(
         viewModel.GetReservation()
     }
 
+    LaunchedEffect(sheetState.isVisible) {
+        if (sheetState.isVisible) {
+            coroutineScope.launch {
+                sheetState.show() // Ensure the sheet properly displays
+            }
+        }
+    }
+
     ModalBottomSheetLayout(
         sheetContent = {
             selectedReservation?.let { reservation ->
                 selectedReservation1?.let { reservation1 ->
-                    ReservationCard1(reservation, reservation1)
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .fillMaxHeight(0.87f) // Ensure height is properly set
+                    ) {
+                        ReservationCard1(reservation, reservation1, bookingStatusCode = reservation.bookingStatusCode)
+                    }
                 }
             }
         },
         sheetState = sheetState,
-        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
+        sheetShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
     ) {
         Column(
             modifier = Modifier
@@ -107,7 +137,11 @@ fun SummaryScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
-                    .border(width = 1.dp, color = Color.LightGray, shape = RoundedCornerShape(16.dp))
+                    .border(
+                        width = 1.dp,
+                        color = Color.LightGray,
+                        shape = RoundedCornerShape(16.dp)
+                    )
                     .padding(horizontal = 8.dp, vertical = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -150,6 +184,11 @@ fun SummaryScreen(
 
                 OutlinedButton(onClick = {
                     reservations.value = reservations.value.reversed()
+                    coroutineScope.launch {
+                        sheetState.hide() // Hide the bottom sheet
+                        selectedReservation = null // Reset selected reservation
+                        selectedReservation1 = null // Reset selected reservation 1
+                    }
                 }) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Sort,
@@ -169,7 +208,9 @@ fun SummaryScreen(
                     onClick = {
                         selectedReservation = reservation
                         viewModel1.fetchProfileById(reservation.id)
-                        coroutineScope.launch { sheetState.show() }
+                        coroutineScope.launch {
+                            sheetState.show() // Show the bottom sheet when a reservation is selected
+                        }
                     },
                     viewModel1 = viewModel1,
                     bookingStatusCode = reservation.bookingStatusCode,
@@ -179,6 +220,7 @@ fun SummaryScreen(
             }
         }
     }
+
     // Show dialog if needed
     if (showDialog) {
         selectedReservation?.let { reservation ->
@@ -187,16 +229,15 @@ fun SummaryScreen(
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp)
+                            .padding(36.dp)
                     ) {
-                        ReservationCard1(reservation, reservation1)
+                        ReservationCard1(reservation, reservation1, bookingStatusCode = reservation.bookingStatusCode)
                     }
                 }
             }
         }
     }
 }
-
 
 @Composable
 fun ReservationCard(
@@ -208,7 +249,10 @@ fun ReservationCard(
 ) {
     val bookingDate = reservation.bookingDate // Assuming this is a String like "22-01-2025"
     val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.FRANCE)
+    var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
+    var selectedReservation1 by remember { mutableStateOf<GetReservationIDResponse?>(null) }
     val date = LocalDate.parse(bookingDate, formatter)
 
     // Extract first 3 letters of the day and month in French
@@ -216,6 +260,8 @@ fun ReservationCard(
     val month = date.month.getDisplayName(TextStyle.SHORT, Locale.FRANCE).replaceFirstChar { it.uppercaseChar() }
 
     val formattedDate = "$dayOfWeek ${date.dayOfMonth} $month ${date.year}"
+    var showDialog by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
 
     Card(
         shape = RoundedCornerShape(8.dp),
@@ -266,18 +312,41 @@ fun ReservationCard(
 
             Spacer(modifier = Modifier.height(10.dp)) // Reduce spacing
 
-            StatusBadge(statusCode = bookingStatusCode) // Use the new parameter
-
+            Text(
+                text = reservation.bookingStatusName,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(when (reservation.bookingStatusCode) {
+                        "PAY" -> Color(0xFF4CAF50) // Green for paid
+                        "WAIT" -> Color(0xFFFBC02D) // Yellow for waiting
+                        else -> Color(0xFF4CAF50) // Default to green for unknown
+                    })
+                    .padding(vertical = 4.dp, horizontal = 8.dp)
+            )
             Spacer(modifier = Modifier.height(-6.dp)) // Reduce spacing
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
+                if (selectedReservation != null && selectedReservation1 != null) {
+                    LaunchedEffect(sheetState) {
+                        sheetState.show() // Show the bottom sheet when a reservation is selected
+                    }
+                }
+
                 IconButton(
                     onClick = {
                         viewModel1.fetchProfileById(reservation.id)
                         onClick()
+                        coroutineScope.launch {
+                            sheetState.hide() // Hide the bottom sheet
+                            selectedReservation = null // Reset selected reservation
+                            selectedReservation1 = null // Reset selected reservation 1
+                        }
                     },
                     modifier = Modifier.size(24.dp) // Reduce icon size
                 ) {
@@ -292,246 +361,234 @@ fun ReservationCard(
     }
 }
 
-@Composable
-fun ReservationCard1(reservation: GetReservationResponse, reservation1: GetReservationIDResponse) {
 
-    // Format the bookingDate
-    val bookingDate = reservation.bookingDate // Assuming this is a String like "22-01-2025"
+@Composable
+fun ReservationCard1(
+    reservation: GetReservationResponse,
+    reservation1: GetReservationIDResponse,
+    bookingStatusCode: String
+) {
+    val bookingDate = reservation.bookingDate
     val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.FRANCE)
     val date = LocalDate.parse(bookingDate, formatter)
+    val formattedDate = date.format(DateTimeFormatter.ofPattern("EEEE d MMM yyyy", Locale.FRANCE))
+    val formattedCreatedDate = date.format(DateTimeFormatter.ofPattern("EEEE d MMM yyyy", Locale.FRANCE))
 
-    // Format to "Lun. 22 Janv 2025"
-    val dayOfWeek = date.dayOfWeek.name.take(3) // Get first 3 letters of the day in French
-    val month = date.month.name.take(3) // Get first 3 letters of the month in French
-    val formattedDate = "${dayOfWeek.capitalize(Locale.ROOT)} ${date.dayOfMonth} ${month.capitalize(Locale.ROOT)} ${date.year}"
-
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .fillMaxHeight(0.95f)
-            .padding(8.dp)
+            .padding(16.dp)
     ) {
-        // Top Section
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(
-                text = reservation.establishmentName,
-                fontWeight = FontWeight.ExtraBold,
-                fontSize = 26.sp,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = formattedDate, // Use the formatted date here
-                fontWeight = FontWeight.Bold,
-                fontSize = 20.sp
-            )
-            Spacer(modifier = Modifier.height(4.dp))
-            Text(
-                text = "${reservation.fromStrTime} - ${reservation.toStrTime}",
-                fontWeight = FontWeight.Bold,
-                fontSize = 17.sp
-            )
+        // Top Section (Establishment Details)
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    androidx.compose.material3.Icon(
+                        painter = painterResource(id = R.drawable.logopadelium),
+                        contentDescription = "Establishment Icon",
+                        modifier = Modifier
+                            .size(60.dp)
+                            .background(Color(0xFF0054D8), shape = CircleShape)
+                            .padding(5.dp),
+                        tint = Color.Unspecified
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Text(
+                        text = reservation.establishmentName,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp,
+                        color = Color.Black
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "${reservation.sellAmount} ${reservation.currencyFromSymbol}",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 24.sp,
+                            color = Color.Black
+                        )
+
+                        Text(
+                            text = reservation.bookingStatusName,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(when (reservation.bookingStatusCode) {
+                                    "PAY" -> Color(0xFF4CAF50) // Green for paid
+                                    "WAIT" -> Color(0xFFFBC02D) // Yellow for waiting
+                                    else -> Color(0xFF4CAF50) // Default to green for unknown
+                                })
+                                .padding(vertical = 4.dp, horizontal = 8.dp)
+                        )
+                    }
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = formattedDate,
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color.Gray
+                        )
+                        Text(
+                            text = ", ${reservation.fromStrTime} - ${reservation.toStrTime}",
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 17.sp,
+                            color = Color.Gray
+                        )
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(26.dp))
+        // Section for Payment Info
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "Payé par",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-        // Middle Section (Table Layout with Dividers)      22-01-2025
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .border(BorderStroke(1.dp, Color.LightGray), shape = RoundedCornerShape(8.dp))
-        ) {
-            // Row 1: Référence
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
+        // First Section (Reservations and Payment Info)
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Color.LightGray)
             ) {
-                Text(
-                    text = "Référence N° :",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-                )
-                Text(
-                    text = reservation.reference,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp,
-                    color = Color.Gray
+                Column(modifier = Modifier.padding(8.dp)) {
+                    reservation1.bookingUsersPaymentListDTO.forEach { user ->
+                        val userName =
+                            if (user.userFirstName == null && user.userLastName == null) "Invité" else "${user.userFirstName} ${user.userLastName}".trim()
+                        val paymentStatus = when (user.bookingUsersPaymentStatusCode) {
+                            "PAY" -> "Confirmée"
+                            "WAIT" -> "En attente de paiement"
+                            else -> "Inconnu"
+                        }
+                        val paymentColor =
+                            if (user.bookingUsersPaymentStatusCode == "PAY") Color(0xFF4CAF50) else Color(0xFFFFC107)
 
-                )
-            }
-            Divider(color = Color.LightGray, thickness = 1.dp)
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            // Left side: User Name
+                            Text(userName, fontSize = 20.sp, color = Color.Gray)
 
-            // Row 2: État
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "État :",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-
-                )
-                Text(
-                    text = reservation.bookingStatusName,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 19.sp,
-                    color = Color.Gray
-
-                )
-            }
-            Divider(color = Color.LightGray, thickness = 1.dp)
-
-            // Row 3: Prix
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Prix :",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-
-                )
-                Text(
-                     text = "${reservation.sellAmount}  ${reservation.currencyFromSymbol}",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-
-                )
-            }
-            Divider(color = Color.LightGray, thickness = 1.dp)
-
-            // Row 4: Extra
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Créé par :",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-
-                )
-                Text(
-                    text = reservation.userEmail,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-
-                )
-            }
-            // Row 1: Référence
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = "Payée par :",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 20.sp,
-                    color = Color.Gray
-                )
-
-                Log.d("BookingUsersList", "Users: ${reservation1.bookingUsersPaymentListDTO}")
-
-                if (reservation1.bookingUsersPaymentListDTO.isNotEmpty()) {
-                    Column {
-                        reservation1.bookingUsersPaymentListDTO.forEach { user ->
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(vertical = 4.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                val userName = if (user.userFirstName == null && user.userLastName == null) {
-                                    "Invite"
-                                } else {
-                                    "${user.userFirstName ?: ""} ${user.userLastName ?: ""}".trim()
-                                }
+                            // Right side: Amount and Payment Status
+                            Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    text = userName,
-                                    fontSize = 18.sp,
-                                    color = Color.Gray
+                                    "${user.amountstr} Crédits",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold
                                 )
-
-                                val paymentStatus = when (user.bookingUsersPaymentStatusCode) {
-                                    "PAY" -> "Payée"
-                                    "WAIT" -> "En attente de paiement"
-                                    else -> "Unknown"
-                                }
-                                Text(
-                                    text = "${user.amountstr}",
-                                    fontSize = 18.sp,
-                                    color = Color.Gray
-                                )
+                                Spacer(modifier = Modifier.height(4.dp)) // Spacing between the amount and payment status
                                 Text(
                                     text = paymentStatus,
-                                    fontSize = 16.sp,
-                                    color = if (user.bookingUsersPaymentStatusCode == "PAY") Color.Green else Color.Red
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = paymentColor
                                 )
                             }
                         }
+                        Divider()
                     }
-                } else {
-                    Text(
-                        text = "No payments available",
-                        fontSize = 18.sp,
-                        color = Color.Gray
-                    )
                 }
             }
-
-
-
-            Divider(color = Color.LightGray, thickness = 1.dp)
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        // Section for Reservation Details
+        item {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                "Réservation",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+        }
 
-        // Bottom Section with Actions
-        Row(
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            IconButton(onClick = { /*TODO*/ }) {
-                Icon(imageVector = Icons.Default.Share, contentDescription = "Share")
+        item {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(8.dp),
+                border = BorderStroke(1.dp, Color.LightGray)
+            ) {
+                Column(modifier = Modifier.padding(8.dp)) {
+                    TableRow(label = "Référence", value = reservation.reference, isBold = true)
+                    Divider()
+                    TableRow(label = "Créé le", value = formattedCreatedDate, isBold = true)
+                }
             }
-
         }
     }
 }
 
 
 
+@Composable
+fun TableRow(label: String, value: String, isBold: Boolean = false) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(label, fontSize = 16.sp, color = Color.LightGray)
+        Text(value, fontSize = 16.sp,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+            color = Color.LightGray)
+    }
+}
 
 
 
 @Composable
-fun StatusBadge(statusCode: String) {
-    val (backgroundColor, statusText) = when (statusCode) {
+fun TableRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = label,
+            fontWeight = FontWeight.Bold,
+            fontSize = 20.sp,
+            color = Color.Gray
+        )
+        Text(
+            text = value,
+            fontWeight = FontWeight.Bold,
+            fontSize = 19.sp,
+            color = Color.Gray
+        )
+    }
+}
+
+
+@Composable
+fun StatusBadge(bookingStatusName: String) {
+    val (backgroundColor, statusText) = when (bookingStatusName) {
         "PAY" -> Pair(Color(0xFF4CAF50), "Payée") // Green for paid
         "WAIT" -> Pair(Color(0xFFFBC02D), "En attente de paiement") // Yellow for waiting
-        else -> Pair(Color(0xFF4CAF50), "Payée") //Green for paid
+        else -> Pair(Color(0xFF4CAF50), "nnnnnn") //Green for paid
     }
 
     Box(
@@ -549,14 +606,199 @@ fun StatusBadge(statusCode: String) {
     }
 }
 
+@Composable
+fun StatusBadge1(statusCode: String) {
+    val (backgroundColor, statusText) = when (statusCode) {
+        "PAY" -> Pair(Color(0xFF4CAF50), "Validée") // Green for paid
+        "WAIT" -> Pair(Color(0xFFFBC02D), "En attente de paiement") // Yellow for waiting
+        else -> Pair(Color(0xFF4CAF50), "Not Defined") //Green for paid
+    }
 
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(12.dp))
+            .background(color = Color.White)
+            .padding(vertical = 4.dp, horizontal = 8.dp)
+    ) {
+        Text(
+            text = statusText,
+            color = (backgroundColor),
+            fontWeight = FontWeight.Bold,
+            fontSize = 14.sp
+        )
+    }
+}
 
+/*
 @Preview(showBackground = true)
 @Composable
 fun SummaryScreenPreview() {
     SummaryScreen()
 }
 
+ */
 
-    // Display the ReservationCard1
 
+@Preview
+@Composable
+fun PreviewReservationCard1() {
+    val mockReservation = GetReservationResponse(
+        id = 1L,
+        from = "10:00",
+        to = "11:30",
+        annulationDate = "",
+        sellAmount = 50.0,
+        purchaseAmount = 0.0,
+        numberOfPlayer = 4,
+        reference = "123456",
+        description = "Reservation de test",
+        isRefundable = true,
+        created = "",
+        updated = "",
+        createdBy = 1L,
+        updatedBy = 1L,
+        currencyFromId = 1L,
+        currencyToId = 1L,
+        bookingStatusId = 1L,
+        establishmentId = 1L,
+        userId = 1L,
+        userLogin = "testuser",
+        establishmentName = "Padel Club",
+        bookingStatusName = "",
+        userEmail = "user@example.com",
+        currencyFromSymbol = "€",
+        gainFromManager = 0.0,
+        bookingStatusCode = "CONF",
+        userPhone = "123456789",
+        cancelBook = false,
+        cancel = false,
+        isonline = true,
+        activityName = "Padel",
+        cityName = "Paris",
+        establishmentCode = "PAD123",
+        localAmount = 50.0,
+        reduction = 0,
+        showcancel = false,
+        showfeedBack = false,
+        bookingDate = "22-01-2025",
+        token = "",
+        paymentError = false,
+        paymentprog = false,
+        amountToPay = 50.0,
+        sobflousCode = "",
+        couponId = 0L,
+        isCoupon = false,
+        couponValue = "",
+        couponCode = "",
+        establishmentPacksId = 0L,
+        establishmentTypeCode = "",
+        isConfirmed = true,
+        isFromEvent = false,
+        establishmentPacksFirstTitle = "",
+        establishmentPacksSecondTitle = "",
+        usersIds = listOf(),
+        fromStr = "10:00",
+        toStr = "11:30",
+        fromStrTime = "10:00",
+        toStrTime = "11:30",
+        activePayment = false,
+        isWaitForPay = false,
+        bookingLabelId = 1L,
+        bookingLabelName = "",
+        bookingLabelColors = "",
+        sharedExtrasIds = listOf(),
+        privateExtrasIds = listOf(),
+        privateExtrasLocalIds = mutableMapOf(),
+        userFirstName = "John",
+        userLastName = "Doe",
+        extras = listOf(),
+        numberOfPart = 1,
+        createdStr = ""
+    )
+    val mockReservation1 = GetReservationIDResponse(
+        id = 1L,
+        from = "10:00",
+        to = "11:30",
+        //annulationDate = ,
+        sellAmount = 50.0.toBigDecimal(),
+        purchaseAmount = 0.0.toBigDecimal(),
+        numberOfPlayer = 4,
+        reference = "123456",
+        description = "Reservation de test",
+        isRefundable = true,
+        created = "",
+        updated = "",
+        createdBy = 1L,
+        updatedBy = 1L,
+        currencyFromId = 1L,
+        currencyToId = 1L,
+        bookingStatusId = 1L,
+        establishmentId = 1L,
+        userId = 1L,
+        userLogin = "testuser",
+        establishmentName = "Padel Club",
+        bookingStatusName = "",
+        userEmail = "user@example.com",
+        currencyFromSymbol = "€",
+        gainFromManager = 0L,
+        bookingStatusCode = "CONF",
+        userPhone = "123456789",
+        cancelBook = false,
+        cancel = false,
+        isonline = true,
+        activityName = "Padel",
+        cityName = "Paris",
+        establishmentCode = "PAD123",
+        localAmount = 50.0.toBigDecimal(),
+        reduction = 0,
+        showcancel = false,
+        showfeedBack = false,
+        bookingDate = "22-01-2025",
+        token = "",
+        paymentError = false,
+        paymentprog = false,
+        amountToPay = 50.0.toBigDecimal(),
+        sobflousCode = "",
+        couponId = 0L,
+        isCoupon = false,
+        couponValue = "",
+        couponCode = "",
+        establishmentPacksId = 0L,
+        establishmentTypeCode = "",
+        isConfirmed = true,
+        isFromEvent = false,
+        establishmentPacksFirstTitle = "",
+        establishmentPacksSecondTitle = "",
+        usersIds = listOf(),
+        fromStr = "10:00",
+        toStr = "11:30",
+        fromStrTime = "10:00",
+        toStrTime = "11:30",
+        activePayment = false,
+        isWaitForPay = false,
+        bookingLabelId = 1L,
+        bookingLabelName = "",
+        bookingLabelColors = "",
+        sharedExtrasIds = listOf(),
+        privateExtrasIds = listOf(),
+        privateExtrasLocalIds = mutableMapOf(),
+        userFirstName = "John",
+        userLastName = "Doe",
+        extras = listOf(),
+        numberOfPart = 1,
+        createdStr = "",
+        bookingUsersPaymentListDTO = listOf(),
+        annulationDate = Instant.now(),
+
+        )
+         val mockReservation2 = GetStatusesResponse(
+        id = 1L,
+        name = "10:00",
+        code = "11:30",
+        created = "123456",
+        updated = "123456",
+        isshow = false
+         )
+    ReservationCard1(reservation = mockReservation, reservation1 = mockReservation1, bookingStatusCode ="",
+    )
+}

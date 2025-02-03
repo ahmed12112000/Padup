@@ -1,29 +1,31 @@
 package com.padelium.data.repositories
 
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 import com.padelium.domain.repositories.IProfileRepository
 import com.padelium.data.datasource.remote.PadeliumApi
-import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import java.io.File
 import javax.inject.Inject
 import retrofit2.Response
+import java.io.FileOutputStream
+
+
+
 
 class ProfileRepositoryImp @Inject constructor(
     private val api: PadeliumApi
 ) : IProfileRepository {
 
-    override suspend fun Profile(account: RequestBody, file: MultipartBody.Part?): Response<Void> {
-        // Account data is passed as a RequestBody, which is the expected format for the account information
-        // Prepare the account JSON
-        val accountJson = account.toString() // This may be unnecessary, as you are already passing RequestBody
-
-        // Prepare filePart for the file (MultipartBody.Part)
-        val filePart = file.toString()
-
-        // Call the API to update the profile with account data and file (if it exists)
-        return api.Profile(accountJson, filePart)
+    override suspend fun Profile(context: Context, accountJson: String, imageUri: Uri?): Response<Void> {
+        // Call the API with the account JSON and the image URI
+        return api.Profile(accountJson, imageUri)
     }
 }
+
+
 
 

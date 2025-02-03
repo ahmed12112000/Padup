@@ -56,7 +56,6 @@ import com.padelium.domain.dto.GetProfileResponse
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 
 import com.padelium.domain.dto.ProfileRequest
-import com.padelium.domain.usecases.uriToFile
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -79,7 +78,24 @@ fun ProfileScreen(
     viewModel2: ProfileViewModel = hiltViewModel(),
     viewModel: GetProfileViewModel = hiltViewModel()
 ) {
+    var activated by remember { mutableStateOf(false) }
+    var authorities by remember { mutableStateOf("") }
+    var avoir by remember { mutableStateOf(0L.toString()) }
+    var createdBy by remember { mutableStateOf("") }
+    var createdDate by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var establishmentsIds by remember { mutableStateOf("") }
+    var file by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
+    var id by remember { mutableStateOf(0L) }
+    var image by remember { mutableStateOf("") }
+    var imageUrl by remember { mutableStateOf("") }
+    var isOwnerestablishmentsIds by remember { mutableStateOf("") }
+    var langKey by remember { mutableStateOf("") }
+    var lastModifiedBy by remember { mutableStateOf("") }
+    var lastModifiedDate by remember { mutableStateOf("") }
+    var login by remember { mutableStateOf("") }
+    var socialMediaId by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
@@ -96,13 +112,18 @@ fun ProfileScreen(
         }
     }
 
+    // Fetch profile data on screen load
+    LaunchedEffect(Unit) {
+        viewModel.fetchProfileData()
+    }
+
+
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
     var isLoading by remember { mutableStateOf(false) }
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchProfileData()
-    }
+
+
 
     when (val result = profileData) {
         is DataResult.Success -> {
@@ -112,6 +133,14 @@ fun ProfileScreen(
                 firstName = profile.firstName
                 lastName = profile.lastName
                 phoneNumber = profile.phone
+                activated = profile.activated
+                authorities  = profile.authorities
+                email  = profile.email
+                langKey  = profile.langKey
+                login  = profile.login
+                image  = profile.image
+                imageUrl  = profile.imageUrl
+
             } else {
                 Text(text = "")
             }
@@ -123,6 +152,7 @@ fun ProfileScreen(
             Text(text = "Error: ${result.errorMessage}")
         }
     }
+
 
     Column(
         modifier = Modifier
@@ -253,44 +283,44 @@ fun ProfileScreen(
                 .padding(horizontal = 16.dp), // Add horizontal padding for smoother spacing
             horizontalArrangement = Arrangement.Center // Center the button horizontally
         ) {
+            viewModel2.dataResult.observe(lifecycleOwner) { result ->
+                when (result) {
+                    is DataResult.Loading -> {
+                        // Show loading indicator
+                        Log.d("ProfileUpdate", "Loading...")
+                    }
+                    is DataResult.Success -> {
+                        // Handle success (e.g., show a success message)
+                        Log.d("ProfileUpdate", "Profile updated successfully")
+                        // You can also navigate to another screen or show a success message
+                    }
+                    is DataResult.Failure -> {
+                        // Handle error (e.g., show an error message)
+                        //  Log.e("ProfileUpdate", "Error: ${result.errorMessage}")
+                        // Show an error message to the user
+                    }
+                }
+            }
             Button(
                 onClick = {
                     // Create account JSON
                     val accountData = mapOf(
+                        "activated" to activated,
+                        "authorities" to listOf(authorities), // Replace with actual authorities if needed
+                        "email" to email, // Set this to the user's email if available
                         "firstName" to firstName,
+                        "image" to (profileImageUri?.let { getRealPathFromURI(context, it) } ?: image), // Use the new image if available
+                        "imageUrl" to imageUrl, // Set this to the actual image URL if available
+                        "langKey" to langKey, // Set this to the actual language key if available
                         "lastName" to lastName,
-                        "phone" to phoneNumber
+                        "login" to login, // Set this to the user's login if available
+                        "phone" to phoneNumber,
                     )
                     val accountJson = JSONObject(accountData).toString()
                     Log.d("ProfileUpdate", "Account JSON: $accountJson")
 
-                    // Get the image URI from somewhere (e.g., image picker or file selection)
-                    val uri: Uri? = profileImageUri // Assuming profileImageUri is already defined
-
-                    // Handle URI if available
-                    if (uri != null) {
-                        Log.d("ProfileUpdate", "Image URI: $uri")
-
-                        // Attempt to convert URI to File
-                        val imageFile = uriToFile(uri, context)
-
-                        if (imageFile != null && imageFile.exists()) {
-                            Log.d("ProfileUpdate", "Image file exists at path: ${imageFile.absolutePath}")
-
-                            // Proceed with profile update using the valid image file
-                            viewModel2.Profile(accountJson, Uri.fromFile(imageFile))
-                        } else {
-                            Log.d("ProfileUpdate", "Image conversion failed or file does not exist.")
-
-                            // Proceed without image if conversion failed
-                            viewModel2.Profile(accountJson, null)
-                        }
-                    } else {
-                        Log.d("ProfileUpdate", "No image selected")
-
-                        // Proceed without image
-                        viewModel2.Profile(accountJson, null)
-                    }
+                    // Call the ViewModel to update the profile
+                    viewModel2.Profile(accountJson, profileImageUri)
                 },
                 colors = ButtonDefaults.buttonColors(
                     backgroundColor = Color.White,
@@ -310,6 +340,10 @@ fun ProfileScreen(
                     textAlign = TextAlign.Center
                 )
             }
+            LaunchedEffect(Unit) {
+                viewModel.fetchProfileData()
+            }
+
 
 
             Spacer(modifier = Modifier.width(8.dp))

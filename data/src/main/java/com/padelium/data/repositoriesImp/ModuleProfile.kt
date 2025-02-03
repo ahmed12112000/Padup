@@ -19,4 +19,3 @@ abstract class RepositoryModule9 {
         profileRepositoryImp: ProfileRepositoryImp
     ): IProfileRepository
 }
-

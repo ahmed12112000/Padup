@@ -1,5 +1,8 @@
 package com.padelium.data.datasource.remote
 
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 import com.padelium.data.dto.ConfirmBookingRequestDTO
 import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.data.dto.ExtrasResponseDTO
@@ -13,26 +16,23 @@ import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentGetAvoirRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
 import com.padelium.data.dto.PrivateExtrasResponseDTO
-import com.padelium.data.dto.ProfileRequestDTO
 import com.padelium.data.dto.SharedExtrasResponseDTO
 import com.padelium.data.dto.SignupRequestDTO
-import com.padelium.data.dto.UserAvoirPayRequestDTO
-import com.padelium.data.dto.UserAvoirPayResponseDTO
 import com.padelium.data.dto.UserAvoirRequestDTO
 import com.padelium.data.dto.UserAvoirResponseDTO
+import com.padelium.data.dto.logoutRequestDTO
 import com.padelium.domain.dto.BalanceResponse
 import com.padelium.domain.dto.ConfirmBookingResponse
 import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.FindTermsResponse
 import com.padelium.domain.dto.GetBookingResponse
-import com.padelium.domain.dto.GetEmailResponse
 import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.dto.PaymentResponse
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
-import com.padelium.domain.dto.UserAvoirPayResponse
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.MultipartBody
@@ -40,32 +40,53 @@ import okhttp3.RequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.Headers
-import retrofit2.http.POST
 import java.io.File
+import java.io.FileOutputStream
 import java.math.BigDecimal
 
-class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
+class PadeliumApi @Inject constructor(
+    private val endPoint: PadeliumEndPoint,
+    @ApplicationContext private val context: Context
+) {
 
-    suspend fun Profile(accountJson: String, imagePath: String): Response<Void> {
-        // Create a RequestBody for the "account" part
+    suspend fun Profile(accountJson: String, imageUri: Uri?): Response<Void> {
+        // Create RequestBody for account JSON
         val accountRequestBody = RequestBody.create(
-            "application/json".toMediaTypeOrNull(),
-            accountJson
+            "application/json; charset=utf-8".toMediaTypeOrNull(),
+            accountJson // Pass the JSON string directly
         )
 
-        // Create a RequestBody and MultipartBody.Part for the "file" part
-        val file = File(imagePath)
-        val fileRequestBody = RequestBody.create(
-            "image/*".toMediaTypeOrNull(),
-            file
-        )
-        val filePart = MultipartBody.Part.createFormData("file", file.name, fileRequestBody)
+        // Convert Uri to File, passing the injected Context
+        val imageFile = imageUri?.let { uri ->
+            uriToFile(uri, context)  // Convert Uri to File using the injected Context
+        }
 
-        // Call the endpoint
+        // Check if the file exists
+        val filePart = imageFile?.let {
+            if (it.exists()) {
+                val fileRequestBody = RequestBody.create("image/*".toMediaTypeOrNull(), it)
+                MultipartBody.Part.createFormData("file", it.name, fileRequestBody)
+            } else {
+                Log.e("ProfileFIXXXXXXXX", "Image file does not exist")
+                null
+            }
+        }
+
+        // Make the API call with the account JSON and the file part
         return endPoint.Profile(accountRequestBody, filePart)
     }
+    private fun uriToFile(uri: Uri, context: Context): File {
+        val contentResolver = context.contentResolver
+        val file = File(context.cacheDir, "temp_image")
+        contentResolver.openInputStream(uri)?.use { inputStream ->
+            FileOutputStream(file).use { outputStream ->
+                inputStream.copyTo(outputStream)
+            }
+        }
+        return file
+    }
+
+
 
     suspend fun loginUser(username: String, password: String): Response<ResponseBody> {
         return endPoint.loginUser(username, password)
@@ -93,6 +114,10 @@ class PadeliumApi @Inject constructor(private val endPoint: PadeliumEndPoint) {
 
     suspend fun  signup(signupRequest: SignupRequestDTO): Response<Void>{
         return endPoint.signup(signupRequest)
+    }
+
+    suspend fun  logoutUser(logoutRequest: logoutRequestDTO): Response<ResponseBody>{
+        return endPoint.logoutUser(logoutRequest)
     }
 
 

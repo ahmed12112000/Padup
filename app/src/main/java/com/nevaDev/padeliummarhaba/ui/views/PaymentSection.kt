@@ -110,6 +110,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
+import java.math.RoundingMode
 import java.util.UUID
 
 fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
@@ -226,7 +227,7 @@ fun PaymentSection1(
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
     viewModel3: GetProfileViewModel = hiltViewModel()
 
-    ) {
+) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
@@ -393,12 +394,7 @@ fun PaymentSection1(
                             .offset(x = 15.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .weight(1f) // Ensure both buttons take equal space
-                                .padding(1.dp) // Add spacing between the button and the border
-                        ) {
+
                             Button(
                                 onClick = {
                                     val phoneBody = RequestBody.create(
@@ -406,11 +402,13 @@ fun PaymentSection1(
                                     )
                                     updatePhoneViewModel.UpdatePhone(phoneBody)
                                 },
+                                shape = RoundedCornerShape(13.dp),
+                                border =  BorderStroke(1.dp, Color(0xFF0054D8)),
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(1.dp), // Adjust padding to fit inside the border box
+                                    .fillMaxWidth(0.93f)
+                                    .padding(1.dp),
                                 colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                                shape = RoundedCornerShape(13.dp) // Same rounded corners
+
                             ) {
                                 Text(
                                     text = "Modifier",
@@ -419,7 +417,7 @@ fun PaymentSection1(
                                     fontSize = 18.sp
                                 )
                             }
-                        }
+
                     }
                 }
             }
@@ -547,334 +545,388 @@ fun PaymentSection1(
                 Log.d("IMAAAAAAAAD", "Private Extras: $totalExtrasCost")
 
                 Button(
-                        onClick = {
+                    onClick = {
 
-                            isLoading = true
-                            Log.d(
-                                "OLFA",
-                                "Selected Players before extracting IDs: ${selectedPlayers.joinToString { "ID=${it}" }}"
-                            )
+                        isLoading = true
+                        Log.d(
+                            "OLFA",
+                            "Selected Players before extracting IDs: ${selectedPlayers.joinToString { "ID=${it}" }}"
+                        )
 
-                            // Update selected parts first
-                            viewModel9.updateSelectedParts(selectedParts)
+                        // Update selected parts first
+                        viewModel9.updateSelectedParts(selectedParts)
 
-                            // Launch a coroutine to collect the latest selected parts
-                            coroutineScope.launch {
-                                viewModel9.selectedParts.collectLatest { currentSelectedParts ->
-                                    val selectedBooking = mappedBookings.firstOrNull()
+                        // Launch a coroutine to collect the latest selected parts
+                        coroutineScope.launch {
+                            viewModel9.selectedParts.collectLatest { currentSelectedParts ->
+                                val selectedBooking = mappedBookings.firstOrNull()
 
-                                    if (selectedBooking != null) {
+                                if (selectedBooking != null) {
 
-                                        val totalAmountSelected = adjustedAmount + totalExtrasCost
-                                        Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
+                                    val totalAmountSelected = adjustedAmount + totalExtrasCost
+                                    Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
 
-                                        if (totalAmountSelected <= 0) {
-                                            Toast.makeText(
-                                                context,
-                                                "Total amount not calculated or is zero",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            isLoading = false
-                                            return@collectLatest
-                                        }
-
-
-                                        val playerIds = selectedPlayers.toList()
-                                        Log.d("DEBUG", "Converted Players List: $playerIds")
-
-                                        Log.d(
-                                            "mouchABD",
-                                            "Extracted userIds: ${selectedPlayers.joinToString { "ID=${it}" }}"
-                                        )
+                                    if (totalAmountSelected <= 0) {
+                                        Toast.makeText(
+                                            context,
+                                            "Total amount not calculated or is zero",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        isLoading = false
+                                        return@collectLatest
+                                    }
 
 
-                                        val updatedMappedBookings =
-                                            mappedBookings.mapIndexed { index, booking ->
-                                                if (index == 0) {
-                                                    booking.copy(
-                                                        numberOfPart = currentSelectedParts,
-                                                        userIds = playerIds
-                                                    )
-                                                } else {
-                                                    booking
-                                                }
+                                    val playerIds = selectedPlayers.toList()
+                                    Log.d("DEBUG", "Converted Players List: $playerIds")
+
+                                    Log.d(
+                                        "mouchABD",
+                                        "Extracted userIds: ${selectedPlayers.joinToString { "ID=${it}" }}"
+                                    )
+
+
+                                    val updatedMappedBookings =
+                                        mappedBookings.mapIndexed { index, booking ->
+                                            if (index == 0) {
+                                                booking.copy(
+                                                    numberOfPart = currentSelectedParts,
+                                                    userIds = playerIds
+                                                )
+                                            } else {
+                                                booking
                                             }
-                                        Log.d("mouchABD", "Extracted userIds: $selectedPlayers")
+                                        }
+                                    Log.d("mouchABD", "Extracted userIds: $selectedPlayers")
 
-                                        val totalAmountBigDecimal =
-                                            BigDecimal.valueOf(totalAmountSelected)
-                                        val currency =
-                                            selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
-                                        onTotalAmountCalculated(totalAmountSelected, currency)
+                                    val totalAmountBigDecimal =
+                                        BigDecimal.valueOf(totalAmountSelected)
+                                    val currency =
+                                        selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
+                                    onTotalAmountCalculated(totalAmountSelected, currency)
 
 
-                                        paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
-                                        saveBookingViewModel.SaveBooking(updatedMappedBookings)
+                                    paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
+                                    saveBookingViewModel.SaveBooking(updatedMappedBookings)
 
-                                        saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
-                                            when (result) {
-                                                is DataResult.Loading -> {
-                                                    Log.d("SaveBooking", "Saving booking...")
-                                                }
+                                    saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
+                                        when (result) {
+                                            is DataResult.Loading -> {
+                                                Log.d("SaveBooking", "Saving booking...")
+                                            }
 
-                                                is DataResult.Success -> {
-                                                    isLoading = false
-                                                    Log.d("SaveBooking", "Booking saved successfully!")
+                                            is DataResult.Success -> {
+                                                isLoading = false
+                                                Log.d("SaveBooking", "Booking saved successfully!")
 
-                                                    val bookingList =
-                                                        result.data as? List<SaveBookingResponse>
-                                                    if (!bookingList.isNullOrEmpty()) {
-                                                        val firstBooking = bookingList[0]
-                                                        val bookingId = firstBooking.id.toString()
-                                                        Log.d(
-                                                            "FRIH",
-                                                            "numberOfPart after booking save: ${firstBooking.numberOfPart}"
-                                                        )
+                                                val bookingList =
+                                                    result.data as? List<SaveBookingResponse>
+                                                if (!bookingList.isNullOrEmpty()) {
+                                                    val firstBooking = bookingList[0]
+                                                    val bookingId = firstBooking.id.toString()
+                                                    Log.d(
+                                                        "FRIH",
+                                                        "numberOfPart after booking save: ${firstBooking.numberOfPart}"
+                                                    )
 
-                                                        // Create a PaymentRequest using the updated amount
-                                                        val paymentRequest = PaymentRequest(
-                                                            amount = totalAmountSelected.toString(),
-                                                            currency = selectedBooking.currencySymbol
-                                                                ?: "EUR",
-                                                            orderId = bookingId
-                                                        )
+                                                    // Create a PaymentRequest using the updated amount
+                                                    val paymentRequest = PaymentRequest(
+                                                        amount = totalAmountSelected.toString(),
+                                                        currency = selectedBooking.currencySymbol
+                                                            ?: "EUR",
+                                                        orderId = bookingId
+                                                    )
 
-                                                        // Process the payment
-                                                        paymentViewModel.Payment(paymentRequest)
-                                                        paymentViewModel.dataResult.observe(
-                                                            lifecycleOwner
-                                                        ) { paymentResult ->
-                                                            when (paymentResult) {
-                                                                is DataResult.Loading -> {
+                                                    // Process the payment
+                                                    paymentViewModel.Payment(paymentRequest)
+                                                    paymentViewModel.dataResult.observe(
+                                                        lifecycleOwner
+                                                    ) { paymentResult ->
+                                                        when (paymentResult) {
+                                                            is DataResult.Loading -> {
+                                                                Log.d(
+                                                                    "Payment",
+                                                                    "Processing payment..."
+                                                                )
+                                                            }
+
+                                                            is DataResult.Success -> {
+                                                                Log.d(
+                                                                    "Payment",
+                                                                    "Payment processed successfully!"
+                                                                )
+                                                                val paymentResponse =
+                                                                    paymentResult.data as? PaymentResponse
+                                                                val formUrl =
+                                                                    paymentResponse?.formUrl
+
+                                                                if (!formUrl.isNullOrEmpty()) {
+                                                                    val encodedUrl =
+                                                                        Uri.encode(formUrl)
+                                                                    val userIdsString =
+                                                                        selectedPlayers.joinToString(
+                                                                            ","
+                                                                        ) // Convert the list to a comma-separated string
+                                                                    val encodedUserIds =
+                                                                        Uri.encode(userIdsString)
+                                                                    val SharedListString =
+                                                                        sharedExtras.joinToString(",")
+                                                                    val encodedSharedList =
+                                                                        Uri.encode(SharedListString) //  privateExtras
+                                                                    val PrivateListString =
+                                                                        privateExtras.joinToString(",")
+                                                                    val encodedPrivateList =
+                                                                        Uri.encode(PrivateListString)
+
+                                                                    val navigationRoute =
+                                                                        "WebViewScreen?paymentUrl=$encodedUrl&numberOfPart=$currentSelectedParts&userIds=$encodedUserIds&sharedList=$encodedSharedList&privateList=$encodedPrivateList"
                                                                     Log.d(
-                                                                        "Payment",
-                                                                        "Processing payment..."
+                                                                        "NavigationDebug",
+                                                                        "Navigating to: $navigationRoute"
                                                                     )
-                                                                }
 
-                                                                is DataResult.Success -> {
-                                                                    Log.d(
-                                                                        "Payment",
-                                                                        "Payment processed successfully!"
+                                                                    // Navigate to WebViewScreen with the form URL
+                                                                    navController.navigate(
+                                                                        navigationRoute
                                                                     )
-                                                                    val paymentResponse =
-                                                                        paymentResult.data as? PaymentResponse
-                                                                    val formUrl =
-                                                                        paymentResponse?.formUrl
-
-                                                                    if (!formUrl.isNullOrEmpty()) {
-                                                                        val encodedUrl =
-                                                                            Uri.encode(formUrl)
-                                                                        val userIdsString =
-                                                                            selectedPlayers.joinToString(
-                                                                                ","
-                                                                            ) // Convert the list to a comma-separated string
-                                                                        val encodedUserIds =
-                                                                            Uri.encode(userIdsString)
-                                                                        val SharedListString =
-                                                                            sharedExtras.joinToString(",")
-                                                                        val encodedSharedList =
-                                                                            Uri.encode(SharedListString) //  privateExtras
-                                                                        val PrivateListString =
-                                                                            privateExtras.joinToString(",")
-                                                                        val encodedPrivateList =
-                                                                            Uri.encode(PrivateListString)
-
-                                                                        val navigationRoute =
-                                                                            "WebViewScreen?paymentUrl=$encodedUrl&numberOfPart=$currentSelectedParts&userIds=$encodedUserIds&sharedList=$encodedSharedList&privateList=$encodedPrivateList"
-                                                                        Log.d(
-                                                                            "NavigationDebug",
-                                                                            "Navigating to: $navigationRoute"
-                                                                        )
-
-                                                                        // Navigate to WebViewScreen with the form URL
-                                                                        navController.navigate(
-                                                                            navigationRoute
-                                                                        )
-                                                                    } else {
-                                                                        Log.e(
-                                                                            "Payment",
-                                                                            "No form URL found in the response."
-                                                                        )
-                                                                        Toast.makeText(
-                                                                            context,
-                                                                            "Payment failed: No form URL received.",
-                                                                            Toast.LENGTH_LONG
-                                                                        ).show()
-                                                                    }
-                                                                }
-
-                                                                is DataResult.Failure -> {
+                                                                } else {
+                                                                    Log.e(
+                                                                        "Payment",
+                                                                        "No form URL found in the response."
+                                                                    )
                                                                     Toast.makeText(
                                                                         context,
-                                                                        "Payment failed: ${paymentResult.errorMessage}",
+                                                                        "Payment failed: No form URL received.",
                                                                         Toast.LENGTH_LONG
                                                                     ).show()
                                                                 }
                                                             }
-                                                        }
-                                                    } else {
-                                                        Toast.makeText(
-                                                            context,
-                                                            "Failed to retrieve booking ID.",
-                                                            Toast.LENGTH_LONG
-                                                        ).show()
-                                                    }
-                                                }
 
-                                                is DataResult.Failure -> {
-                                                    isLoading = false
+                                                            is DataResult.Failure -> {
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    "Payment failed: ${paymentResult.errorMessage}",
+                                                                    Toast.LENGTH_LONG
+                                                                ).show()
+                                                            }
+                                                        }
+                                                    }
+                                                } else {
                                                     Toast.makeText(
                                                         context,
-                                                        "Failed to save booking: ${result.errorMessage}",
+                                                        "Failed to retrieve booking ID.",
                                                         Toast.LENGTH_LONG
                                                     ).show()
                                                 }
                                             }
+
+                                            is DataResult.Failure -> {
+                                                isLoading = false
+                                                Toast.makeText(
+                                                    context,
+                                                    "Failed to save booking: ${result.errorMessage}",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
                                         }
-                                    } else {
-                                        isLoading = false
-                                        Toast.makeText(
-                                            context,
-                                            "No valid booking data available.",
-                                            Toast.LENGTH_LONG
-                                        ).show()
                                     }
+                                } else {
+                                    isLoading = false
+                                    Toast.makeText(
+                                        context,
+                                        "No valid booking data available.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
                                 }
                             }
-                        },
+                        }
+                    },
 
-                        enabled = !isLoading,
+                    enabled = !isLoading,
 
                     modifier = Modifier
                         .height(48.dp).offset(x = -16.dp)
                         .weight(1f), // Ensure both buttons take equal space
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
                     shape = RoundedCornerShape(13.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Payment,
-                                contentDescription = "Card Payment",
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Card Crédit",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.ExtraBold
-                            )
-                        }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Payment,
+                            contentDescription = "Card Payment",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Carte Crédit",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     }
-                    var amount by remember { mutableStateOf(BigDecimal.ZERO) }
+                }
+                var amount by remember { mutableStateOf(BigDecimal.ZERO) }
 
-                    Button(
-                        onClick = {
-                            // Select the first booking from the mappedBookings
-                            val selectedBooking = mappedBookings.firstOrNull()
+                Button(
+                    onClick = {
+                        val selectedBooking = mappedBookings.firstOrNull()
+                        viewModel9.updateSelectedParts(selectedParts)
 
-                            if (selectedBooking != null) {
-                                // Try to parse the price, handling invalid input
-                                amount = try {
-                                    BigDecimal(price.toDouble())
-                                } catch (e: NumberFormatException) {
-                                    Toast.makeText(context, "Invalid price format", Toast.LENGTH_LONG)
-                                        .show()
-                                    return@Button
-                                }
+                        coroutineScope.launch {
+                            viewModel9.selectedParts.collectLatest { currentSelectedParts ->
+                                val selectedBooking = mappedBookings.firstOrNull()
 
-                                // Call PaymentPayAvoirViewModel
-                                paymentPayAvoirViewModel.PaymentPayAvoir(amount)
+                                if (selectedBooking != null) {
+                                    val totalAmountSelected = adjustedAmount + totalExtrasCost
+                                    Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
 
-                                // Fetch and update balance
-                                balanceViewModel.fetchAndBalance()
+                                    if (totalAmountSelected <= 0) {
+                                        Toast.makeText(
+                                            context,
+                                            "Total amount not calculated or is zero",
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                        isLoading = false
+                                        return@collectLatest
+                                    }
 
-                                // Save the booking
-                                saveBookingViewModel.SaveBooking(mappedBookings)
+                                    val playerIds = selectedPlayers.toList()
+                                    val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected).setScale(0, RoundingMode.DOWN) // Remove decimals
+                                    val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
+                                    onTotalAmountCalculated(totalAmountBigDecimal.toInt().toDouble(), currency) // Convert back to double if needed
 
-                                // Only observe the result for confirmBooking logic here
-                                saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
-                                    when (result) {
-                                        is DataResult.Loading -> {
-                                            isLoading = true
-                                            Log.d("SaveBooking", "Saving booking...")
-                                        }
+                                    // Trigger PaymentPayAvoir with rounded amount
+                                    paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
 
-                                        is DataResult.Success -> {
-                                            isLoading = false
-                                            Log.d("SaveBooking", "Booking saved successfully!")
+                                    paymentPayAvoirViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
+                                        when (paymentResult) {
+                                            is DataResult.Loading -> {
+                                                isLoading = true
+                                                Log.d("PAYMENT", "Processing PaymentPayAvoir...")
+                                            }
 
-                                            val bookingList = result.data as? List<SaveBookingResponse>
-                                            if (!bookingList.isNullOrEmpty()) {
-                                                val confirmBookingRequest = ConfirmBookingRequest(
-                                                    amount = amount,
-                                                    numberOfPart = mappedBookings.first().numberOfPart,
-                                                    payFromAvoir = true,
-                                                    privateExtrasIds = mappedBookings.first().privateExtrasIds
-                                                        ?: emptyList(),
-                                                    bookingIds = bookingList.mapNotNull { it.id },
-                                                    buyerId = mappedBookings.first().buyerId ?: "",
-                                                    couponIds = mappedBookings.first().couponIds
-                                                        ?: emptyMap(),
-                                                    sharedExtrasIds = mappedBookings.first().sharedExtrasIds
-                                                        ?: emptyList(),
-                                                    status = true,
-                                                    token = "",
-                                                    transactionId = "",
-                                                    userIds = mappedBookings.first().userIds
-                                                )
+                                            is DataResult.Success -> {
+                                                isLoading = false
+                                                val payFromAvoirResponse = true // Payment success implies true
+                                                Log.d("PAYMENT", "PaymentPayAvoir successful: $payFromAvoirResponse")
 
-                                                // Call ConfirmBooking API
-                                                confirmBookingViewModel.GetPayment(confirmBookingRequest)
-                                            } else {
+                                                val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
+                                                    if (index == 0) {
+                                                        booking.copy(
+                                                            numberOfPart = currentSelectedParts,
+                                                            userIds = playerIds,
+                                                            payFromAvoir = payFromAvoirResponse // Updated dynamically
+                                                        )
+                                                    } else {
+                                                        booking
+                                                    }
+                                                }
+
+                                                balanceViewModel.fetchAndBalance()
+                                                saveBookingViewModel.SaveBooking(updatedMappedBookings)
+
+                                                saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
+                                                    when (result) {
+                                                        is DataResult.Loading -> {
+                                                            isLoading = true
+                                                            Log.d("SaveBooking", "Saving booking...")
+                                                        }
+
+                                                        is DataResult.Success -> {
+                                                            isLoading = false
+                                                            Log.d("SaveBooking", "Booking saved successfully!")
+
+                                                            val bookingList = result.data as? List<SaveBookingResponse>
+                                                            if (!bookingList.isNullOrEmpty()) {
+                                                                val firstBooking = bookingList[0]
+                                                                val bookingId = firstBooking.id.toString()
+
+                                                                val paymentRequest = PaymentRequest(
+                                                                    amount = totalAmountSelected.toString(),
+                                                                    currency = selectedBooking.currencySymbol ?: "EUR",
+                                                                    orderId = bookingId
+                                                                )
+
+                                                                paymentViewModel.Payment(paymentRequest)
+
+                                                                val confirmBookingRequest = ConfirmBookingRequest(
+                                                                    amount = totalAmountBigDecimal,
+                                                                    numberOfPart = currentSelectedParts,
+                                                                    payFromAvoir = payFromAvoirResponse,
+                                                                    privateExtrasIds = mappedBookings.first().privateExtrasIds ?: emptyList(),
+                                                                    bookingIds = bookingList.mapNotNull { it.id },
+                                                                    buyerId = mappedBookings.first().buyerId ?: "",
+                                                                    couponIds = mappedBookings.first().couponIds ?: emptyMap(),
+                                                                    sharedExtrasIds = mappedBookings.first().sharedExtrasIds ?: emptyList(),
+                                                                    status = true,
+                                                                    token = "",
+                                                                    transactionId = "",
+                                                                    userIds = mappedBookings.first().userIds
+                                                                )
+
+                                                                confirmBookingViewModel.GetPayment(confirmBookingRequest)
+                                                            } else {
+                                                                Toast.makeText(
+                                                                    context,
+                                                                    "No booking data available.",
+                                                                    Toast.LENGTH_LONG
+                                                                ).show()
+                                                            }
+                                                        }
+
+                                                        is DataResult.Failure -> {
+                                                            isLoading = false
+                                                            Toast.makeText(
+                                                                context,
+                                                                "Failed to save booking.",
+                                                                Toast.LENGTH_LONG
+                                                            ).show()
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            is DataResult.Failure -> {
+                                                isLoading = false
+                                                Log.e("PAYMENT", "PaymentPayAvoir failed: ${paymentResult.errorMessage}")
                                                 Toast.makeText(
                                                     context,
-                                                    "No booking data available.",
+                                                    "Payment processing failed.",
                                                     Toast.LENGTH_LONG
                                                 ).show()
                                             }
                                         }
-
-                                        is DataResult.Failure -> {
-                                            isLoading = false
-                                            Toast.makeText(
-                                                context,
-                                                "Failed to save booking.",
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                        }
                                     }
                                 }
-
                             }
-                        },
-                        modifier = Modifier
-                            .height(48.dp)
-                            .weight(1f), // Ensure both buttons take equal space
-                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
-                        shape = RoundedCornerShape(13.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.Money,
-                                contentDescription = "Credits Payment",
-                                tint = Color.White
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "Crédit Padelium",
-                                color = Color.White,
-                                fontSize = 16.sp,
-                                fontWeight = FontWeight.ExtraBold
-                            )
                         }
+                    },
+                    modifier = Modifier
+                        .height(48.dp)
+                        .weight(1f), // Ensure both buttons take equal space
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
+                    shape = RoundedCornerShape(13.dp)
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Money,
+                            contentDescription = "Credits Payment",
+                            tint = Color.White
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "Crédit Padelium",
+                            color = Color.White,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     }
                 }
-
             }
+
         }
     }
+}
 
 
 class SharedViewModel : ViewModel() {

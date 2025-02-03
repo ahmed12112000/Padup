@@ -5,6 +5,7 @@ import com.padelium.domain.dto.LoginRequest
 import com.padelium.data.datasource.remote.PadeliumApi
 import com.padelium.data.mappers.UserMapper
 import com.padelium.domain.dto.SignupRequest
+import com.padelium.domain.dto.logoutRequest
 import com.padelium.domain.repositories.IUserRepository
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -25,6 +26,10 @@ class UserRepositoryImp @Inject constructor(
 
     override suspend fun signupUser(signupRequest: SignupRequest): Response<Void> {
         return apiService.signup(mapper.signupRequestToSignupRequestDto(signupRequest))
+    }
+
+    override suspend fun logoutUser(logoutRequestt: logoutRequest): Response<ResponseBody> {
+        return apiService.logoutUser(mapper.logoutRequestTologoutRequestDto(logoutRequestt))
     }
 
 }

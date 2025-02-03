@@ -300,6 +300,13 @@ fun LoginScreen(
                     color = Color(android.graphics.Color.parseColor("#999999")),
                     thickness = 1.dp
                 )
+                Text(
+                    text = "OU",
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                    color = Color(android.graphics.Color.parseColor("#999999")),
+
+                    fontSize = 15.sp
+                )
 
                 Divider(
                     modifier = Modifier
@@ -309,15 +316,19 @@ fun LoginScreen(
                     thickness = 1.dp
                 )
             }
+            Spacer(modifier = Modifier.height(1.dp))
+            Spacer(modifier = Modifier.height(60.dp))
+            Row {
+                Text(text = "vous n'avez pas de compte ?", color = Color.Gray)
+                Text(
+                    text = "S'inscrire",
+                    color = Color.Black,
+                    modifier = Modifier.clickable {  navController.navigate("signup_screen") },
+                    textDecoration = Underline
+                )
+            }
         }
     }
 }
-/*
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun LoginScreenPreview() {
-    LoginScreen(onLoginSuccess = {})
-} */
-
 
 

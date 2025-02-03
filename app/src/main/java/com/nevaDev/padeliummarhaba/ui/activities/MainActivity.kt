@@ -87,6 +87,11 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val viewModel: GetProfileViewModel = hiltViewModel()
                     val context = LocalContext.current
+                    val onLogout: () -> Unit = {
+                        // Handle logout logic here
+                        sharedPreferences.edit().clear().apply()
+                        // You can also navigate to the login screen or reset other states as necessary
+                    }
                     MainApp(context, sharedPreferences, viewModel)
                 }
             }
@@ -98,8 +103,25 @@ class MainActivity : ComponentActivity() {
 
 
 @Composable
-fun MainApp(context: Context, sharedPreferences: SharedPreferences,viewModel: GetProfileViewModel) {
+fun MainApp(
+    context: Context,
+    sharedPreferences: SharedPreferences,
+    viewModel: GetProfileViewModel,
+  //  onLogout: () -> Unit,
+) {
+
     val navController = rememberNavController()
+    val onLogoutAction: () -> Unit = {
+        // Clear shared preferences or any other data
+        sharedPreferences.edit().clear().apply()
+
+        // Navigate to the login screen
+        navController.navigate("login_screen") {
+            // Clear the back stack so that the user can't go back to the previous screen
+            popUpTo("login_screen") { inclusive = true }
+        }
+
+    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     var isUserLoggedIn by remember { mutableStateOf(false) }
@@ -116,6 +138,8 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences,viewModel: Ge
     val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
     LaunchedEffect(Unit) {
         viewModel.fetchProfileData()
+        isUserLoggedIn = firstName.isNotEmpty() && lastName.isNotEmpty() && image.isNotEmpty()
+
     }
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -129,7 +153,8 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences,viewModel: Ge
                     },
                     firstName = firstName,
                     lastName = lastName,
-                    image =image
+                    image = image,
+                  //  onLogout = onLogoutAction // Use the onLogoutAction passed here
                 )
             } else {
                 DrawerContent(
@@ -161,8 +186,9 @@ fun MainApp(context: Context, sharedPreferences: SharedPreferences,viewModel: Ge
                         sharedPreferences = sharedPreferences,
                         drawerState = drawerState,
                         scope = scope,
+                        onSignupSuccess = { isUserLoggedIn = false },
 
-                    )
+                        )
                 }
             }
         )
@@ -187,7 +213,7 @@ fun TopBar(
                 .fillMaxWidth()
                 .height(100.dp)
                 .padding(top = 1.dp)
-              //  .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 30.dp))
+                //  .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 30.dp))
                 .background(Color(0xFF0054D8))
                 .shadow(
                     elevation = 200.dp,

@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -28,11 +29,13 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetEmailViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetManagerViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPaymentViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.domain.dto.EstablishmentBasicDTO
 import com.padelium.domain.dto.EstablishmentPictureBasicDTO
@@ -54,6 +57,7 @@ fun AppNavHost(
     navController: NavHostController,
     isUserLoggedIn: Boolean,
     onLoginSuccess: () -> Unit,
+    onSignupSuccess: () -> Unit,
     onLogout: () -> Unit,
     context: Context,
     sharedPreferences: SharedPreferences,
@@ -81,13 +85,26 @@ fun AppNavHost(
                     onReservationClicked = { selectedDate ->
 
                     }
-                    ) // Your MainScreen composable
+                    )
+            }
+
+            composable("login_screen") {
+                val viewModel: UserViewModel = hiltViewModel()
+                val getProfileViewModel: GetProfileViewModel = hiltViewModel()
+
+                LoginScreen(
+                    onLoginSuccess = { /* Update login state */ },
+                    viewModel = viewModel,
+                    getProfileViewModel = getProfileViewModel,
+                    navController = navController,
+                    loginRequest = LoginRequest("", "")
+                )
             }
 
             composable("CreditCharge") {
                 CreditCharge(navController = navController)
             }
-//      encodedId
+
             composable(
                 route = "WebViewScreen1?formUrl={formUrl}&encodedAmount={encodedAmount}&encodedId={encodedId}",
                 arguments = listOf(
@@ -274,6 +291,8 @@ fun AppNavHost(
             composable("CreditCharge") {
                 CreditCharge(navController = navController)
             }
+
+
             composable("login_screen") {
                 LoginScreen(
                     onLoginSuccess = onLoginSuccess,
@@ -281,6 +300,15 @@ fun AppNavHost(
                     loginRequest = LoginRequest("", "")
                 )
             }
+
+            composable("signup_screen") {
+                SignUpScreen(
+                    onSignupSuccess = onSignupSuccess,
+                    navController = navController,
+                )
+            }
+
+
             composable("Profile_screen") {
                 ProfileScreen(onLogout = onLogout)
             }
