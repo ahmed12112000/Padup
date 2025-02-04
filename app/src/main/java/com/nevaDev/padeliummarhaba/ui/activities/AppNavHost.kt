@@ -2,16 +2,9 @@ package com.nevaDev.padeliummarhaba.ui.activities
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.util.Log
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -23,7 +16,6 @@ import androidx.navigation.navDeepLink
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.nevaDev.padeliummarhaba.models.ReservationOption
-import com.nevaDev.padeliummarhaba.repository.Booking.BookingViewModel
 import com.nevaDev.padeliummarhaba.ui.views.*
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetEmailViewModel
@@ -33,18 +25,9 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
-import com.padelium.data.dto.GetBookingResponseDTO
-import com.padelium.domain.dto.EstablishmentBasicDTO
-import com.padelium.domain.dto.EstablishmentPictureBasicDTO
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.LoginRequest
-import com.padelium.domain.dto.PaymentRequest
-import com.padelium.domain.dto.PlanningBasicDTO
-import com.padelium.domain.dto.SaveBookingRequest
-import com.padelium.domain.dto.happyHoursBasicDTO
 import kotlinx.coroutines.CoroutineScope
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -78,16 +61,28 @@ fun AppNavHost(
         NavHost(
             navController = navController,
             startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
+        //              startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
         {
-            composable("main_screen") {
-                MainScreen(
+
+
+            composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
+                val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
+                val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
+
+                ReservationOptions(
+                    onReservationSelected = { /* Handle reservation selection */ },
+                    isUserLoggedIn = isUserLoggedIn,
+                    key = null, // Pass any required key
                     navController = navController,
-                    onReservationClicked = { selectedDate ->
-
-                    }
-                    )
+                    selectedDate = selectedDate ?: LocalDate.now(), // Default to today if null
+                    selectedTimeSlot = selectedTimeSlot,
+                    viewModel = hiltViewModel(),
+                    viewModel1 = hiltViewModel(),
+                    viewModel2 = hiltViewModel(),
+                    bookingViewModel = hiltViewModel(),
+                    paymentPayAvoirViewModel = hiltViewModel()
+                )
             }
-
             composable("login_screen") {
                 val viewModel: UserViewModel = hiltViewModel()
                 val getProfileViewModel: GetProfileViewModel = hiltViewModel()
@@ -176,6 +171,14 @@ fun AppNavHost(
                 MainScreen(
                     navController = navController,
                     onReservationClicked = { selectedDate ->
+
+                    }
+                )
+            }
+            composable("main_screen") {
+                MainScreen(
+                    navController = navController,
+                    onReservationClicked = { selectedDate ->
                         val key = "someKey"
                         val activityName = "SomeActivity"
                         val cityName = "SomeCity"
@@ -193,7 +196,6 @@ fun AppNavHost(
                     }
                 )
             }
-
             // Reservation Screen
             composable(
                 route = "reservation_screen/{key}/{date}/{activityName}/{cityName}/{activityId}/{cityId}/{establishmentId}/{time}/{isCity}",
@@ -318,9 +320,11 @@ fun AppNavHost(
 
 
 
-
+            composable("PartnerPaymentScreen") {
+                PartnerPaymentScreen(navController = navController)
+            }
             composable("summary_screen") {
-                SummaryScreen()
+                SummaryScreen(navController = navController)
             }
             /*  composable("PaymentSuccessScreen") {
                   PaymentSuccessScreen(navController = navController)

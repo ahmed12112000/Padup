@@ -1,6 +1,8 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
 import android.util.Log
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -33,6 +35,9 @@ class GetBookingViewModel @Inject constructor(
 
     private val _timeSlots = MutableLiveData<List<TimeSlot>>()
 
+    private val _isUserLoggedIn1 = mutableStateOf(false)
+    val isUserLoggedIn1: State<Boolean> get() = _isUserLoggedIn1
+
     private val _filteredTimeSlots = MutableLiveData<List<TimeSlot>>()
     val filteredTimeSlots: LiveData<List<TimeSlot>> get() = _filteredTimeSlots
 
@@ -46,6 +51,9 @@ class GetBookingViewModel @Inject constructor(
 
     fun updateBookings(newBookings: List<GetBookingResponseDTO>) {
         _selectedBookings.value = newBookings
+    }
+    fun updateLoginState(isLoggedIn1: Boolean) {
+        _isUserLoggedIn1.value = isLoggedIn1
     }
     fun getBooking(key: String, selectedDate: LocalDate) {
         dataResultBooking.value = DataResultBooking.Loading

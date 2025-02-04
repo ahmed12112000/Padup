@@ -29,6 +29,7 @@ import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
+import com.padelium.domain.dto.PartnerPayResponse
 import com.padelium.domain.dto.PaymentResponse
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
@@ -174,6 +175,10 @@ class PadeliumApi @Inject constructor(
 
     suspend fun Balance (Id: Long): Response<BalanceResponse> {
         return endPoint.Balance(Id)
+    }
+
+    suspend fun PartnerPay (Id: Long): Response<PartnerPayResponse> {
+        return endPoint.PartnerPay(Id)
     }
 
     suspend fun PaymentAvoir (userAvoirRequest: UserAvoirRequestDTO):  Response<UserAvoirResponseDTO> {

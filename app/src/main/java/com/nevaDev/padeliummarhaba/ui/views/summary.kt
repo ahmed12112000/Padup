@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.AttachMoney
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.runtime.*
@@ -29,9 +30,13 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileByIdViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetStatusesViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PartnerPayViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PrivateExtrasViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.SharedExtrasViewModel
 import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetReservationIDResponse
@@ -51,7 +56,9 @@ fun SummaryScreen(
     viewModel: GetReservationViewModel = hiltViewModel(),
     viewModel1: GetProfileByIdViewModel = hiltViewModel(),
     viewModel2: GetStatusesViewModel = hiltViewModel(),
-) {
+    navController: NavController,
+
+    ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }
     val reservations1 = remember { mutableStateOf<List<GetStatusesResponse>>(emptyList()) }
@@ -214,7 +221,8 @@ fun SummaryScreen(
                     },
                     viewModel1 = viewModel1,
                     bookingStatusCode = reservation.bookingStatusCode,
-                    onShowDialog = { showDialog = true }
+                    onShowDialog = { showDialog = true },
+                    navController = navController
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
@@ -244,9 +252,17 @@ fun ReservationCard(
     reservation: GetReservationResponse,
     onClick: () -> Unit,
     viewModel1: GetProfileByIdViewModel,
-    bookingStatusCode: String, // New parameter for booking status code
-    onShowDialog: () -> Unit // New parameter for showing the dialog
-) {
+    bookingStatusCode: String,
+    onShowDialog: () -> Unit,
+    viewModel3: PrivateExtrasViewModel = hiltViewModel(),
+    navController: NavController,
+    viewModel2: GetProfileByIdViewModel = hiltViewModel(),
+    viewModel4: PartnerPayViewModel = hiltViewModel(),
+
+    ) {
+    val privateExtrasState by viewModel3.extrasState2.observeAsState()
+    val sharedList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
+    val privateList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
     val bookingDate = reservation.bookingDate // Assuming this is a String like "22-01-2025"
     val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.FRANCE)
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
@@ -262,7 +278,20 @@ fun ReservationCard(
     val formattedDate = "$dayOfWeek ${date.dayOfMonth} $month ${date.year}"
     var showDialog by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
+    var showExtrasSection by remember { mutableStateOf(false) } // State to track visibility
+    val profilesData by viewModel1.profilesData.observeAsState()
+    val profileData by viewModel2.profilesData.observeAsState()
 
+    LaunchedEffect( viewModel3) {
+        viewModel3.PrivateExtras()
+    }
+
+    LaunchedEffect(profilesData) {
+        if (profilesData is DataResultBooking.Success) {
+            selectedReservation1 =
+                (profilesData as DataResultBooking.Success<GetReservationIDResponse>).data
+        }
+    }
     Card(
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier
@@ -337,7 +366,25 @@ fun ReservationCard(
                         sheetState.show() // Show the bottom sheet when a reservation is selected
                     }
                 }
+                if (reservation.activePayment) {
+                    IconButton(
+                        onClick = {
+                            viewModel3.PrivateExtras()
+                            viewModel2.fetchProfileById(reservation.id)
+                            viewModel4.partnerPay(reservation.id)
+                            navController.navigate("PartnerPaymentScreen")
 
+                        },
+                        modifier = Modifier.size(24.dp) // Match view icon size
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.AttachMoney, // Dollar sign icon
+                            contentDescription = "Payment Active",
+                            modifier = Modifier.size(18.dp), // Smaller icon
+                            tint = Color.Black // Highlight it with green
+                        )
+                    }
+                }
                 IconButton(
                     onClick = {
                         viewModel1.fetchProfileById(reservation.id)
@@ -359,6 +406,7 @@ fun ReservationCard(
             }
         }
     }
+
 }
 
 

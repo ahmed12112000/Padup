@@ -1,5 +1,9 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.app.Activity
+import android.content.Context
+import android.graphics.Color.RED
+import android.graphics.Color.WHITE
 import android.net.Uri
 import android.util.Log
 import android.widget.Toast
@@ -12,24 +16,21 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -37,6 +38,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
@@ -49,15 +51,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
@@ -66,15 +67,23 @@ import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
 import com.nevadev.padeliummarhaba.R
 import com.padelium.data.dto.GetBookingResponseDTO
-import com.padelium.data.repositoriesImp.SaveBookingRequestSerializer
 import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.PlanningDTO
-import com.padelium.domain.dto.SaveBookingRequest
 import java.math.BigDecimal
-import java.text.SimpleDateFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.State
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.ViewModel
+import com.google.android.material.snackbar.Snackbar
+import android.view.View
+import android.widget.TextView
+import com.android.identity.util.AndroidAttestationExtensionParser
 
 @Composable
 fun TimeSlotSelector(
@@ -223,7 +232,6 @@ fun SuccessState(
                     saveBookingViewModel = saveBookingViewModel,
                     setAmountSelected = setAmountSelected,
                     setCurrencySymbol = setCurrencySymbol,
-                    showLoginPopup = showLoginPopup,
                     selectedTimeSlot = selectedTimeSlot,
                     paymentPayAvoirViewModel= paymentPayAvoirViewModel
 
@@ -243,7 +251,6 @@ private fun EstablishmentCard(
     saveBookingViewModel: SaveBookingViewModel,
     setAmountSelected: (Double) -> Unit,
     setCurrencySymbol: (String) -> Unit,
-    showLoginPopup: (Boolean) -> Unit,
     viewModel1: ExtrasViewModel = hiltViewModel(),
     selectedTimeSlot: String?,
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel
@@ -255,6 +262,7 @@ private fun EstablishmentCard(
     }
 
     var showLoginPopup by remember { mutableStateOf(false) }
+    val isUserLoggedIn1 by bookingViewModel.isUserLoggedIn1
 
     availablePlannings.forEach { planning ->
         val amountToShow = if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
@@ -262,6 +270,7 @@ private fun EstablishmentCard(
         } else {
             getBookingResponseDTO.amount ?: BigDecimal.ZERO
         }
+        val context = LocalContext.current
 
         Card(
             modifier = Modifier
@@ -281,7 +290,9 @@ private fun EstablishmentCard(
                         onReservationSelected = { reservationOption ->
                         },
                         paymentPayAvoirViewModel= paymentPayAvoirViewModel,
-                        amountToShow = amountToShow
+                        amountToShow = amountToShow,
+                        context = context // Pass the context here
+
                     )
                 },
             shape = RoundedCornerShape(12.dp),
@@ -291,10 +302,27 @@ private fun EstablishmentCard(
             EstablishmentCardContent(getBookingResponseDTO, planning)
         }
     }
-
+    /*
     if (showLoginPopup) {
-        // Handle login popup logic here (e.g., show a dialog or navigate to login screen)
+        Dialog(onDismissRequest = { showLoginPopup = false }) {
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.White,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                LoginScreen(
+                    onLoginSuccess = {
+                        showLoginPopup = false // Hide the popup on successful login
+                        bookingViewModel.updateLoginState(true) // Update the login state
+                    },
+                    navController = navController,
+                    loginRequest = LoginRequest(username = "", password = "") // Initialize with empty values or your logic
+                )
+            }
+        }
     }
+
+     */
 }
 
 
@@ -410,7 +438,9 @@ fun handleCardClick(
     viewModel1: ExtrasViewModel,
     onReservationSelected: (ReservationOption) -> Unit,
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
-    amountToShow: BigDecimal
+    amountToShow: BigDecimal,
+    context: Context // Add Context as a parameter
+
 ) {
 
 
@@ -432,8 +462,10 @@ fun handleCardClick(
 
 
     if (!isUserLoggedIn) {
+
         onLoginRequired()
     } else {
+        // Proceed with the booking process
         val mappedBookings = listOf(updatedBooking).toDomain().joinToString(separator = ", ") {
             it.toString()
         }
@@ -443,7 +475,7 @@ fun handleCardClick(
             name = establishmentName,
             time = selectedTimeSlot,
             //date = "hello",
-            price = amountToShow.toString(), // Use amountToShow here
+            price = amountToShow.toString(),
             mappedBookings = mappedBookings
         )
 

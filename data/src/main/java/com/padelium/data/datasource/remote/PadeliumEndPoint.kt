@@ -31,6 +31,7 @@ import com.padelium.domain.dto.GetEmailResponse
 import com.padelium.domain.dto.GetInitResponse
 import com.padelium.domain.dto.GetPaymentResponse
 import com.padelium.domain.dto.InitBookingResponse
+import com.padelium.domain.dto.PartnerPayResponse
 import com.padelium.domain.dto.PaymentResponse
 import com.padelium.domain.dto.SaveBookingResponse
 import com.padelium.domain.dto.SearchListResponse
@@ -49,6 +50,9 @@ import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
 import java.math.BigDecimal
+
+            //                             activePayment....true--- $.....false-----=!!$
+
 
 interface PadeliumEndPoint {
     @Headers(
@@ -121,6 +125,10 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     @Headers("Accept: application/json")
     @GET("/api/bookings/{id}")
     suspend fun GetProfileById(@Path("id") id: Long): Response<GetReservationIDResponseDTO>
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/booking-users-payments/by/booking")
+    suspend fun PartnerPay(@Body Id: Long): Response<PartnerPayResponse>
 
     @Headers("Accept: application/json" )
     @GET("api/booking-statuses")

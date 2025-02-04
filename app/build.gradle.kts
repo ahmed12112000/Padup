@@ -11,10 +11,10 @@ android {
     namespace = "com.nevadev.padeliummarhaba"
     compileSdk = 34
     defaultConfig {
-        applicationId = "com.example.padeliummarhaba"
+        applicationId = "com.spofun.padeliummarhaba"     //    com.spofun.padeliummarhaba
         versionCode = 1
-        versionName = "1.0"
-        minSdk = 26
+        versionName = "1.0.0"
+        minSdk = 28
         targetSdk = 33
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

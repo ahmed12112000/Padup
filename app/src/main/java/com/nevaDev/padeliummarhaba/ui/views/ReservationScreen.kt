@@ -374,13 +374,13 @@ fun ReservationSummary(
     adjustedAmount: Double,
     adjustedSharedExtrasAmount: Double,
     totalSharedExtrasCost: Double,
-    totalExtrasCost: Double
+    totalExtrasCost: Double // Use the passed totalExtrasCost
 ) {
 
-    val totalExtrasCost = selectedExtras.sumOf { it.third * it.second.toDouble() }
     // Calculate total cost including extras
-    val totalAmountSelected = adjustedAmount   + totalExtrasCost
-    Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected")
+
+    val totalAmountSelected = adjustedAmount + totalExtrasCost
+   // Log.d("ReservationSumaaaaaaaaa", "Total Amount after extras: $totalExtrasCost")
 
     onTotalAmountCalculated(totalAmountSelected)
 
@@ -396,7 +396,7 @@ fun ReservationSummary(
 
         // Display reservation details...
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
-        ReservationDetailRow(label = "Prix", value = selectedReservation.price)
+        ReservationDetailRow(label = "Prix", value = "${selectedReservation.price} DT"  )
         ReservationDetailRow(
             label = "Date",
             value = DateTimeFormatter.ofPattern("EEE d MMM yyyy", Locale.FRENCH)

@@ -472,9 +472,7 @@ fun PaymentSection1(
                 colors = CardDefaults.cardColors(Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
-                var selectedExtras by remember {
-                    mutableStateOf<List<Triple<String, String, Int>>>(emptyList())
-                }
+                var selectedExtras by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
 
                 ExtrasSection(
                     onExtrasUpdate = { extras, cost ->
@@ -496,24 +494,26 @@ fun PaymentSection1(
                 colors = CardDefaults.cardColors(Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
+
                 ReservationSummary(
                     selectedDate = selectedDate,
                     selectedTimeSlot = selectedTimeSlot.toString(), // Pass selected time
                     selectedReservation = selectedReservation, // Pass selected reservation
                     selectedExtras = selectedExtras,
                     amountSelected = Pair(
-                        selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull()
-                            ?: 0.0,
+                        selectedReservation.price.replace("[^\\d.]".toRegex(), "").toDoubleOrNull() ?: 0.0,
                         selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
                     ),
-                    onTotalAmountCalculated = { totalAmount -> },
+                    onTotalAmountCalculated = { totalAmount ->
+                        // Handle the total amount calculated if needed
+                    },
                     price = price,
                     time = time.toString(),
                     navController = navController,
                     adjustedAmount = adjustedAmount, // Pass updated adjustedAmount
                     adjustedSharedExtrasAmount = adjustedSharedExtrasAmount,
                     totalSharedExtrasCost = totalSharedExtrasCost,
-                    totalExtrasCost = totalExtrasCost
+                    totalExtrasCost = totalExtrasCost // Pass the calculated totalExtrasCost
                 )
                 Log.d("ReservationSummary", "Updated Adjusted Amount: $adjustedSharedExtrasAmount")
             }
@@ -768,7 +768,7 @@ fun PaymentSection1(
                 var amount by remember { mutableStateOf(BigDecimal.ZERO) }
 
                 Button(
-                    onClick = {
+                    onClick =  {
                         val selectedBooking = mappedBookings.firstOrNull()
                         viewModel9.updateSelectedParts(selectedParts)
 

@@ -10,9 +10,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
-import androidx.compose.material.icons.filled.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -29,8 +27,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.navigation.NavHostController
-import com.nevaDev.padeliummarhaba.repository.LoginRequestDto
+import androidx.navigation.NavController
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.padelium.domain.dto.LoginRequest
@@ -45,7 +42,7 @@ fun LoginScreen(
     onLoginSuccess: () -> Unit,
     viewModel: UserViewModel = hiltViewModel(),
     getProfileViewModel: GetProfileViewModel = hiltViewModel(),
-    navController: NavHostController,
+    navController: NavController,
     loginRequest: LoginRequest
 ) {
     val coroutineScope = rememberCoroutineScope()

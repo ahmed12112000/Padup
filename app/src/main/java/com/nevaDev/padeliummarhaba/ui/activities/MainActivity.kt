@@ -737,14 +737,16 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                     navController.navigate("main_screen")
                 }
             )
-
+/*
             DrawerItem(
                 icon = R.drawable.sidebarmenue,
                 label = "Réserver un terrain",
                 onClick = {
-                    navController.navigate("reservation_screen")
+                    navController.navigate("reservation_options/${LocalDate.now()}/${null}") // Pass the selected date and time slot
                 }
             )
+
+ */
 
             DrawerItem(
                 icon = R.drawable.sidebarmenue,

@@ -276,14 +276,14 @@ fun ReservationDetailsCard(
             if (viewModel1.selectedParts.collectAsState().value in 1..2) {
                 Text(
                     text = "Sélectionnez vos partenaires",
-                    fontSize = 20.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(end = 16.dp)
                 )
             } else if (viewModel1.selectedParts.collectAsState().value == 3) {
                 Text(
                     text = "Sélectionnez votre partenaire",
-                    fontSize = 20.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(end = 16.dp)
                 )
@@ -419,6 +419,7 @@ fun PartnerField(
 ) {
     val playersState by findTermsViewModel.players.observeAsState(initial = DataResult.Loading)
     var dropdownExpanded by remember { mutableStateOf(false) }
+
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
@@ -564,7 +565,6 @@ fun PartnerField(
 }
 
  */
-
 @Composable
 fun ExtrasSection(
     onExtrasUpdate: (List<Triple<String, String, Int>>, Double) -> Unit,
@@ -586,228 +586,176 @@ fun ExtrasSection(
         viewModel4.PrivateExtras()
     }
 
-    // Calculate totalExtrasCost dynamically based on selectedExtras
-    val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .offset(y = (-8).dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "  Je commande des extras ?",
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.weight(1f)
+        )
+        Switch(
+            checked = additionalExtrasEnabled,
+            onCheckedChange = { additionalExtrasEnabled = it },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Color(0xFF0054D8),
+                uncheckedThumbColor = Color.Gray,
+                checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f),
+                uncheckedTrackColor = Color.LightGray
+            )
+        )
+    }
 
-    // Notify ReservationSummary of the total amount
+    if (additionalExtrasEnabled) {
+        Spacer(modifier = Modifier.height(2.dp))
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y = (-8).dp), // Reduced offset for tighter spacing
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "  Je commande des extras ?",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = additionalExtrasEnabled,
-                    onCheckedChange = { additionalExtrasEnabled = it },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Color(0xFF0054D8),
-                        uncheckedThumbColor = Color.Gray,
-                        checkedTrackColor = Color(0xFF0054D8).copy(alpha = 0.5f),
-                        uncheckedTrackColor = Color.LightGray
-                    )
-                )
+        when {
+            sharedExtrasState is DataResult.Loading || privateExtrasState is DataResult.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
 
-            if (additionalExtrasEnabled) {
-                Spacer(modifier = Modifier.height(2.dp)) // Reduced height for tighter spacing
+            sharedExtrasState is DataResult.Success && privateExtrasState is DataResult.Success -> {
+                val sharedExtrasList =
+                    (sharedExtrasState as DataResult.Success).data as? List<SharedExtrasResponse>
+                val privateExtrasList =
+                    (privateExtrasState as DataResult.Success).data as? List<PrivateExtrasResponse>
 
-                when {
-                    sharedExtrasState is DataResult.Loading || privateExtrasState is DataResult.Loading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator()
-                        }
+                Spacer(modifier = Modifier.height(1.dp))
+
+                // Render private extras
+                Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    Text(
+                        text = "  Article(s) réserver à mon usage",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    privateExtrasList?.forEach { privateExtra ->
+                        val isPrivateExtraAdded =
+                            selectedExtras.any { it.first == privateExtra.name }
+                        ExtraItemCard(
+                            extra = privateExtra,
+                            isAdded = isPrivateExtraAdded,
+                            onAddClick = { extraPrice ->
+                                privateList.value.add(privateExtra.id)
+                                findTermsViewModel.updatePrivateExtras(privateList.value)
+
+                                selectedExtras += Triple(
+                                    privateExtra.name,
+                                    privateExtra.amount.toString(),
+                                    privateExtra.currencyId.toInt()
+                                )
+                                // Recalculate totalExtrasCost after adding
+                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+                                onExtrasUpdate(selectedExtras, totalExtrasCost)
+                            },
+                            onRemoveClick = { extraPrice ->
+                                privateList.value.remove(privateExtra.id)
+                                findTermsViewModel.updatePrivateExtras(privateList.value)
+
+                                selectedExtras =
+                                    selectedExtras.filterNot { it.first == privateExtra.name }
+                                // Recalculate totalExtrasCost after removing
+                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+                                onExtrasUpdate(selectedExtras, totalExtrasCost)
+                            }
+                        )
                     }
 
-                    sharedExtrasState is DataResult.Success && privateExtrasState is DataResult.Success -> {
-                        val sharedExtrasList =
-                            (sharedExtrasState as DataResult.Success).data as? List<SharedExtrasResponse>
-                        val privateExtrasList =
-                            (privateExtrasState as DataResult.Success).data as? List<PrivateExtrasResponse>
+                    Spacer(modifier = Modifier.height(4.dp))
 
-                        // Reduced height for tighter spacing between cards
-                        Spacer(modifier = Modifier.height(1.dp))
-
-                        // Render private extras
-                            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) { // Reduced spacing between items
-
-                                    Text(
-                                        text = "  Article(s) réserver à mon usage",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
-                                    )
-                                privateExtrasList?.forEach { privateExtra ->
-                                    val isPrivateExtraAdded =
-                                        selectedExtras.any { it.first == privateExtra.name }
-                                    ExtraItemCard(
-                                        extra = privateExtra,
-                                        isAdded = isPrivateExtraAdded,
-                                        onAddClick = { extraPrice ->
-                                            privateList.value.add(privateExtra.id)
-                                            Log.d(
-                                                "ExtrasSection",
-                                                "Updated privateList: ${privateList.value}"
-                                            )
-                                            findTermsViewModel.updatePrivateExtras(privateList.value)
-
-                                            selectedExtras += Triple(
-                                                privateExtra.name,
-                                                privateExtra.amount.toString(),
-                                                privateExtra.currencyId.toInt()
-                                            )
-                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                        },
-                                        onRemoveClick = { extraPrice ->
-                                            privateList.value.remove(privateExtra.id)
-                                            Log.d(
-                                                "ExtrasSection",
-                                                "Updated privateList: ${privateList.value}"
-                                            )
-                                            findTermsViewModel.updatePrivateExtras(privateList.value)
-
-                                            selectedExtras =
-                                                selectedExtras.filterNot { it.first == privateExtra.name }
-                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                        }
-                                    )
-
-                            }
-                            // Reduced height between cards
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            // Render shared extras
-
-                                Column {
-                                    Text(
-                                        text = "  Article(s) partagé(s) entre tous les joueurs",
-                                        fontSize = 15.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
-                                    )
-                                    Text(
-                                        text = "  (Frais partagé)",
-                                        fontSize = 12.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color.Black
-                                    )
-                                }
-                                sharedExtrasList?.forEach { sharedExtra ->
-                                    val isSharedExtraAdded =
-                                        selectedExtras.any { it.first == sharedExtra.name }
-                                    ExtraItemCard(
-                                        extra = sharedExtra,
-                                        isAdded = isSharedExtraAdded,
-                                        onAddClick = { extraPrice ->
-                                            sharedList.value.add(sharedExtra.id)
-                                            Log.d(
-                                                "ExtrasSection",
-                                                "Updated sharedList: ${sharedList.value}"
-                                            )
-                                            findTermsViewModel.updateSharedExtras(sharedList.value)
-
-                                            // Calculate the cost based on selected parts
-                                            val sharedAmount = when (selectedParts.toInt()) {
-                                                1 -> (extraPrice / 4.0).toBigDecimal()
-                                                    .setScale(2, RoundingMode.HALF_UP)
-                                                    .toDouble() // Divided among 4
-                                                2 -> (extraPrice / 2.0).toBigDecimal()
-                                                    .setScale(2, RoundingMode.HALF_UP)
-                                                    .toDouble() // Divided among 2
-                                                3 -> (extraPrice / 1.33).toBigDecimal()
-                                                    .setScale(2, RoundingMode.HALF_UP)
-                                                    .toDouble() // Approximately divided among 3
-                                                4 -> (extraPrice / 1.0).toBigDecimal()
-                                                    .setScale(2, RoundingMode.HALF_UP)
-                                                    .toDouble() // No division
-                                                else -> extraPrice.toBigDecimal()
-                                                    .setScale(2, RoundingMode.HALF_UP)
-                                                    .toDouble() // Default case
-                                            }
-
-                                            selectedExtras += Triple(
-                                                sharedExtra.name,
-                                                sharedAmount.toString(),
-                                                sharedExtra.currencyId.toInt()
-                                            )
-                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                        },
-                                        onRemoveClick = { extraPrice ->
-                                            sharedList.value.remove(sharedExtra.id)
-                                            Log.d(
-                                                "ExtrasSection",
-                                                "Updated sharedList: ${sharedList.value}"
-                                            )
-                                            findTermsViewModel.updateSharedExtras(sharedList.value)
-
-                                            // Calculate the cost based on selected parts
-                                            val sharedAmount = when (selectedParts.toInt()) {
-                                                1 -> extraPrice / 4.0 // Divided among 4
-                                                2 -> extraPrice / 2.0 // Divided among 2
-                                                3 -> extraPrice / 1.33 // Approximately divided among 3
-                                                4 -> extraPrice / 1.0 // No division
-                                                else -> extraPrice // Default case
-                                            }
-
-                                            selectedExtras =
-                                                selectedExtras.filterNot { it.first == sharedExtra.name }
-                                            onExtrasUpdate(selectedExtras, totalExtrasCost)
-                                        }
-                                    )
-                                }
-                            }
+                    // Render shared extras
+                    Column {
+                        Text(
+                            text = "  Article(s) partagé(s) entre tous les joueurs",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                        Text(
+                            text = "  (Frais partagé)",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
                     }
-                    else -> {
-                        Box(
-                            modifier = Modifier.fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Failed to load extras",
-                                color = Color.Red
-                            )
+                    sharedExtrasList?.forEach { sharedExtra ->
+                        val isSharedExtraAdded =
+                            selectedExtras.any { it.first == sharedExtra.name }
+                        ExtraItemCard(
+                            extra = sharedExtra,
+                            isAdded = isSharedExtraAdded,
+                            onAddClick = { extraPrice ->
+                                sharedList.value.add(sharedExtra.id)
+                                findTermsViewModel.updateSharedExtras(sharedList.value)
 
+                                // Calculate the cost based on selected parts
+                                val sharedAmount = when (selectedParts.toInt()) {
+                                    1 -> (extraPrice / 4.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
+                                    2 -> (extraPrice / 2.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
+                                    3 -> (extraPrice / 1.33).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
+                                    4 -> (extraPrice / 1.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
+                                    else -> extraPrice.toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
+                                }
+
+                                selectedExtras += Triple(
+                                    sharedExtra.name,
+                                    sharedAmount.toString(),
+                                    sharedExtra.currencyId.toInt()
+                                )
+                                // Recalculate totalExtrasCost after adding
+                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+                                onExtrasUpdate(selectedExtras, totalExtrasCost)
+                            },
+                            onRemoveClick = { extraPrice ->
+                                sharedList.value.remove(sharedExtra.id)
+                                findTermsViewModel.updateSharedExtras(sharedList.value)
+
+                                // Calculate the cost based on selected parts
+                                val sharedAmount = when (selectedParts.toInt()) {
+                                    1 -> extraPrice / 4.0
+                                    2 -> extraPrice / 2.0
+                                    3 -> extraPrice / 1.33
+                                    4 -> extraPrice / 1.0
+                                    else -> extraPrice
+                                }
+
+                                selectedExtras =
+                                    selectedExtras.filterNot { it.first == sharedExtra.name }
+                                // Recalculate totalExtrasCost after removing
+                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+                                onExtrasUpdate(selectedExtras, totalExtrasCost)
+                            }
+                        )
                     }
                 }
             }
-        }
-
-}
-
-
-
-
-@Composable
-fun ReservationCard(title: String, content: @Composable () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 8.dp),
-        shape = RoundedCornerShape(4.dp),
-        colors = CardDefaults.cardColors(Color.White),
-        elevation = CardDefaults.cardElevation(1.dp)
-    ) {
-        Column(modifier = Modifier.padding(8.dp)) { // Reduce inner padding
-            Text(
-                text = title,
-                fontSize = 16.sp, // Reduce font size
-                fontWeight = FontWeight.Medium // Use medium weight for a more subtle look
-            )
-            Spacer(modifier = Modifier.height(4.dp)) // Slightly larger spacer for visual separation
-            content()
+            else -> {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Failed to load extras",
+                        color = Color.Red
+                    )
+                }
+            }
         }
     }
 }
+
+// ontuchlistner  -----> focus outlinedtext
 @Composable
 fun ExtraItemCard(
     extra: Any,
@@ -883,11 +831,7 @@ fun ExtraItemCard(
         }
 
         IconButton(onClick = {
-            val extraPrice = when (extra) {
-                is SharedExtrasResponse -> extra.amount?.toDouble() ?: 0.0
-                is PrivateExtrasResponse -> extra.amount?.toDouble() ?: 0.0
-                else -> 0.0
-            }
+            val extraPrice = pricePerPart // Use the correct price here
 
             if (addedState) {
                 onRemoveClick(extraPrice)

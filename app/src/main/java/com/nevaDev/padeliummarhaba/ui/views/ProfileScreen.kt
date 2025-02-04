@@ -2,8 +2,11 @@ package com.nevaDev.padeliummarhaba.ui.views
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Base64
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -68,8 +71,10 @@ import okhttp3.MediaType
 import okhttp3.MediaType.Companion.toMediaType
 import org.json.JSONObject
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import java.io.ByteArrayOutputStream
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.InputStream
 
 
 @Composable
@@ -80,27 +85,16 @@ fun ProfileScreen(
 ) {
     var activated by remember { mutableStateOf(false) }
     var authorities by remember { mutableStateOf("") }
-    var avoir by remember { mutableStateOf(0L.toString()) }
-    var createdBy by remember { mutableStateOf("") }
-    var createdDate by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
-    var establishmentsIds by remember { mutableStateOf("") }
-    var file by remember { mutableStateOf("") }
     var firstName by remember { mutableStateOf("") }
-    var id by remember { mutableStateOf(0L) }
     var image by remember { mutableStateOf("") }
     var imageUrl by remember { mutableStateOf("") }
-    var isOwnerestablishmentsIds by remember { mutableStateOf("") }
     var langKey by remember { mutableStateOf("") }
-    var lastModifiedBy by remember { mutableStateOf("") }
-    var lastModifiedDate by remember { mutableStateOf("") }
     var login by remember { mutableStateOf("") }
-    var socialMediaId by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
     val context = LocalContext.current
-    var isValid by remember { mutableStateOf(false) }
+    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -283,33 +277,20 @@ fun ProfileScreen(
                 .padding(horizontal = 16.dp), // Add horizontal padding for smoother spacing
             horizontalArrangement = Arrangement.Center // Center the button horizontally
         ) {
-            viewModel2.dataResult.observe(lifecycleOwner) { result ->
-                when (result) {
-                    is DataResult.Loading -> {
-                        // Show loading indicator
-                        Log.d("ProfileUpdate", "Loading...")
-                    }
-                    is DataResult.Success -> {
-                        // Handle success (e.g., show a success message)
-                        Log.d("ProfileUpdate", "Profile updated successfully")
-                        // You can also navigate to another screen or show a success message
-                    }
-                    is DataResult.Failure -> {
-                        // Handle error (e.g., show an error message)
-                        //  Log.e("ProfileUpdate", "Error: ${result.errorMessage}")
-                        // Show an error message to the user
-                    }
-                }
-            }
+
+
+
             Button(
                 onClick = {
                     // Create account JSON
+                    val base64Image = profileImageUri?.let { getBase64FromUri(context, it) } ?: image
+
                     val accountData = mapOf(
                         "activated" to activated,
                         "authorities" to listOf(authorities), // Replace with actual authorities if needed
                         "email" to email, // Set this to the user's email if available
                         "firstName" to firstName,
-                        "image" to (profileImageUri?.let { getRealPathFromURI(context, it) } ?: image), // Use the new image if available
+                        "image" to base64Image, // Use the new image if available
                         "imageUrl" to imageUrl, // Set this to the actual image URL if available
                         "langKey" to langKey, // Set this to the actual language key if available
                         "lastName" to lastName,
@@ -350,12 +331,16 @@ fun ProfileScreen(
         }
     }
 }
-
-@SuppressLint("Range")
-fun getRealPathFromURI(context: Context, uri: Uri): String? {
-    val cursor = context.contentResolver.query(uri, null, null, null, null)
-    cursor?.moveToFirst()
-    val path = cursor?.getString(cursor.getColumnIndex(MediaStore.Images.Media.DATA))
-    cursor?.close()
-    return path
+fun getBase64FromUri(context: Context, uri: Uri): String? {
+    return try {
+        val inputStream: InputStream? = context.contentResolver.openInputStream(uri)
+        val bitmap: Bitmap = BitmapFactory.decodeStream(inputStream)
+        val byteArrayOutputStream = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
+        val byteArray: ByteArray = byteArrayOutputStream.toByteArray()
+        Base64.encodeToString(byteArray, Base64.NO_WRAP) // Encode to base64
+    } catch (e: Exception) {
+        e.printStackTrace()
+        null
+    }
 }
