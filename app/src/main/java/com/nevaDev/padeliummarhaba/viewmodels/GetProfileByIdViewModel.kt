@@ -32,37 +32,7 @@ class GetProfileByIdViewModel @Inject constructor(
     /**
      * Fetch the first reservation (if available).
      */
-    fun fetchReservation() {
-        _reservationsData.postValue(DataResultBooking.Loading)
 
-        viewModelScope.launch {
-            try {
-                val response = reservationRepository.GetReservation() // Returns List<GetReservationResponse>
-
-                if (response.isNotEmpty()) {
-                    val firstReservation = response[0] // Get the first reservation
-                    _reservationsData.postValue(DataResultBooking.Success(firstReservation))
-                } else {
-                    _reservationsData.postValue(
-                        DataResultBooking.Failure(
-                            exception = null,
-                            errorCode = null,
-                            errorMessage = "No reservations found."
-                        )
-                    )
-                }
-            } catch (e: Exception) {
-                _reservationsData.postValue(
-                    DataResultBooking.Failure(
-                        exception = e,
-                        errorCode = null,
-                        errorMessage = "Exception occurred: ${e.message}"
-                    )
-                )
-                Log.e("GetReservation", "Error fetching reservation", e)
-            }
-        }
-    }
 
 
     /**

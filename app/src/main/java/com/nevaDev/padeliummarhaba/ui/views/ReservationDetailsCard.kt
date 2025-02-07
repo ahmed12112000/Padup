@@ -423,16 +423,13 @@ fun PartnerField(
     val focusRequester = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
 
-    // Track when the text changes
     var isTextChanged by remember { mutableStateOf(false) }
 
-    // Manage the Dropdown visibility and focus behavior
     LaunchedEffect(value) {
         isTextChanged = value.isNotEmpty()
         dropdownExpanded = isTextChanged
     }
 
-    // State to hold the position of the OutlinedTextField
     var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
 
     Column {
@@ -441,16 +438,15 @@ fun PartnerField(
                 value = value,
                 onValueChange = { text ->
                     onValueChange(text)
-                    // Trigger search with the entered text
+
                     if (text.isNotEmpty()) {
                         val requestBody: RequestBody =
                             text.toRequestBody("text/plain".toMediaType())
 
-                        // Fetch only 9 players for the first letter and progressively fetch more as letters are typed
                         if (text.length == 1) {
-                            findTermsViewModel.findTerms(requestBody, limit = 9) // Fetch 9 players initially
+                            findTermsViewModel.findTerms(requestBody, limit = 9)
                         } else {
-                            findTermsViewModel.findTerms(requestBody) // Continue fetching results as letters are added
+                            findTermsViewModel.findTerms(requestBody)
                         }
 
                         dropdownExpanded = true
@@ -462,15 +458,14 @@ fun PartnerField(
                 label = { Text(label) },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .focusRequester(focusRequester)  // Ensure focus stays on the text field
+                    .focusRequester(focusRequester)
                     .onFocusChanged { focusState ->
-                        // This helps prevent dropdown from stealing focus
                         if (focusState.isFocused) {
-                            dropdownExpanded = isTextChanged  // Only show dropdown if text is entered
+                            dropdownExpanded = isTextChanged
                         }
                     }
                     .onGloballyPositioned { layoutCoordinates ->
-                        textFieldSize = layoutCoordinates.size // Get the size of the OutlinedTextField
+                        textFieldSize = layoutCoordinates.size
                     },
                 shape = RoundedCornerShape(15.dp),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -479,18 +474,17 @@ fun PartnerField(
                 )
             )
 
-            // Only show the dropdown when there is text and the dropdownExpanded is true
             if (dropdownExpanded) {
                 DropdownMenu(
                     expanded = dropdownExpanded,
                     onDismissRequest = {
                         dropdownExpanded = false
-                        focusRequester.requestFocus() // Request focus back to the text field
+                        focusRequester.requestFocus() // Keep focus on the text field
                     },
                     modifier = Modifier
                         .width(200.dp)
-                        .align(Alignment.TopStart) // Align the dropdown to the top start of the Box
-                        .offset(y = with(LocalDensity.current) { textFieldSize.height.toDp() }) // Offset the dropdown below the OutlinedTextField
+                        .align(Alignment.TopStart)
+                        .offset(y = with(LocalDensity.current) { textFieldSize.height.toDp() })
                 ) {
                     when (playersState) {
                         is DataResult.Loading -> {
@@ -512,12 +506,11 @@ fun PartnerField(
                                             val playerId = player.id
                                             if (!selectedPlayers.contains(playerId)) {
                                                 selectedPlayers.add(playerId)
-                                                onPlayerSelected(player.fullName, playerId) // Pass both the selected name and ID
-                                                Log.d("MAYSSA", "Selected Player Added: ID = ${playerId}")
+                                                onPlayerSelected(player.fullName, playerId)
                                             }
                                         }
                                         dropdownExpanded = false
-                                        focusManager.clearFocus()  // Remove focus from text field when a player is selected
+                                        focusRequester.requestFocus() // Keep focus on text field after selection
                                     }) {
                                         Text(text = fullName)
                                     }
@@ -549,7 +542,6 @@ fun PartnerField(
         }
     }
 }
-
 
 
 /*

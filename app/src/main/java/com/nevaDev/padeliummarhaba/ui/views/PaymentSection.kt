@@ -211,7 +211,7 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
 
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
-fun PaymentSection1(
+fun  PaymentSection1(
     selectedDate: LocalDate,
     selectedReservation: ReservationOption,
     onExtrasUpdate: (Int, Int, Boolean) -> Unit,

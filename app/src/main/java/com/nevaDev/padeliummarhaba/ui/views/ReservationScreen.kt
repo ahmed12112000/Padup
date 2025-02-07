@@ -380,7 +380,6 @@ fun ReservationSummary(
     // Calculate total cost including extras
 
     val totalAmountSelected = adjustedAmount + totalExtrasCost
-   // Log.d("ReservationSumaaaaaaaaa", "Total Amount after extras: $totalExtrasCost")
 
     onTotalAmountCalculated(totalAmountSelected)
 

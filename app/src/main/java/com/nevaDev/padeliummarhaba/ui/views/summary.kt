@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -258,6 +259,7 @@ fun ReservationCard(
     navController: NavController,
     viewModel2: GetProfileByIdViewModel = hiltViewModel(),
     viewModel4: PartnerPayViewModel = hiltViewModel(),
+    viewModel5: PartnerPayViewModel = hiltViewModel(),
 
     ) {
     val privateExtrasState by viewModel3.extrasState2.observeAsState()
@@ -281,16 +283,25 @@ fun ReservationCard(
     var showExtrasSection by remember { mutableStateOf(false) } // State to track visibility
     val profilesData by viewModel1.profilesData.observeAsState()
     val profileData by viewModel2.profilesData.observeAsState()
+    val partnerPayResponse by viewModel5.partnerPayResponse.observeAsState()
 
-    LaunchedEffect( viewModel3) {
-        viewModel3.PrivateExtras()
+    LaunchedEffect(partnerPayResponse) {
+        partnerPayResponse?.let { response ->
+            Log.d("ReservationCard", "PartnerPay response updated: $response")
+            // Perform any necessary UI updates or side effects when partnerPayResponse updates
+        }
     }
+
 
     LaunchedEffect(profilesData) {
         if (profilesData is DataResultBooking.Success) {
             selectedReservation1 =
                 (profilesData as DataResultBooking.Success<GetReservationIDResponse>).data
         }
+    }
+
+    LaunchedEffect( viewModel3) {
+        viewModel3.PrivateExtras()
     }
     Card(
         shape = RoundedCornerShape(8.dp),
@@ -372,7 +383,10 @@ fun ReservationCard(
                             viewModel3.PrivateExtras()
                             viewModel2.fetchProfileById(reservation.id)
                             viewModel4.partnerPay(reservation.id)
-                            navController.navigate("PartnerPaymentScreen")
+                            Log.d("ASMMMMMMMMMA", "PartnerPay response updated: ${reservation.id}")
+                            navController.navigate("PartnerPaymentScreen/${reservation.id}") // Navigate directly with reservation.id
+
+
 
                         },
                         modifier = Modifier.size(24.dp) // Match view icon size

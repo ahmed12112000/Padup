@@ -14,6 +14,8 @@ import com.padelium.data.dto.GetReservationIDResponseDTO
 import com.padelium.data.dto.GetReservationResponseDTO
 import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentGetAvoirRequestDTO
+import com.padelium.data.dto.PaymentParCreditRequestDTO
+import com.padelium.data.dto.PaymentPartBookingRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
 import com.padelium.data.dto.PrivateExtrasResponseDTO
 import com.padelium.data.dto.SharedExtrasResponseDTO
@@ -181,15 +183,25 @@ class PadeliumApi @Inject constructor(
         return endPoint.PartnerPay(Id)
     }
 
+    suspend fun PaymentPart (paymentRequest: PaymentRequestDTO): Response<PaymentResponse?> {
+        return endPoint.PaymentPart(paymentRequest)
+    }
+
     suspend fun PaymentAvoir (userAvoirRequest: UserAvoirRequestDTO):  Response<UserAvoirResponseDTO> {
         return endPoint.PaymentAvoir(userAvoirRequest)
     }
-//   UserAvoirRequestDTO
+
     suspend fun Payment (paymentRequest: PaymentRequestDTO): Response<PaymentResponse?> {
         return endPoint.Payment(paymentRequest)
     }
 
+    suspend fun PaymentPartBooking (paymentGetAvoirRequest: PaymentPartBookingRequestDTO): Response<Boolean> {
+        return endPoint.PaymentPartBooking(paymentGetAvoirRequest)
+    }
 
+    suspend fun PaymentParCredit (paymentParCreditRequest: PaymentParCreditRequestDTO): Response<Boolean> {
+        return endPoint.PaymentParCredit(paymentParCreditRequest)
+    }
 
 
     suspend fun GetPayment (getPaymentRequest: GetPaymentRequestDTO): Response<GetPaymentResponse> {
@@ -218,7 +230,7 @@ class PadeliumApi @Inject constructor(
     }
 
 
-    suspend fun UpdatePhone (Phone:RequestBody): Response<Unit> {       //      GetProfileByIdRepositoryImp
+    suspend fun UpdatePhone (Phone:RequestBody): Response<Unit> {
         return endPoint.UpdatePhone(Phone)
     }
 

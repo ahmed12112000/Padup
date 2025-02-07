@@ -12,6 +12,8 @@ import com.padelium.data.dto.GetReservationResponseDTO
 import com.padelium.data.dto.GetStatusesResponseDTO
 import com.padelium.data.dto.InitBookingRequestDTO
 import com.padelium.data.dto.PaymentGetAvoirRequestDTO
+import com.padelium.data.dto.PaymentParCreditRequestDTO
+import com.padelium.data.dto.PaymentPartBookingRequestDTO
 import com.padelium.data.dto.PaymentRequestDTO
 import com.padelium.data.dto.PrivateExtrasResponseDTO
 import com.padelium.data.dto.ProfileRequestDTO
@@ -130,9 +132,24 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     @POST("api/booking-users-payments/by/booking")
     suspend fun PartnerPay(@Body Id: Long): Response<PartnerPayResponse>
 
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/payment/create/part/booking")
+    suspend fun PaymentPart(@Body paymentRequest: PaymentRequestDTO): Response<PaymentResponse?>
+
+
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/payment/part/booking")
+    suspend fun PaymentPartBooking(@Body paymentRequest: PaymentPartBookingRequestDTO): Response<Boolean>
+
+
+
+
+
     @Headers("Accept: application/json" )
     @GET("api/booking-statuses")
     suspend fun GetStatuses(): Response<List<GetStatusesResponseDTO>>
+
     @Headers("Accept: application/json")
     @GET("/api/account")
     suspend fun GetProfile(): Response<GetProfileResponseDTO>
@@ -164,6 +181,13 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("api/user-avoirs/pay/from/avoir")
     suspend fun PaymentPayAvoir(@Body amount: BigDecimal): Response<Boolean>
+
+
+
+    @Headers("Accept: application/json", "Content-Type: application/json")
+    @POST("api/user-avoirs/part/booking")
+    suspend fun PaymentParCredit(@Body paymentRequest: PaymentParCreditRequestDTO): Response<Boolean>
+
 
 
     @Headers("Accept: application/json", "Content-Type: application/json")

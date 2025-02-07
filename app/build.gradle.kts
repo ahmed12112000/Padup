@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.hilt.android.plugin)
     id("kotlin-kapt")
+    id("kotlin-parcelize")
 
 
 }
@@ -10,16 +11,21 @@ plugins {
 android {
     namespace = "com.nevadev.padeliummarhaba"
     compileSdk = 34
+
     defaultConfig {
-        applicationId = "com.spofun.padeliummarhaba"     //    com.spofun.padeliummarhaba
-        versionCode = 1
-        versionName = "1.0.0"
+        applicationId = "com.spofun.padeliummarhaba"
+        versionCode = 3
+        versionName = "2.0.8"
         minSdk = 28
-        targetSdk = 33
+        //noinspection EditedTargetSdkVersion
+        targetSdk = 34
+        vectorDrawables.useSupportLibrary = true
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true
         }
+
     }
 
     buildTypes {
@@ -154,6 +160,7 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
     implementation ("com.squareup.moshi:moshi:1.12.0")
     implementation(libs.okhttp.v4110)
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.22") // Update if needed
 
 
 }

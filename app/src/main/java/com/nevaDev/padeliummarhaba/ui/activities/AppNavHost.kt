@@ -5,6 +5,10 @@ import android.content.SharedPreferences
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -23,10 +27,13 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetManagerViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PartnerPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.PaymentPartBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
 import com.padelium.domain.dto.GetBookingResponse
+import com.padelium.domain.dto.GetReservationResponse
 import com.padelium.domain.dto.LoginRequest
 import kotlinx.coroutines.CoroutineScope
 import java.math.BigDecimal
@@ -119,6 +126,32 @@ fun AppNavHost(
                     paymentGetAvoirViewModel = paymentGetAvoirViewModel,
                     amount = encodedAmount,
                     Id = encodedId
+                )
+            }
+
+            composable(
+                route = "WebViewScreen2?formUrl={formUrl}&orderId={orderId}&BookingId={BookingId}&privateList={privateList}&encodedPartnerPayId={encodedPartnerPayId}",
+                arguments = listOf(
+                    navArgument("formUrl") { type = NavType.StringType },
+                    navArgument("orderId") { type = NavType.StringType },
+                    navArgument("BookingId") { type = NavType.StringType },
+                    navArgument("privateList") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("encodedPartnerPayId") { type = NavType.StringType },
+
+                    )
+            ) { backStackEntry ->
+                val formUrl = backStackEntry.arguments?.getString("formUrl") ?: ""
+                val orderId = backStackEntry.arguments?.getString("orderId") ?: ""
+                val bookingId = backStackEntry.arguments?.getString("BookingId") ?: ""
+                val privateListString = backStackEntry.arguments?.getString("privateList") ?: ""
+                val privateList = privateListString.split(",").mapNotNull { it.toLongOrNull() }.toMutableList()
+
+                val viewmodel: PaymentPartBookingViewModel = hiltViewModel()
+
+                WebViewScreen2(
+                    navController = navController,
+                    viewmodel = viewmodel,
+                    formUrl = formUrl,
                 )
             }
 
@@ -280,6 +313,17 @@ fun AppNavHost(
                 )
             }
 
+            composable(
+                route = "PartnerPaymentScreen/{partnerPayId}",
+                arguments = listOf(navArgument("partnerPayId") { type = NavType.StringType }) // Expect a String argument
+            ) { backStackEntry ->
+                val partnerPayId = backStackEntry.arguments?.getString("partnerPayId")
+
+                PartnerPaymentScreen(
+                    navController = navController,
+                    partnerPayId = partnerPayId // Pass ID to screen
+                )
+            }
 
 
 
@@ -320,9 +364,8 @@ fun AppNavHost(
 
 
 
-            composable("PartnerPaymentScreen") {
-                PartnerPaymentScreen(navController = navController)
-            }
+
+
             composable("summary_screen") {
                 SummaryScreen(navController = navController)
             }
