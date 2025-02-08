@@ -1,0 +1,88 @@
+package com.padelium.data.mappers
+
+import com.padelium.data.dto.GetReservationResponseDTO
+import com.padelium.domain.dto.GetReservationResponse
+import javax.inject.Inject
+
+class GetReservationMapper @Inject constructor() {
+
+    fun mapGetReservationResponseDTOToGetReservationResponse(
+        getReservationList: List<GetReservationResponseDTO>
+    ): List<GetReservationResponse> {
+        return getReservationList.map { response ->
+            GetReservationResponse(
+                id = response.id ?: 0, // Default to 0 if id is null
+                from = response.from?.toString() ?: "", // Converting Instant to String or default empty string
+                to = response.to?.toString() ?: "",
+                annulationDate = response.annulationDate?.toString() ?: "",
+                sellAmount = response.sellAmount?.toDouble() ?: 0.0, // BigDecimal to Double
+                purchaseAmount = response.purchaseAmount?.toDouble() ?: 0.0,
+                numberOfPlayer = response.numberOfPlayer ?: 0,
+                reference = response.reference ?: "",
+                description = response.description ?: "",
+                isRefundable = response.isRefundable ?: false,
+                created = response.created ?: "",
+                updated = response.updated ?: "",
+                createdBy = response.createdBy ?: 0,
+                updatedBy = response.updatedBy ?: 0,
+                currencyFromId = response.currencyFromId ?: 0,
+                currencyToId = response.currencyToId ?: 0,
+                bookingStatusId = response.bookingStatusId ?: 0,
+                establishmentId = response.establishmentId ?: 0,
+                userId = response.userId ?: 0,
+                userLogin = response.userLogin ?: "",
+                establishmentName = response.establishmentName ?: "",
+                bookingStatusName = response.bookingStatusName ?: "",
+                userEmail = response.userEmail ?: "",
+                currencyFromSymbol = response.currencyFromSymbol ?: "",
+                gainFromManager = response.gainFromManager?.toDouble() ?: 0.0,
+                bookingStatusCode = response.bookingStatusCode ?: "",
+                userPhone = response.userPhone ?: "",
+                cancelBook = response.cancelBook ?: false,
+                cancel = response.cancel ?: false,
+                isonline = response.isonline ?: false,
+                activityName = response.activityName ?: "",
+                cityName = response.cityName ?: "",
+                establishmentCode = response.establishmentCode ?: "",
+                localAmount = response.localAmount?.toDouble() ?: 0.0,
+                reduction = response.reduction ?: 0,
+                showcancel = response.showcancel ?: false,
+                showfeedBack = response.showfeedBack ?: false,
+                bookingDate = response.bookingDate ?: "",
+                token = response.token ?: "",
+                paymentError = response.paymentError ?: false,
+                paymentprog = response.paymentprog ?: false,
+                amountToPay = response.amountToPay?.toDouble() ?: 0.0,
+                sobflousCode = response.sobflousCode ?: "",
+                couponId = response.couponId ?: 0,
+                isCoupon = response.isCoupon ?: false,
+                couponValue = response.couponValue ?: "",
+                couponCode = response.couponCode ?: "",
+                establishmentPacksId = response.establishmentPacksId ?: 0,
+                establishmentTypeCode = response.establishmentTypeCode ?: "",
+                isConfirmed = response.isConfirmed ?: false,
+                isFromEvent = response.isFromEvent ?: false,
+                establishmentPacksFirstTitle = response.establishmentPacksFirstTitle ?: "",
+                establishmentPacksSecondTitle = response.establishmentPacksSecondTitle ?: "",
+                usersIds = response.usersIds ?: emptyList(),
+                fromStr = response.fromStr ?: "",
+                toStr = response.toStr ?: "",
+                fromStrTime = response.fromStrTime ?: "",
+                toStrTime = response.toStrTime ?: "",
+                activePayment = response.activePayment ?: false,
+                isWaitForPay = response.isWaitForPay ?: false,
+                bookingLabelId = response.bookingLabelId ?: 0,
+                bookingLabelName = response.bookingLabelName ?: "",
+                bookingLabelColors = response.bookingLabelColors ?: "",
+                sharedExtrasIds = response.sharedExtrasIds ?: emptyList(),
+                privateExtrasIds = response.privateExtrasIds ?: emptyList(),
+                privateExtrasLocalIds = response.privateExtrasLocalIds ?: mutableMapOf(),
+                userFirstName = response.userFirstName ?: "",
+                userLastName = response.userLastName ?: "",
+                extras = response.extras ?: emptyList(),
+                numberOfPart = response.numberOfPart ?: 0,
+                createdStr = response.createdStr ?: ""
+            )
+        }
+    }
+}
