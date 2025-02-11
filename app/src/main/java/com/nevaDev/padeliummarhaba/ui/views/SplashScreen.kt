@@ -28,16 +28,17 @@ fun SplashScreen() {
 
     Box(
         modifier = Modifier
-            .fillMaxSize()
+            .fillMaxSize() // Make the Box fill the entire screen
             .background(Color(0xFF0054D8)),
         contentAlignment = Alignment.Center
     ) {
         Column(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize() // Ensure the Column takes up the full screen
+                .offset(y = -200.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-
 
             Image(
                 painter = painterResource(id = R.drawable.logopadelium),
@@ -61,7 +62,6 @@ fun SplashScreen() {
                     .offset(y = 190.dp)
             )
 
-
             Spacer(modifier = Modifier.weight(1f))
 
             if (isLoading) {
@@ -73,8 +73,32 @@ fun SplashScreen() {
                         .padding(bottom = 32.dp)
                 )
             }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .offset(y=185.dp),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth() // Ensure the Column stretches to full width
+                        .padding(6.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Spacer(modifier = Modifier.height(3.dp))
+
+                    Text(
+                        text = "v1.0.0",
+                        fontSize = 10.sp,
+                        color = Color.White
+                    )
+
+                    CopyrightText()
+                }
+            }
         }
     }
+
 }
 
 @Preview(showBackground = true)

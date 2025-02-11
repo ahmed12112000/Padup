@@ -97,7 +97,7 @@ fun TimeSlotSelector(
         columns = GridCells.Fixed(4),
         modifier = Modifier
             .fillMaxWidth()
-            .padding(8.dp),
+            .padding(4.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -116,17 +116,20 @@ fun TimeSlotSelector(
                 } else {
                     null // No border if selected
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .size(30.dp) // Reduced size for button
             ) {
                 Text(
                     text = formattedTime,
                     color = if (selectedTimeSlot == formattedTime) Color.White else Color.Black,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp // Reduced font size
                 )
             }
         }
     }
 }
+
 
 
 
@@ -213,7 +216,10 @@ fun SuccessState(
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel
 
 ) {
-    Column(modifier = Modifier.fillMaxSize().offset(y=300.dp)) {
+    Column(modifier = Modifier
+        .fillMaxSize()
+        .offset(y=280.dp)
+    ) {
         // Display TimeSlotSelector with deduplicated filteredTimeSlots
         TimeSlotSelector(
             timeSlots = filteredTimeSlots,
@@ -240,7 +246,6 @@ fun SuccessState(
         }
     }
 }
-
 @Composable
 private fun EstablishmentCard(
     getBookingResponseDTO: GetBookingResponseDTO,
@@ -254,7 +259,6 @@ private fun EstablishmentCard(
     viewModel1: ExtrasViewModel = hiltViewModel(),
     selectedTimeSlot: String?,
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel
-
 ) {
     // Filter plannings by the selected time slot
     val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
@@ -275,9 +279,8 @@ private fun EstablishmentCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 6.dp)
+                .padding(vertical = 4.dp) // Reduced padding
                 .clickable {
-
                     handleCardClick(
                         selectedBooking = getBookingResponseDTO,
                         planning = planning,
@@ -287,21 +290,20 @@ private fun EstablishmentCard(
                         onLoginRequired = { showLoginPopup = true },
                         saveBookingViewModel = saveBookingViewModel,
                         viewModel1 = viewModel1,
-                        onReservationSelected = { reservationOption ->
-                        },
-                        paymentPayAvoirViewModel= paymentPayAvoirViewModel,
+                        onReservationSelected = { reservationOption -> },
+                        paymentPayAvoirViewModel = paymentPayAvoirViewModel,
                         amountToShow = amountToShow,
                         context = context // Pass the context here
-
                     )
                 },
-            shape = RoundedCornerShape(12.dp),
+            shape = RoundedCornerShape(10.dp), // Slightly smaller radius
             border = BorderStroke(1.dp, Color.Gray),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             EstablishmentCardContent(getBookingResponseDTO, planning)
         }
     }
+
     /*
     if (showLoginPopup) {
         Dialog(onDismissRequest = { showLoginPopup = false }) {
@@ -332,36 +334,36 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(16.dp),
+            .padding(6.dp), // Reduced padding for more compact layout
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = painterResource(id = R.drawable.logopadelium),
             contentDescription = "Establishment Icon",
             modifier = Modifier
-                .size(60.dp)
+                .size(48.dp) // Smaller icon size
                 .background(Color(0xFF0054D8), shape = CircleShape)
-                .padding(8.dp),
+                .padding(4.dp), // Reduced padding
             tint = Color.Unspecified
         )
 
-        Spacer(modifier = Modifier.width(16.dp))
+        Spacer(modifier = Modifier.width(12.dp)) // Reduced space between icon and text
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = getBookingResponseDTO.establishmentDTO?.name ?: "Unknown",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp,
+                fontSize = 14.sp, // Smaller font size
                 color = Color.Black
             )
             Text(
                 text = "${planning.fromStr} - ${planning.toStr}",
-                fontSize = 16.sp,
+                fontSize = 12.sp, // Smaller font size
                 color = Color.Gray
             )
             Text(
                 text = "90 min",
-                fontSize = 16.sp,
+                fontSize = 12.sp, // Smaller font size
                 color = Color.Gray
             )
         }
@@ -378,7 +380,7 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
                     Text(
                         text = "${String.format("%.2f", amountToShow)} DT",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 18.sp,
+                        fontSize = 14.sp, // Smaller font size
                         color = Color(0xFF0054D8),
                         textAlign = TextAlign.Center
                     )
@@ -399,7 +401,7 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
                 Text(
                     text = "${String.format("%.2f", planning.reductionPrice)} DT",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
+                    fontSize = 14.sp, // Smaller font size
                     color = Color.Red, // Discounted price in Red
                     textAlign = TextAlign.Center
                 )
@@ -407,7 +409,7 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
                 Text(
                     text = "${String.format("%.2f", amountToShow)} DT",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp,
+                    fontSize = 14.sp, // Smaller font size
                     color = Color(0xFF0054D8),
                     textAlign = TextAlign.Center
                 )

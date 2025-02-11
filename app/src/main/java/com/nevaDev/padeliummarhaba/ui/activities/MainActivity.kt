@@ -46,6 +46,7 @@ import kotlinx.coroutines.*
 import androidx.compose.material.BottomNavigation
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CreditCard
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorFilter
@@ -141,6 +142,8 @@ fun MainApp(
         isUserLoggedIn = firstName.isNotEmpty() && lastName.isNotEmpty() && image.isNotEmpty()
 
     }
+
+/*
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -166,7 +169,10 @@ fun MainApp(
                 )
             }
         }
-    ) {
+    )
+    {
+
+ */
         Scaffold(
 
             bottomBar = {
@@ -193,7 +199,8 @@ fun MainApp(
             }
         )
     }
-}
+
+
 
 @Composable
 fun TopBar(
@@ -228,6 +235,7 @@ fun TopBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
+                /*
                 Icon(
                     painter = painterResource(id = R.drawable.sidebarblue),
                     contentDescription = "Menu",
@@ -247,6 +255,7 @@ fun TopBar(
                         }
                         .padding(8.dp)
                 )
+                 */
 
                 Icon(
                     painter = painterResource(id = R.drawable.logopadelium),
@@ -259,7 +268,7 @@ fun TopBar(
                             navController.navigate("main_screen")
                         }
                         .padding(8.dp)
-                        .offset(x = 70.dp)
+                        .offset(x = 80.dp)
                 )
             }
         }
@@ -292,8 +301,7 @@ fun ProfileScreen(onLogout: () -> Unit) {
         }
     }
 }
-*/
-@Composable
+*/@Composable
 fun MainScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
@@ -309,101 +317,94 @@ fun MainScreen(
 
     val images = listOf(R.drawable.a, R.drawable.b, R.drawable.c)
 
-    LazyColumn(
+    Column(
         modifier = Modifier.fillMaxSize()
     ) {
-        item {
-            Box(
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .offset(y = -4.dp)
+                .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
+                .background(Color(0xFF0054D8))
+                .height(150.dp)
+        ) {
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y = -4.dp)
-                    .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
                     .background(Color(0xFF0054D8))
-                    .height(150.dp)
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color(0xFF0054D8))
-                        .padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) { }
+                Spacer(modifier = Modifier.height(8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) { }
+            }
+        }
+
+        Button(
+            onClick = {
+                if (!isButtonClicked) {
+                    isButtonClicked = true
+                    selectedDate = LocalDate.now()
+
+                    selectedDate?.let { date ->
+                        isLoading = true
+                        onReservationClicked(date)
+                    } ?: Log.e("MainScreen", "Selected date is null")
                 }
-            }
-        }
-
-        item {
-            Button(
-                onClick = {
-                    if (!isButtonClicked) {
-                        isButtonClicked = true
-                        selectedDate = LocalDate.now()
-
-                        selectedDate?.let { date ->
-                            isLoading = true
-                            onReservationClicked(date)
-                        } ?: Log.e("MainScreen", "Selected date is null")
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD7F057)),
-                modifier = Modifier
-                    .fillMaxWidth(0.5f)
-                    .offset(x = 100.dp, y = -35.dp)
-                    .border(0.5.dp, Color(0xFFD7F057), RoundedCornerShape(12.dp))
-                    .height(50.dp),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Text(
-                    text = "Réserver",
-                    color = Color(0xFF0054D8),
-                    fontSize = 23.sp,
-                    fontWeight = FontWeight.Bold,
-                )
-            }
-        }
-
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 16.dp, end = 16.dp, top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.pictures_gallerie),
-                    contentDescription = "Logo",
-                    modifier = Modifier.size(30.dp)
-                )
-                Spacer(modifier = Modifier.width(5.dp))
-                Text(
-                    text = "|",
-                    color = Color(0xFF0054D8),
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Bold
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Photos",
-                    color = Color(0xFF0054D8),
-                    fontSize = 25.sp,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        item {
-            ImageCarousel(
-                images = images,
-                modifier = Modifier.padding(top = 30.dp)
-                    .fillMaxWidth()
-                    .height(350.dp)
+            },
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD7F057)),
+            modifier = Modifier
+                .fillMaxWidth(0.5f)
+                .offset(x = 100.dp, y = -35.dp)
+                .border(0.5.dp, Color(0xFFD7F057), RoundedCornerShape(12.dp))
+                .height(50.dp),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text(
+                text = "Réserver",
+                color = Color(0xFF0054D8),
+                fontSize = 23.sp,
+                fontWeight = FontWeight.Bold,
             )
         }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 16.dp, end = 16.dp, top = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.pictures_gallerie),
+                contentDescription = "Logo",
+                modifier = Modifier.size(30.dp)
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "|",
+                color = Color(0xFF0054D8),
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = "Photos",
+                color = Color(0xFF0054D8),
+                fontSize = 25.sp,
+                fontWeight = FontWeight.Bold
+            )
+        }
+
+        ImageCarousel(
+            images = images,
+            modifier = Modifier
+                .padding(top = 30.dp)
+                .fillMaxWidth()
+                .height(350.dp)
+        )
     }
 }
 
@@ -457,35 +458,6 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 
 
 
-
-
-/*  Button(
-                       onClick = { },
-                       colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
-                       shape = RoundedCornerShape(12.dp)
-                   ) {
-                       Icon(
-                           painter = painterResource(id = R.drawable.datewhite),
-                           contentDescription = "Activate",
-                           tint = Color.Unspecified,
-                           modifier = Modifier.size(44.dp)
-                       )
-                   } */
-/*
-                        Button(
-                            onClick = {  },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.chariot),
-                                contentDescription = "Activate",
-                                tint = Color.White,
-                                modifier = Modifier.size(44.dp) // Adjust size as needed
-                            )
-                        } */
-
-
 @Composable
 fun AnimatedBottomBar(
     navController: NavController,
@@ -504,55 +476,25 @@ fun AnimatedBottomBar(
             backgroundColor = Color(0xFF0054D8),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(95.dp)
+                .height(80.dp) // Reduced the height for better fit
         ) {
             listOf(
                 NavItem("main_screen", Icons.Filled.Home, "Accueil"),
                 NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
-                NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits")
+                NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits"),
+                NavItem("Profile_screen", Icons.Filled.Person, "Profil") // Profile icon
             ).forEach { item ->
-                val isSelected = selectedItem == item.route
-                val animatedOffsetY by animateDpAsState(
-                    targetValue = if (isSelected) (-12).dp else 0.dp,
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioMediumBouncy,
-                        stiffness = Spring.StiffnessLow
-                    )
-                )
-
                 CustomBottomNavItem(
                     navController = navController,
                     route = item.route,
                     icon = item.icon,
                     label = item.label,
-                    isSelected = selectedItem == item.route,
-                    onClick = {
-                        // Handle navigation to CreditPayment screen
-                    }
+                    isSelected = selectedItem == item.route
                 )
             }
         }
     }
 }
-/*
-
-            CustomBottomNavItem(
-                navController = navController,
-                route = "CreditPayment",
-                icon = Icons.Filled.CreditCard,
-                label = "Mes crédits",
-                isSelected = selectedItem == "CreditPayment",
-                onClick = {
-                    // Handle navigation to CreditPayment screen
-                }
-            )
-        }
-
-        // Handle reservation data states
-
-    }
-}
-*/
 
 @Composable
 fun CustomBottomNavItem(
@@ -560,9 +502,7 @@ fun CustomBottomNavItem(
     route: String,
     icon: ImageVector,
     label: String,
-    isSelected: Boolean,
-    onClick: @Composable () -> Unit
-
+    isSelected: Boolean
 ) {
     val animatedOffsetY by animateDpAsState(
         targetValue = if (isSelected) (-12).dp else 0.dp,
@@ -586,9 +526,7 @@ fun CustomBottomNavItem(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .padding(horizontal = 16.dp, vertical = 4.dp)
-
-
+            .padding(horizontal = 10.dp, vertical = 4.dp) // Adjusted padding
             .clickable {
                 navController.navigate(route) {
                     popUpTo(navController.graph.startDestinationId) { saveState = true }
@@ -596,34 +534,35 @@ fun CustomBottomNavItem(
                     restoreState = true
                 }
             }
-            .padding(12.dp)
+            .padding(10.dp) // Reduced padding for better fit
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
-            modifier = Modifier.height(60.dp)
+            modifier = Modifier
+                .height(60.dp) // Reduced height for better fit
                 .offset(y = animatedOffsetY)
-
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 tint = contentColor,
-                modifier = Modifier.size(40.dp)
+                modifier = Modifier
+                    .size(27.dp) // Reduced icon size
                     .clip(CircleShape)
                     .background(backgroundColor)
-
             )
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp)) // Reduced spacer size
             Text(
                 text = label,
                 color = textColor,
-                fontSize = 14.sp,
+                fontSize = 10.sp, // Reduced font size
                 fontWeight = FontWeight.Normal
             )
         }
     }
 }
+
 
 data class NavItem(val route: String, val icon: ImageVector, val label: String)
 
