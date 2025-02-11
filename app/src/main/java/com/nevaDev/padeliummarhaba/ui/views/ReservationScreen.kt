@@ -141,12 +141,7 @@ fun ReservationScreen(
         filterSlotsByDate(selectedDate.value)
     }
 
-/*
-    LaunchedEffect(selectedDate.value) {
-        fetchReservationData(selectedDate.value)
-        filterSlotsByDate(selectedDate.value)
-    }
-*/
+
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -179,7 +174,7 @@ fun ReservationScreen(
 
 //      ZoneId.of("GMT+1")
 
-   //     Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -203,59 +198,29 @@ fun ReservationScreen(
             )
 
         }
-/*
 
-                TimeSlotSelector(
-                    timeSlots = parsedTimeSlots,
-                    onTimeSlotSelected = { selectedTimeSlot.value = it },
-                    selectedTimeSlot = selectedTimeSlot.value
-                )
-
-*/
 
         if (parsedTimeSlots.isEmpty()) {
             Text(text = "", color = Color.Red, textAlign = TextAlign.Center)
         }
     }
 
-      //  Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        if (!showPaymentSection) {
-            ReservationOptions(
-                onReservationSelected = { selectedReservation.value = it },
-                isUserLoggedIn = isUserLoggedIn,
-                key = reservationKey.value,
-                viewModel = getBookingViewModel,
-                navController = navController,
-                selectedDate = selectedDate.value ,
-                selectedTimeSlot = selectedTimeSlot.value,
-                paymentPayAvoirViewModel = paymentPayAvoirViewModel
+    if (!showPaymentSection) {
+        ReservationOptions(
+            onReservationSelected = { selectedReservation.value = it },
+            isUserLoggedIn = isUserLoggedIn,
+            key = reservationKey.value,
+            viewModel = getBookingViewModel,
+            navController = navController,
+            selectedDate = selectedDate.value ,
+            selectedTimeSlot = selectedTimeSlot.value,
+            paymentPayAvoirViewModel = paymentPayAvoirViewModel
 
 
             )
         }
-        /*
-                if (selectedReservation.value != null && selectedTimeSlot.value != null) {
-                    ReservationSummary(
-                        selectedDate = selectedDate.value,
-                        selectedReservation = selectedReservation.value!!,
-                        selectedTimeSlot = selectedTimeSlot.value!!,
-                        extrasCost = 0,
-                        selectedRaquette = "1",
-                        includeBalls = false,
-                        onTotalAmountCalculated = { totalAmount ->
-                            Log.d("TotalAmount", "Calculated Total Amount: $totalAmount")
-                        }
-                    )
-                } else if (showLoginPopup) {
-                    PopLoginDialog(
-                        onDismiss = { showLoginPopup = false },
-                        onLoginSuccess = {
-                            showLoginPopup = false
-                            showPaymentSection = true
-                        }
-                    )
-                }*/
     }
 @Composable
 fun TimeSlotButton(
@@ -332,8 +297,7 @@ fun TabItem(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.Gray,
-                    modifier = Modifier.size(24.dp),
-
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -572,71 +536,3 @@ fun DaySelectorWithArrows(
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-@Composable
-fun PopLoginDialog(onDismiss: () -> Unit, onLoginSuccess: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .size(1000.dp)
-                .padding(vertical = 100.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) { /*
-            LoginScreen(onLoginSuccess = {
-                onLoginSuccess()
-                onDismiss()
-                navController = navController
-
-                viewModel = hiltViewModel(), */
-            })
-        }
-    }
-}
-
-*/
-
-
-
-@Preview(showBackground = true)
-@Composable
-fun TabItemPreview() {
-    val navController = rememberNavController()
-
-    Row {
-        TabItem(
-            isSelected = true,
-            title = "CHOISIR UN CRÉNEAU",
-            icon = painterResource(id = R.drawable.calendre),
-            onClick = {
-                Log.d("TabItemPreview", "Tab clicked")
-            },
-            navController = navController,
-
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-
-    }
-}
-
-
-
-
-
-
-

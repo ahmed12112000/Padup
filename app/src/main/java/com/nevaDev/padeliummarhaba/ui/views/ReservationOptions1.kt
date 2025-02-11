@@ -194,7 +194,7 @@ fun ReservationOptions(
 }
 
 @Composable
- fun LoadingState() {
+fun LoadingState() {
     Box(modifier = Modifier.fillMaxSize()) {
         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
     }
@@ -422,7 +422,7 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
 
 
 @Composable
- fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
+fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     setErrorMessage(errorMessage ?: "An unexpected error occurred.")
 }
 
@@ -446,7 +446,7 @@ fun handleCardClick(
 ) {
 
 
-   // val amountSelected = selectedBooking.amount ?: BigDecimal.ZERO
+    // val amountSelected = selectedBooking.amount ?: BigDecimal.ZERO
 
     val currencySymbol = selectedBooking.currencySymbol ?: "€"
     val formattedAmount = String.format("%.2f", amountToShow)

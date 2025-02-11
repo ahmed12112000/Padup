@@ -108,7 +108,7 @@ fun MainApp(
     context: Context,
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
-  //  onLogout: () -> Unit,
+    //  onLogout: () -> Unit,
 ) {
 
     val navController = rememberNavController()
@@ -143,63 +143,33 @@ fun MainApp(
 
     }
 
-/*
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            if (isUserLoggedIn) {
-                DrawerContentOnline(
-                    navController = navController,
-                    onItemSelected = { itemSelected -> },
-                    onCloseDrawer = {
-                        scope.launch { drawerState.close() }
-                    },
-                    firstName = firstName,
-                    lastName = lastName,
-                    image = image,
-                  //  onLogout = onLogoutAction // Use the onLogoutAction passed here
-                )
-            } else {
-                DrawerContent(
-                    navController = navController,
-                    onItemSelected = { itemSelected -> },
-                    onCloseDrawer = {
-                        scope.launch { drawerState.close() }
-                    }
-                )
-            }
-        }
-    )
-    {
 
- */
         Scaffold(
 
-            bottomBar = {
-                AnimatedBottomBar(
+        bottomBar = {
+            AnimatedBottomBar(
+                navController = navController,
+                getReservationViewModel = getReservationViewModel
+            )
+        },
+        content = { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                AppNavHost(
                     navController = navController,
-                    getReservationViewModel = getReservationViewModel
-                )
-            },
-            content = { innerPadding ->
-                Box(modifier = Modifier.padding(innerPadding)) {
-                    AppNavHost(
-                        navController = navController,
-                        isUserLoggedIn = isUserLoggedIn,
-                        onLoginSuccess = { isUserLoggedIn = true },
-                        onLogout = { isUserLoggedIn = false },
-                        context = context,
-                        sharedPreferences = sharedPreferences,
-                        drawerState = drawerState,
-                        scope = scope,
-                        onSignupSuccess = { isUserLoggedIn = false },
+                    isUserLoggedIn = isUserLoggedIn,
+                    onLoginSuccess = { isUserLoggedIn = true },
+                    onLogout = { isUserLoggedIn = false },
+                    context = context,
+                    sharedPreferences = sharedPreferences,
+                    drawerState = drawerState,
+                    scope = scope,
+                    onSignupSuccess = { isUserLoggedIn = false },
 
                         )
                 }
             }
         )
     }
-
 
 
 @Composable
@@ -235,27 +205,7 @@ fun TopBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                /*
-                Icon(
-                    painter = painterResource(id = R.drawable.sidebarblue),
-                    contentDescription = "Menu",
-                    tint = Color.Unspecified,
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .offset(x = -15.dp)
-                        .clickable {
-                            scope.launch {
-                                if (drawerState.isClosed) {
-                                    drawerState.open()
-                                } else {
-                                    drawerState.close()
-                                }
-                            }
-                        }
-                        .padding(8.dp)
-                )
-                 */
+
 
                 Icon(
                     painter = painterResource(id = R.drawable.logopadelium),
@@ -281,27 +231,7 @@ fun logout(context: Context) {
     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
 }
 
-/*
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
-    // Your existing profile screen UI components
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Profile Screen")
-
-        // Add a Logout button
-        Button(onClick = {
-            onLogout() // Call the onLogout function passed from MainApp
-        }) {
-            Text("Logout")
-        }
-    }
-}
-*/@Composable
 fun MainScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
@@ -548,7 +478,7 @@ fun CustomBottomNavItem(
                 contentDescription = label,
                 tint = contentColor,
                 modifier = Modifier
-                    .size(27.dp) // Reduced icon size
+                    .size(32.dp) // Reduced icon size
                     .clip(CircleShape)
                     .background(backgroundColor)
             )
@@ -556,7 +486,7 @@ fun CustomBottomNavItem(
             Text(
                 text = label,
                 color = textColor,
-                fontSize = 10.sp, // Reduced font size
+                fontSize = 12.sp, // Reduced font size
                 fontWeight = FontWeight.Normal
             )
         }
@@ -676,16 +606,7 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                     navController.navigate("main_screen")
                 }
             )
-/*
-            DrawerItem(
-                icon = R.drawable.sidebarmenue,
-                label = "Réserver un terrain",
-                onClick = {
-                    navController.navigate("reservation_options/${LocalDate.now()}/${null}") // Pass the selected date and time slot
-                }
-            )
 
- */
 
             DrawerItem(
                 icon = R.drawable.sidebarmenue,
@@ -797,41 +718,6 @@ fun DrawerItem(
 
     Divider(color = Color.White, thickness = 1.dp)
 }
-/*
 
-@Preview(showBackground = true)
-@Composable
-fun TopBarPreview() {
-    val navController = rememberNavController()
 
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    val scope = rememberCoroutineScope()
-
-    TopBar(navController = navController, drawerState = drawerState, scope = scope)
-}
-@Preview(showBackground = true)
-@Composable
-fun PreviewMainScreen() {
-    MainScreen(
-        navController = rememberNavController(),
-        onReservationClicked = { date ->
-        }
-    )
-}
-*/
-
-@Preview(showBackground = true)
-@Composable
-fun AnimatedBottomBarPreview() {
-    val mockNavController = rememberNavController()
-
-    // You can use a mocked NavController for preview
-    val navController = rememberNavController()
-    val getReservationViewModel: GetReservationViewModel = hiltViewModel()
-
-    AnimatedBottomBar(navController = navController,
-        getReservationViewModel = getReservationViewModel
-    )
-}
 
