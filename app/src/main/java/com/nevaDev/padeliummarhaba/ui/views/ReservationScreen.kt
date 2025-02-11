@@ -158,7 +158,7 @@ fun ReservationScreen(
                 title = "CHOISIR UN CRÉNEAU",
                 icon = painterResource(id = R.drawable.calendre),  // Load drawable icon
                 onClick = { showPaymentSection = false },
-                onBackClick = {}
+                navController = navController
             )
         }
 
@@ -179,7 +179,7 @@ fun ReservationScreen(
 
 //      ZoneId.of("GMT+1")
 
-        Spacer(modifier = Modifier.height(16.dp))
+   //     Spacer(modifier = Modifier.height(10.dp))
 
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -218,7 +218,7 @@ fun ReservationScreen(
         }
     }
 
-        Spacer(modifier = Modifier.height(16.dp))
+      //  Spacer(modifier = Modifier.height(16.dp))
 
         if (!showPaymentSection) {
             ReservationOptions(
@@ -305,7 +305,7 @@ fun TabItem(
     title: String,
     icon: Painter,
     onClick: () -> Unit,
-    onBackClick: () -> Unit
+    navController: NavController
 ) {
     Column(
         horizontalAlignment = Alignment.Start,
@@ -323,12 +323,17 @@ fun TabItem(
             modifier = Modifier.fillMaxWidth()
         ) {
             // Back arrow icon (clickable)
-            IconButton(onClick = { onBackClick() }) {
+            IconButton(
+                onClick = {
+                    navController.navigate("main_screen")
+                }
+            ) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.Gray,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(24.dp),
+
                 )
             }
 
@@ -458,12 +463,12 @@ fun DaySelectorWithArrows(
         Text(
             text = monthYearFormatter.format(finalSelectedDate).uppercase(Locale.FRENCH),
             color = Color(0xFF0054D8),
-            fontSize = 16.sp,
+            fontSize = 14.sp,
             fontWeight = FontWeight.Bold,
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
+                .padding(vertical = 4.dp)
         )
 
         // Navigation Row with Arrows and "AUJOURD'HUI"
@@ -486,14 +491,14 @@ fun DaySelectorWithArrows(
                     onDateSelected(currentDate) // Set to current date explicitly
                 }
                     .border(1.dp, Color.Gray, shape = RoundedCornerShape(8.dp))
-                    .padding(vertical = 8.dp, horizontal = 16.dp),
+                    .padding(vertical = 4.dp, horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
                     text = "AUJOURD'HUI",
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0054D8),
-                    fontSize = 14.sp,
+                    fontSize = 12.sp,
                 )
                 Icon(
                     Icons.Default.CalendarToday,
@@ -518,7 +523,7 @@ fun DaySelectorWithArrows(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp) // Add space between days
+            horizontalArrangement = Arrangement.spacedBy(4.dp) // Add space between days
         ) {
             items(daysInWeek) { day ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -536,8 +541,8 @@ fun DaySelectorWithArrows(
                                 color = Color.Gray,
                                 shape = RoundedCornerShape(8.dp)
                             )
-                            .padding(vertical = 8.dp, horizontal = 8.dp)
-                            .width(60.dp),
+                            .padding(vertical = 4.dp, horizontal = 4.dp)
+                            .width(40.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
@@ -545,21 +550,21 @@ fun DaySelectorWithArrows(
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                            fontSize = 12.sp
+                            fontSize = 10.sp
                         )
                         Text(
                             text = dateFormatter.format(day),
                             fontWeight = FontWeight.Bold,
                             textAlign = TextAlign.Center,
                             color = if (day == finalSelectedDate) Color.White else Color.Black,
-                            fontSize = 18.sp
+                            fontSize = 14.sp
                         )
                         Text(
                             text = monthFormatter.format(day).uppercase(),
                             fontWeight = FontWeight.Normal,
                             textAlign = TextAlign.Center,
                             color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                            fontSize = 12.sp
+                            fontSize = 10.sp
                         )
                     }
                 }
@@ -609,6 +614,8 @@ fun PopLoginDialog(onDismiss: () -> Unit, onLoginSuccess: () -> Unit) {
 @Preview(showBackground = true)
 @Composable
 fun TabItemPreview() {
+    val navController = rememberNavController()
+
     Row {
         TabItem(
             isSelected = true,
@@ -617,10 +624,8 @@ fun TabItemPreview() {
             onClick = {
                 Log.d("TabItemPreview", "Tab clicked")
             },
-            onBackClick = {
-                Log.d("TabItemPreview", "Back arrow clicked")
-                // Handle back navigation logic here
-            }
+            navController = navController,
+
         )
 
         Spacer(modifier = Modifier.width(16.dp))

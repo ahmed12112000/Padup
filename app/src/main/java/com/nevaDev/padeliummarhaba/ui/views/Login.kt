@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -159,9 +160,9 @@ fun LoginScreen(
                 value = email,
                 onValueChange = {
                     email = it.trim()
-                    isEmailError = !email.matches(emailPattern) // Check email format
+                    isEmailError = !email.matches(emailPattern)
                 },
-                label = { Text("E-mail") },
+                label = { Text(stringResource(R.string.email)) },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.mail),
@@ -180,15 +181,17 @@ fun LoginScreen(
                 ),
                 isError = isEmailError
             )
-
+/*
             if (isEmailError) {
                 Text(
-                    text = "Veuillez entrer une adresse e-mail valide",
+                    text = stringResource(R.string.email_error),
                     color = Color.Red,
                     style = MaterialTheme.typography.body2,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+
+ */
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -197,9 +200,9 @@ fun LoginScreen(
                 value = password,
                 onValueChange = {
                     password = it.trim()
-                    isPasswordError = false
+                    isPasswordError = password.length < 8
                 },
-                label = { Text("Mot de Passe") },
+                label = { Text(stringResource(R.string.password)) },
                 leadingIcon = {
                     Icon(
                         painter = painterResource(id = R.drawable.password),
@@ -229,14 +232,17 @@ fun LoginScreen(
                 ),
                 isError = isPasswordError
             )
+            /*
             if (isPasswordError) {
                 Text(
-                    text = "Password cannot be empty",
+                    text = stringResource(R.string.password_error),
                     color = Color.Red,
                     style = MaterialTheme.typography.body2,
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+
+             */
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -270,7 +276,7 @@ fun LoginScreen(
 
              */
                 Text(
-                    text = "Mot de passe oublié ?",
+                    text = stringResource(R.string.forgot_password),
                     color = Color(0xFF0054D8),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.Medium,
@@ -280,7 +286,8 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(36.dp))
             val isEmailValid = email.matches(emailPattern)
-            val isButtonEnabled = isEmailValid && email.isNotBlank() && password.isNotBlank()
+            val isPasswordValid = password.length >= 8
+            val isButtonEnabled = isEmailValid && isPasswordValid && email.isNotBlank() && password.isNotBlank()
 
             Button(
                 onClick = {
@@ -302,7 +309,7 @@ fun LoginScreen(
                     CircularProgressIndicator(color = MaterialTheme.colors.onPrimary)
                 } else {
                     Text(
-                        text = "Se connecter",
+                        text = stringResource(R.string.login_button),
                         color = Color.White,
                         fontSize = 25.sp,
                         fontWeight = FontWeight.ExtraBold
@@ -347,15 +354,18 @@ fun LoginScreen(
                         color = Color(android.graphics.Color.parseColor("#999999")),
                         thickness = 1.dp
                     )
+                    text = stringResource(R.string.signinredirection),
 
                      */
                 }
                 Spacer(modifier = Modifier.height(1.dp))
                 Spacer(modifier = Modifier.height(60.dp))
                 Row {
-                    Text(text = "vous n'avez pas de compte ?", color = Color.Gray)
                     Text(
-                        text = "S'inscrire",
+                        text = stringResource(R.string.signinbutoon),
+                        color = Color.Gray)
+                    Text(
+                        text = stringResource(R.string.signinredirection),
                         color = Color.Black,
                         modifier = Modifier.clickable { navController.navigate("signup_screen") },
                         textDecoration = Underline

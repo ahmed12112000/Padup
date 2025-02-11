@@ -42,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration.Companion.Underline
@@ -73,6 +74,7 @@ fun SignUpScreen(
     var isSuccess by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
+    val emailPattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
@@ -146,15 +148,15 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = firstName,
                 onValueChange = { firstName = it },
-                label = { Text("Nom") },
+                label = { Text(stringResource(R.string.firstName)) },
                 leadingIcon = {
                 },
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp, top = 8.dp)
                     .offset(x = -22.dp, y = -8.dp)
-                    .shadow(8.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray)
-                ,                keyboardOptions = KeyboardOptions.Default.copy(
+                    .shadow(8.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray),
+                    keyboardOptions = KeyboardOptions.Default.copy(
                     keyboardType = KeyboardType.Text,
                     imeAction = ImeAction.Next
                 ),
@@ -171,7 +173,7 @@ fun SignUpScreen(
             OutlinedTextField(
                 value = lastName,
                 onValueChange = { lastName = it },
-                label = { Text("Prénom") },
+                label = { Text(stringResource(R.string.lastName)) },
                 leadingIcon = {
                 },
                 modifier = Modifier
@@ -196,11 +198,15 @@ fun SignUpScreen(
 
         }
         Spacer(modifier = Modifier.height(10.dp))
-
+        var isEmailError by remember { mutableStateOf(false) }
+        var isPasswordError by remember { mutableStateOf(false) }
         OutlinedTextField(
             value = email,
-            onValueChange = { email = it },
-            label = { Text("E-mail") },
+            onValueChange = {
+                email = it.trim()
+                isEmailError = !email.matches(emailPattern)
+            },
+            label = { Text(stringResource(R.string.email)) },
             leadingIcon = {
                 Icon(
                     painter = painterResource(id = R.drawable.email),
@@ -209,11 +215,10 @@ fun SignUpScreen(
                 )
             },
             modifier = Modifier.fillMaxWidth().offset(y = -75.dp, x = -10.dp)
-                .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray)
-            ,
+                .shadow(4.dp, RoundedCornerShape(15.dp), ambientColor = Color.Gray, spotColor = Color.Gray),
             keyboardOptions = KeyboardOptions.Default.copy(
-                keyboardType = KeyboardType.Email,
-                imeAction = ImeAction.Next
+            keyboardType = KeyboardType.Email,
+            imeAction = ImeAction.Next
             ),
             shape = RoundedCornerShape(15.dp),
             colors = TextFieldDefaults.outlinedTextFieldColors(
@@ -222,9 +227,11 @@ fun SignUpScreen(
                 unfocusedBorderColor = Color.Gray,
                 focusedLabelColor = Color.Black,
                 unfocusedLabelColor = Color.Black,
-            )
+            ),
+            isError = isEmailError
 
         )
+
     }
 
     /*
@@ -296,11 +303,15 @@ fun SignUpScreen(
     Spacer(modifier = Modifier.height(8.dp))
 
     var passwordVisible by remember { mutableStateOf(false) }
+    var isPasswordError by remember { mutableStateOf(false) }
 
     OutlinedTextField(
         value = password,
-        onValueChange = { password = it },
-        label = { Text("Mot de Passe") },
+        onValueChange = {
+            password = it.trim()
+            isPasswordError = password.length < 8
+        },
+        label = { Text(stringResource(R.string.password)) },
         leadingIcon = {
             Icon(
                 painter = painterResource(id = R.drawable.password1),
@@ -336,9 +347,10 @@ fun SignUpScreen(
             unfocusedBorderColor = Color.Gray,
             focusedLabelColor = Color.Black,
             unfocusedLabelColor = Color.Black,
-        )
-
+        ),
+        isError = isPasswordError
     )
+
 
     Spacer(modifier = Modifier.height(2.dp))
 
@@ -444,7 +456,13 @@ fun SignUpScreen(
 
 
     }
+    val isEmailValid = email.matches(emailPattern)
+    val isPasswordValid = password.length >= 8
+    val isFirstNameValid = firstName.isNotBlank()
+    val isLastNameValid = lastName.isNotBlank()
 
+// Update the button enabled condition to include firstName and lastName checks
+    val isButtonEnabled = isEmailValid && isPasswordValid && isFirstNameValid && isLastNameValid
     Button(
         onClick = {
 
@@ -453,6 +471,7 @@ fun SignUpScreen(
             val signupRequest = SignupRequest(email, password,firstName,lastName)
             viewModel.signupUser(signupRequest)
         },
+        enabled = !isLoading && isButtonEnabled,
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
@@ -461,7 +480,11 @@ fun SignUpScreen(
         colors = ButtonDefaults.buttonColors(backgroundColor = Color.Blue),
         shape = RoundedCornerShape(24.dp)
     ) {
-        Text(text = "S'inscrire", color = Color.White, fontSize = 25.sp)
+        Text(
+            text = stringResource(R.string.signup_button),
+            color = Color.White,
+            fontSize = 25.sp
+        )
     }
 
     if (message.isNotEmpty()) {
@@ -596,9 +619,9 @@ fun SignUpScreen(
     Row (modifier = Modifier.fillMaxSize()
         .offset(x = 120.dp, y = 600.dp))
     {
-        Text(text = "Déja inscrit ?", color = Color.Gray)
+        Text(text = stringResource(R.string.logininbutoon), color = Color.Gray)
         Text(
-            text = "   S'identifier",
+            text = stringResource(R.string.loginredirection),
             fontWeight = FontWeight.Bold,
             color = Color.Black,
             modifier = Modifier.clickable {  navController.navigate("login_screen") },
