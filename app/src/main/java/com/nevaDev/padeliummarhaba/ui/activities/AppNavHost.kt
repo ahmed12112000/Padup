@@ -63,14 +63,35 @@ fun AppNavHost(
                 navController = navController,
                 drawerState = drawerState,
                 scope = scope
-            )        }
+            )
+        }
 
         NavHost(
             navController = navController,
-            startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
-        //              startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
-        {
+            startDestination  = "main_screen"
+            //              startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
+        ) {
+            composable("Profile_screen") {
+                ProfileScreen()
+            }
 
+            composable("login_screen") {
+                val viewModel: UserViewModel = hiltViewModel()
+                val getProfileViewModel: GetProfileViewModel = hiltViewModel()
+
+                LoginScreen(
+                    onLoginSuccess = {
+                        onLoginSuccess() // Call the login success callback
+                        navController.navigate("Profile_screen") {
+                            popUpTo("login_screen") { inclusive = true } // Clear the back stack
+                        }
+                    },
+                    viewModel = viewModel,
+                    getProfileViewModel = getProfileViewModel,
+                    navController = navController,
+                    loginRequest = LoginRequest("", "")
+                )
+            }
 
             composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
                 val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
@@ -90,12 +111,19 @@ fun AppNavHost(
                     paymentPayAvoirViewModel = hiltViewModel()
                 )
             }
+
+
             composable("login_screen") {
                 val viewModel: UserViewModel = hiltViewModel()
                 val getProfileViewModel: GetProfileViewModel = hiltViewModel()
 
                 LoginScreen(
-                    onLoginSuccess = { /* Update login state */ },
+                    onLoginSuccess = {
+                        onLoginSuccess() // Call the login success callback
+                        navController.navigate("main_screen") {
+                            popUpTo("login_screen") { inclusive = true } // Clear the back stack
+                        }
+                    },
                     viewModel = viewModel,
                     getProfileViewModel = getProfileViewModel,
                     navController = navController,
@@ -189,7 +217,7 @@ fun AppNavHost(
                     userIds = encodedUserIds,
                     sharedList = encodedSharedList,
                     privateList = encodedPrivateList
-                    )
+                )
             }
 
 
@@ -273,15 +301,15 @@ fun AppNavHost(
                 arguments = listOf(
                     navArgument("name") { type = NavType.StringType },
                     navArgument("time") { type = NavType.StringType },
-                  //  navArgument("date") { type = NavType.StringType },
+                    //  navArgument("date") { type = NavType.StringType },
                     navArgument("price") { type = NavType.StringType },
                     navArgument("mappedBookings") { type = NavType.StringType },
 
-                )
+                    )
             ) { backStackEntry ->
                 val name = backStackEntry.arguments?.getString("name").orEmpty()
                 val time = backStackEntry.arguments?.getString("time").orEmpty()
-               // val date = backStackEntry.arguments?.getString("date").orEmpty()
+                // val date = backStackEntry.arguments?.getString("date").orEmpty()
                 val price = backStackEntry.arguments?.getString("price").orEmpty()
                 val adjustedAmounte = backStackEntry.arguments?.getDouble("adjustedAmounte") ?: 0.0
                 val totalExtrasCost = backStackEntry.arguments?.getDouble("totalExtrasCost") ?: 0.0
@@ -307,7 +335,7 @@ fun AppNavHost(
                     price = price,
                     onTotalAmountCalculated = { totalAmount, currency ->
                     },
-                     viewModel9 = hiltViewModel(),
+                    viewModel9 = hiltViewModel(),
                     //totalExtrasCost = totalExtrasCost,
 
                 )
@@ -326,26 +354,22 @@ fun AppNavHost(
             }
 
 
-
-
-
-
-
-
             composable("CreditPayment") { CreditPayment(navController = navController) }
 
             composable("CreditCharge") {
                 CreditCharge(navController = navController)
             }
 
+            /*
+                        composable("login_screen") {
+                            LoginScreen(
+                                onLoginSuccess = onLoginSuccess,
+                                navController = navController,
+                                loginRequest = LoginRequest("", "")
+                            )
+                        }
 
-            composable("login_screen") {
-                LoginScreen(
-                    onLoginSuccess = onLoginSuccess,
-                    navController = navController,
-                    loginRequest = LoginRequest("", "")
-                )
-            }
+
 
             composable("signup_screen") {
                 SignUpScreen(
@@ -354,21 +378,27 @@ fun AppNavHost(
                 )
             }
 
+             */
 
-            composable("Profile_screen") {
-                ProfileScreen(onLogout = onLogout)
-            }
+            /*
+                        composable("Profile_screen") {
+                            ProfileScreen()
+                        }
 
-
-
-
-
-
+             */
 
 
-            composable("summary_screen") {
-                SummaryScreen(navController = navController)
-            }
+
+
+
+
+
+            /*
+                        composable("summary_screen") {
+                            SummaryScreen(navController = navController)
+                        }
+
+             */
             /*  composable("PaymentSuccessScreen") {
                   PaymentSuccessScreen(navController = navController)
               }*/
@@ -393,20 +423,6 @@ fun AppNavHost(
                     }
                 )
             }
-            composable("signup_screen") {
-                SignUpScreen(
-                    navController = navController,
-                    onSignupSuccess = {},
-                    viewModel = hiltViewModel()
-                )
-            }
-
-
-
-
-
-
-
 
         }
     }

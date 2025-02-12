@@ -2,6 +2,7 @@ package com.nevaDev.padeliummarhaba.ui.activities
 
 
 import android.content.Context
+import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
@@ -55,7 +56,6 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.pager.ExperimentalPagerApi
 import java.time.LocalDate
-import com.nevaDev.padeliummarhaba.ui.views.DrawerContentOnline
 import com.nevaDev.padeliummarhaba.ui.views.SplashScreen
 import com.nevaDev.padeliummarhaba.ui.theme.PadeliumMarhabaTheme
 import com.nevadev.padeliummarhaba.R
@@ -65,9 +65,10 @@ import com.google.accompanist.pager.rememberPagerState
 import com.nevaDev.padeliummarhaba.ui.views.CopyrightText
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.SharedViewModel
 import com.padelium.domain.dataresult.DataResult
 
-
+//   single task single activity..........instanse single one
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -100,7 +101,7 @@ class MainActivity : ComponentActivity() {
 
     }
 }
-
+//   https://developer.android.com/guide/topics/manifest/activity-element#lmode
 
 
 @Composable
@@ -108,7 +109,7 @@ fun MainApp(
     context: Context,
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
-  //  onLogout: () -> Unit,
+    //  onLogout: () -> Unit,
 ) {
 
     val navController = rememberNavController()
@@ -129,21 +130,23 @@ fun MainApp(
     var username by remember { mutableStateOf("") }
     val getReservationViewModel: GetReservationViewModel = hiltViewModel()
     val currentBackStackEntry = navController.currentBackStackEntryAsState()
+    val sharedViewModel: SharedViewModel = hiltViewModel()
 
     val screensWithTopBar = listOf("main_screen")  // Only main_screen will show the top bar
     val profileData by viewModel.profileData.observeAsState()
     val firstName by viewModel.firstName.observeAsState("")
     val lastName by viewModel.lastName.observeAsState("")
-    val image by viewModel.image.observeAsState("")
+    //val image by viewModel.image.observeAsState("")
 
-    val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
+    //val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
+    /*
     LaunchedEffect(Unit) {
         viewModel.fetchProfileData()
         isUserLoggedIn = firstName.isNotEmpty() && lastName.isNotEmpty() && image.isNotEmpty()
 
     }
 
-/*
+
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
@@ -171,34 +174,36 @@ fun MainApp(
         }
     )
     {
-
+sharedViewModel
  */
-        Scaffold(
+    Scaffold(
 
-            bottomBar = {
-                AnimatedBottomBar(
-                    navController = navController,
-                    getReservationViewModel = getReservationViewModel
+        bottomBar = {
+            AnimatedBottomBar(
+                navController = navController,
+                getReservationViewModel = getReservationViewModel,
+                sharedViewModel = sharedViewModel,
+
                 )
-            },
-            content = { innerPadding ->
-                Box(modifier = Modifier.padding(innerPadding)) {
-                    AppNavHost(
-                        navController = navController,
-                        isUserLoggedIn = isUserLoggedIn,
-                        onLoginSuccess = { isUserLoggedIn = true },
-                        onLogout = { isUserLoggedIn = false },
-                        context = context,
-                        sharedPreferences = sharedPreferences,
-                        drawerState = drawerState,
-                        scope = scope,
-                        onSignupSuccess = { isUserLoggedIn = false },
+        },
+        content = { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                AppNavHost(
+                    navController = navController,
+                    isUserLoggedIn = isUserLoggedIn,
+                    onLoginSuccess = { isUserLoggedIn = true },
+                    onLogout = { isUserLoggedIn = false },
+                    context = context,
+                    sharedPreferences = sharedPreferences,
+                    drawerState = drawerState,
+                    scope = scope,
+                    onSignupSuccess = { isUserLoggedIn = false },
 
-                        )
-                }
+                    )
             }
-        )
-    }
+        }
+    )
+}
 
 
 
@@ -462,6 +467,7 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 fun AnimatedBottomBar(
     navController: NavController,
     getReservationViewModel: GetReservationViewModel,
+    sharedViewModel: SharedViewModel
 ) {
     val selectedItem = navController.currentBackStackEntry?.destination?.route ?: "main_screen"
     val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)
@@ -489,21 +495,26 @@ fun AnimatedBottomBar(
                     route = item.route,
                     icon = item.icon,
                     label = item.label,
-                    isSelected = selectedItem == item.route
+                    isSelected = selectedItem == item.route,
+                    context = LocalContext.current,
+                    sharedViewModel = sharedViewModel
                 )
             }
         }
     }
 }
-
 @Composable
 fun CustomBottomNavItem(
     navController: NavController,
     route: String,
     icon: ImageVector,
     label: String,
-    isSelected: Boolean
+    isSelected: Boolean,
+    context: Context,
+    sharedViewModel: SharedViewModel
 ) {
+    val isLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
+
     val animatedOffsetY by animateDpAsState(
         targetValue = if (isSelected) (-12).dp else 0.dp,
         animationSpec = spring(
@@ -526,21 +537,42 @@ fun CustomBottomNavItem(
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 4.dp) // Adjusted padding
+            .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
-                navController.navigate(route) {
-                    popUpTo(navController.graph.startDestinationId) { saveState = true }
-                    launchSingleTop = true
-                    restoreState = true
+                when (route) {
+                    "Profile_screen" -> {
+                        if (isLoggedIn) {
+                            navController.navigate(route) {
+                                popUpTo("Profile_screen") { inclusive = false }
+                            }
+                        } else {
+                            // Store the last requested route
+                            sharedViewModel.setLastRequestedRoute(route)
+                            val intent = Intent(context, LoginActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            context.startActivity(intent)
+                        }
+                    }
+                    else -> {
+                        if (isLoggedIn) {
+                            navController.navigate(route)
+                        } else {
+                            // Store the last requested route
+                            sharedViewModel.setLastRequestedRoute(route)
+                            val intent = Intent(context, LoginActivity::class.java)
+                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            context.startActivity(intent)
+                        }
+                    }
                 }
             }
-            .padding(10.dp) // Reduced padding for better fit
+            .padding(10.dp)
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .height(60.dp) // Reduced height for better fit
+                .height(60.dp)
                 .offset(y = animatedOffsetY)
         ) {
             Icon(
@@ -548,15 +580,15 @@ fun CustomBottomNavItem(
                 contentDescription = label,
                 tint = contentColor,
                 modifier = Modifier
-                    .size(27.dp) // Reduced icon size
+                    .size(27.dp)
                     .clip(CircleShape)
                     .background(backgroundColor)
             )
-            Spacer(modifier = Modifier.height(4.dp)) // Reduced spacer size
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = label,
                 color = textColor,
-                fontSize = 10.sp, // Reduced font size
+                fontSize = 10.sp,
                 fontWeight = FontWeight.Normal
             )
         }
@@ -676,16 +708,16 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                     navController.navigate("main_screen")
                 }
             )
-/*
-            DrawerItem(
-                icon = R.drawable.sidebarmenue,
-                label = "Réserver un terrain",
-                onClick = {
-                    navController.navigate("reservation_options/${LocalDate.now()}/${null}") // Pass the selected date and time slot
-                }
-            )
+            /*
+                        DrawerItem(
+                            icon = R.drawable.sidebarmenue,
+                            label = "Réserver un terrain",
+                            onClick = {
+                                navController.navigate("reservation_options/${LocalDate.now()}/${null}") // Pass the selected date and time slot
+                            }
+                        )
 
- */
+             */
 
             DrawerItem(
                 icon = R.drawable.sidebarmenue,
@@ -797,41 +829,5 @@ fun DrawerItem(
 
     Divider(color = Color.White, thickness = 1.dp)
 }
-/*
 
-@Preview(showBackground = true)
-@Composable
-fun TopBarPreview() {
-    val navController = rememberNavController()
-
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-
-    val scope = rememberCoroutineScope()
-
-    TopBar(navController = navController, drawerState = drawerState, scope = scope)
-}
-@Preview(showBackground = true)
-@Composable
-fun PreviewMainScreen() {
-    MainScreen(
-        navController = rememberNavController(),
-        onReservationClicked = { date ->
-        }
-    )
-}
-*/
-
-@Preview(showBackground = true)
-@Composable
-fun AnimatedBottomBarPreview() {
-    val mockNavController = rememberNavController()
-
-    // You can use a mocked NavController for preview
-    val navController = rememberNavController()
-    val getReservationViewModel: GetReservationViewModel = hiltViewModel()
-
-    AnimatedBottomBar(navController = navController,
-        getReservationViewModel = getReservationViewModel
-    )
-}
 

@@ -99,7 +99,9 @@ fun LoginScreen(
         if (hasRole) {
             // User has ROLE_USER, proceed to main screen
             balanceViewModel.fetchAndBalance()
-            navController.navigate("main_screen")
+            navController.navigate("Profile_screen") {
+                popUpTo("login_screen") { inclusive = true } // Clears the login screen from the backstack
+            }
             onLoginSuccess()
         } else {
             // User does not have the correct role, redirect to login page

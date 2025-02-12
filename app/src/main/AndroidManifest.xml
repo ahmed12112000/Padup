@@ -32,6 +32,15 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <activity
+            android:name="com.nevaDev.padeliummarhaba.ui.activities.LoginActivity"
+            android:label="Login"
+            android:launchMode="singleTask"
+            android:theme="@style/Theme.PadeliumMarhaba"
+            android:exported="true">
+        </activity>
+
+
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
             android:value="ca-app-pub-3949862097656667~6185300904"/>

@@ -2,7 +2,9 @@ package com.nevaDev.padeliummarhaba.viewmodels
 
 import android.content.SharedPreferences
 import android.service.autofill.UserData
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nevaDev.padeliummarhaba.repository.LoginRequestDto
@@ -51,6 +53,23 @@ class UserViewModel @Inject constructor(
     }
 
 }
+@HiltViewModel
+class SharedViewModel @Inject constructor() : ViewModel() {
+    private val _isLoggedIn = MutableLiveData(false)
+    val isLoggedIn: LiveData<Boolean> get() = _isLoggedIn
+
+    private val _lastRequestedRoute = MutableLiveData<String?>(null)
+    val lastRequestedRoute: LiveData<String?> get() = _lastRequestedRoute
+
+    fun setLoggedIn(value: Boolean) {
+        _isLoggedIn.value = value
+    }
+
+    fun setLastRequestedRoute(route: String?) {
+        _lastRequestedRoute.value = route
+    }
+}
+
 
 @HiltViewModel
 class LogoutViewModel @Inject constructor(
