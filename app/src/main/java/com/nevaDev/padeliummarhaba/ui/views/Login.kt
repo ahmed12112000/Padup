@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.util.Log
@@ -32,6 +33,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.nevaDev.padeliummarhaba.ui.activities.MainActivity
+import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.padelium.domain.dto.LoginRequest
@@ -47,7 +50,10 @@ fun LoginScreen(
     viewModel: UserViewModel = hiltViewModel(),
     getProfileViewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
-    loginRequest: LoginRequest
+    loginRequest: LoginRequest,
+    destinationRoute: String,
+    sharedViewModel: SharedViewModel  // Access SharedViewModel
+
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -78,6 +84,9 @@ fun LoginScreen(
 
                     // Fetch profile data after successful login
                     getProfileViewModel.fetchProfileData()
+                    navController.navigate(destinationRoute) {
+                        popUpTo("login_screen") { inclusive = true }
+                    }
                 } else {
                     Toast.makeText(
                         context,
@@ -99,10 +108,14 @@ fun LoginScreen(
         if (hasRole) {
             // User has ROLE_USER, proceed to main screen
             balanceViewModel.fetchAndBalance()
-            navController.navigate("Profile_screen") {
-                popUpTo("login_screen") { inclusive = true } // Clears the login screen from the backstack
+            sharedViewModel.setLoggedIn(true) // Persist login state
+
+            val intent = Intent(context, MainActivity::class.java).apply {
+                putExtra("navigate_to", destinationRoute)
             }
-            onLoginSuccess()
+            context.startActivity(intent)
+            (context as Activity).finish() // Close LoginActivity
+
         } else {
             // User does not have the correct role, redirect to login page
             val intent =
@@ -300,6 +313,8 @@ fun LoginScreen(
                             password = password,
                         )
                         viewModel.loginUser(updatedRequest)
+
+
                     }
                 },
                 enabled = !isLoading && isButtonEnabled,

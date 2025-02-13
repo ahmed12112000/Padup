@@ -162,6 +162,15 @@ dependencies {
     implementation(libs.okhttp.v4110)
     implementation("org.jetbrains.kotlin:kotlin-stdlib:1.8.22") // Update if needed
 
+    implementation("androidx.datastore:datastore-preferences:1.1.2")
+    implementation("androidx.datastore:datastore-preferences-core:1.1.2")
+
+    implementation("androidx.datastore:datastore:1.1.2")
+    implementation("androidx.datastore:datastore-core:1.1.2")
+    implementation(libs.kotlinx.coroutines.core.v160) // or the latest version
+    implementation(libs.kotlinx.coroutines.android.v181) // or the latest version
+
+
 
 }
 

@@ -1,7 +1,9 @@
 package com.nevaDev.padeliummarhaba.ui.activities
 
+import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
@@ -9,7 +11,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -56,6 +61,7 @@ fun AppNavHost(
 
     ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
+
     // Set the TopBar to be shown only on "main_screen"
     Column {
         if (currentRoute == "main_screen") {
@@ -75,31 +81,37 @@ fun AppNavHost(
                 ProfileScreen()
             }
 
-            composable("login_screen") {
+            composable("login_screen") { backStackEntry ->
                 val viewModel: UserViewModel = hiltViewModel()
                 val getProfileViewModel: GetProfileViewModel = hiltViewModel()
+                val sharedViewModel: SharedViewModel = viewModel()
+                val destinationRoute = backStackEntry.arguments?.getString("destination_route") ?: "main_screen"
 
                 LoginScreen(
                     onLoginSuccess = {
-                        onLoginSuccess() // Call the login success callback
-                        navController.navigate("Profile_screen") {
-                            popUpTo("login_screen") { inclusive = true } // Clear the back stack
+                        onLoginSuccess()
+                        navController.navigate(destinationRoute) { // Navigate to the intended destination
+                            popUpTo("login_screen") { inclusive = true }
                         }
                     },
                     viewModel = viewModel,
                     getProfileViewModel = getProfileViewModel,
                     navController = navController,
-                    loginRequest = LoginRequest("", "")
+                    loginRequest = LoginRequest("", ""),
+                    destinationRoute = destinationRoute,
+                    sharedViewModel = sharedViewModel
+
                 )
             }
 
             composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
                 val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
                 val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
+                val sharedViewModel: SharedViewModel = viewModel() // Ensure it's created
 
                 ReservationOptions(
                     onReservationSelected = { /* Handle reservation selection */ },
-                    isUserLoggedIn = isUserLoggedIn,
+                 //   isUserLoggedIn = isUserLoggedIn,
                     key = null, // Pass any required key
                     navController = navController,
                     selectedDate = selectedDate ?: LocalDate.now(), // Default to today if null
@@ -108,28 +120,13 @@ fun AppNavHost(
                     viewModel1 = hiltViewModel(),
                     viewModel2 = hiltViewModel(),
                     bookingViewModel = hiltViewModel(),
-                    paymentPayAvoirViewModel = hiltViewModel()
+                    paymentPayAvoirViewModel = hiltViewModel(),
+                    sharedViewModel = sharedViewModel
                 )
             }
 
 
-            composable("login_screen") {
-                val viewModel: UserViewModel = hiltViewModel()
-                val getProfileViewModel: GetProfileViewModel = hiltViewModel()
 
-                LoginScreen(
-                    onLoginSuccess = {
-                        onLoginSuccess() // Call the login success callback
-                        navController.navigate("main_screen") {
-                            popUpTo("login_screen") { inclusive = true } // Clear the back stack
-                        }
-                    },
-                    viewModel = viewModel,
-                    getProfileViewModel = getProfileViewModel,
-                    navController = navController,
-                    loginRequest = LoginRequest("", "")
-                )
-            }
 
             composable("CreditCharge") {
                 CreditCharge(navController = navController)
@@ -275,6 +272,7 @@ fun AppNavHost(
                 val viewModel: KeyViewModel = hiltViewModel()
                 val getBookingViewModel: GetBookingViewModel = hiltViewModel()
                 val paymentPayAvoirViewModel: PaymentPayAvoirViewModel = hiltViewModel()
+                val sharedViewModel: SharedViewModel = viewModel() // Ensure it's created
 
                 ReservationScreen(
                     navController = navController,
@@ -284,9 +282,8 @@ fun AppNavHost(
                     onFetchSuccess = { /* Handle fetch success */ },
                     viewModel = viewModel,
                     getBookingViewModel = getBookingViewModel,
-                    paymentPayAvoirViewModel = paymentPayAvoirViewModel
-
-
+                    paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                    sharedViewModel = sharedViewModel
                 )
             }
 
@@ -356,9 +353,7 @@ fun AppNavHost(
 
             composable("CreditPayment") { CreditPayment(navController = navController) }
 
-            composable("CreditCharge") {
-                CreditCharge(navController = navController)
-            }
+
 
             /*
                         composable("login_screen") {
@@ -394,14 +389,18 @@ fun AppNavHost(
 
 
             /*
-                        composable("summary_screen") {
-                            SummaryScreen(navController = navController)
-                        }
+
 
              */
             /*  composable("PaymentSuccessScreen") {
                   PaymentSuccessScreen(navController = navController)
               }*/
+
+
+            composable("summary_screen") {
+                SummaryScreen(navController = navController)
+            }
+
             composable("main_screen") {
                 MainScreen(
                     navController = navController,

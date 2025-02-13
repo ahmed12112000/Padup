@@ -50,6 +50,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
 import com.nevaDev.padeliummarhaba.viewmodels.GetInitViewModel
@@ -75,8 +76,8 @@ fun ReservationScreen(
     viewModel2: GetInitViewModel = hiltViewModel(),
     viewModel3: SearchListViewModel = hiltViewModel(),
     viewModel4: InitBookingViewModel = hiltViewModel(),
-    paymentPayAvoirViewModel : PaymentPayAvoirViewModel
-
+    paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
+    sharedViewModel: SharedViewModel
 ) {
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
@@ -223,15 +224,14 @@ fun ReservationScreen(
         if (!showPaymentSection) {
             ReservationOptions(
                 onReservationSelected = { selectedReservation.value = it },
-                isUserLoggedIn = isUserLoggedIn,
+              //  isUserLoggedIn = isUserLoggedIn,
                 key = reservationKey.value,
                 viewModel = getBookingViewModel,
                 navController = navController,
                 selectedDate = selectedDate.value ,
                 selectedTimeSlot = selectedTimeSlot.value,
-                paymentPayAvoirViewModel = paymentPayAvoirViewModel
-
-
+                paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                sharedViewModel = sharedViewModel
             )
         }
         /*

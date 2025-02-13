@@ -65,7 +65,6 @@ import com.google.accompanist.pager.rememberPagerState
 import com.nevaDev.padeliummarhaba.ui.views.CopyrightText
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.SharedViewModel
 import com.padelium.domain.dataresult.DataResult
 
 //   single task single activity..........instanse single one
@@ -88,19 +87,33 @@ class MainActivity : ComponentActivity() {
                     SplashScreen()
                 } else {
                     val viewModel: GetProfileViewModel = hiltViewModel()
+                    val sharedViewModel: SharedViewModel = hiltViewModel()
+                    val navController = rememberNavController()
+
                     val context = LocalContext.current
                     val onLogout: () -> Unit = {
-                        // Handle logout logic here
+                        // Handle logout logic
                         sharedPreferences.edit().clear().apply()
-                        // You can also navigate to the login screen or reset other states as necessary
                     }
-                    MainApp(context, sharedPreferences, viewModel)
+                    val isLoggedIn = intent.getBooleanExtra("isLoggedIn", false)
+                    sharedViewModel.setLoggedIn(isLoggedIn)
+
+                    // Retrieve the target route from intent
+                    val navigateTo = intent.getStringExtra("navigate_to")
+
+                    LaunchedEffect(navigateTo) {
+                        if (!navigateTo.isNullOrEmpty()) {
+                            navController.navigate(navigateTo)
+                        }
+                    }
+
+                    MainApp(context, sharedPreferences, viewModel, sharedViewModel, navController)
                 }
             }
         }
-
     }
 }
+
 //   https://developer.android.com/guide/topics/manifest/activity-element#lmode
 
 
@@ -109,7 +122,8 @@ fun MainApp(
     context: Context,
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
-    //  onLogout: () -> Unit,
+    sharedViewModel: SharedViewModel,
+    navController: NavController,
 ) {
 
     val navController = rememberNavController()
@@ -126,10 +140,10 @@ fun MainApp(
     }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    var isUserLoggedIn by remember { mutableStateOf(false) }
+    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
     var username by remember { mutableStateOf("") }
     val getReservationViewModel: GetReservationViewModel = hiltViewModel()
-    val currentBackStackEntry = navController.currentBackStackEntryAsState()
+    //  val currentBackStackEntry = navController.currentBackStackEntryAsState()
     val sharedViewModel: SharedViewModel = hiltViewModel()
 
     val screensWithTopBar = listOf("main_screen")  // Only main_screen will show the top bar
@@ -137,69 +151,38 @@ fun MainApp(
     val firstName by viewModel.firstName.observeAsState("")
     val lastName by viewModel.lastName.observeAsState("")
     //val image by viewModel.image.observeAsState("")
+    val currentBackStackEntry = navController.currentBackStackEntryAsState()
+    val selectedItem = currentBackStackEntry.value?.destination?.route ?: "main_screen"
 
-    //val showTopBar = currentBackStackEntry.value?.destination?.route in screensWithTopBar
-    /*
-    LaunchedEffect(Unit) {
-        viewModel.fetchProfileData()
-        isUserLoggedIn = firstName.isNotEmpty() && lastName.isNotEmpty() && image.isNotEmpty()
-
+    // Determine if the bottom bar should be shown
+    val shouldShowBottomBar = when (selectedItem) {
+        "main_screen", "summary_screen", "CreditPayment", "Profile_screen" , "login_screen" -> true
+        else -> false
     }
 
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            if (isUserLoggedIn) {
-                DrawerContentOnline(
+    Scaffold(
+        bottomBar = {
+            if (shouldShowBottomBar) {
+                AnimatedBottomBar(
                     navController = navController,
-                    onItemSelected = { itemSelected -> },
-                    onCloseDrawer = {
-                        scope.launch { drawerState.close() }
-                    },
-                    firstName = firstName,
-                    lastName = lastName,
-                    image = image,
-                  //  onLogout = onLogoutAction // Use the onLogoutAction passed here
-                )
-            } else {
-                DrawerContent(
-                    navController = navController,
-                    onItemSelected = { itemSelected -> },
-                    onCloseDrawer = {
-                        scope.launch { drawerState.close() }
-                    }
+                    getReservationViewModel = getReservationViewModel,
+                    sharedViewModel = sharedViewModel,
                 )
             }
-        }
-    )
-    {
-sharedViewModel
- */
-    Scaffold(
-
-        bottomBar = {
-            AnimatedBottomBar(
-                navController = navController,
-                getReservationViewModel = getReservationViewModel,
-                sharedViewModel = sharedViewModel,
-
-                )
         },
         content = { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 AppNavHost(
                     navController = navController,
                     isUserLoggedIn = isUserLoggedIn,
-                    onLoginSuccess = { isUserLoggedIn = true },
-                    onLogout = { isUserLoggedIn = false },
+                    onLoginSuccess = { sharedViewModel.setLoggedIn(true) },
+                    onLogout = { sharedViewModel.setLoggedIn(false) },
                     context = context,
                     sharedPreferences = sharedPreferences,
                     drawerState = drawerState,
                     scope = scope,
-                    onSignupSuccess = { isUserLoggedIn = false },
-
-                    )
+                    onSignupSuccess = { sharedViewModel.setLoggedIn(false) },
+                )
             }
         }
     )
@@ -482,7 +465,7 @@ fun AnimatedBottomBar(
             backgroundColor = Color(0xFF0054D8),
             modifier = Modifier
                 .fillMaxWidth()
-                .height(80.dp) // Reduced the height for better fit
+                .height(80.dp)
         ) {
             listOf(
                 NavItem("main_screen", Icons.Filled.Home, "Accueil"),
@@ -540,33 +523,28 @@ fun CustomBottomNavItem(
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
                 when (route) {
-                    "Profile_screen" -> {
+                    "Profile_screen", "CreditPayment", "summary_screen" -> {
                         if (isLoggedIn) {
                             navController.navigate(route) {
-                                popUpTo("Profile_screen") { inclusive = false }
+                                popUpTo("main_screen") { inclusive = false }
                             }
                         } else {
-                            // Store the last requested route
-                            sharedViewModel.setLastRequestedRoute(route)
-                            val intent = Intent(context, LoginActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                            // Save the intended route to navigate after successful login
+                            val intent = Intent(context, LoginActivity::class.java).apply {
+                                putExtra("destination_route", route) // Ensure correct destination is passed
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK // Keep the task but don't clear everything
+                            }
                             context.startActivity(intent)
+
                         }
                     }
                     else -> {
-                        if (isLoggedIn) {
-                            navController.navigate(route)
-                        } else {
-                            // Store the last requested route
-                            sharedViewModel.setLastRequestedRoute(route)
-                            val intent = Intent(context, LoginActivity::class.java)
-                            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                            context.startActivity(intent)
-                        }
+                        // Handle any other cases if needed
                     }
                 }
             }
             .padding(10.dp)
+
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
