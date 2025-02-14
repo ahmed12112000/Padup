@@ -40,12 +40,11 @@ object NetworkModule {
         }
 
         return OkHttpClient.Builder()
-            .addInterceptor(logging) // Logging interceptor for request/response logging
-            .addInterceptor(jSessionInterceptor) // Ensure JSessionInterceptor is added here
+            .addInterceptor(logging)
+            .addInterceptor(jSessionInterceptor)
             .addInterceptor { chain ->
                 val response = chain.proceed(chain.request())
 
-                // Log response details for debugging
                 println("Response Code: ${response.code}")
                 println("Response Body: ${response.peekBody(2048).string()}")
 
@@ -63,7 +62,7 @@ object NetworkModule {
 
     @Provides
     fun provideJSessionInterceptor(sharedPreferences: SharedPreferences): JSessionInterceptor {
-        return JSessionInterceptor(sharedPreferences) // Provide JSessionInterceptor to manage JSESSIONID cookies
+        return JSessionInterceptor(sharedPreferences)
     }
 }
 

@@ -13,7 +13,7 @@ class JSessionInterceptor(private val sharedPreferences: SharedPreferences) : In
 
     companion object {
         private const val COOKIE_KEY = "JSESSIONID"
-        private const val LOGIN_URL = "/api/authentication/"  // Specify the login endpoint URL
+        private const val LOGIN_URL = "/api/authentication/"
     }
 
     override fun intercept(chain: Interceptor.Chain): Response {
@@ -22,12 +22,11 @@ class JSessionInterceptor(private val sharedPreferences: SharedPreferences) : In
         // Check if the request is for the /api/authentication/ endpoint
         if (request.url.encodedPath == LOGIN_URL) {
             Log.d("JSessionInterceptor", "Skipping cookie handling for ${request.url}")
-            return chain.proceed(request) // Proceed without modifying the request
+            return chain.proceed(request)
         }
 
         val jsessionId = sharedPreferences.getString(COOKIE_KEY, null)
 
-        // Log the current request headers to check if JSESSIONID is being added
         Log.d("JSessionInterceptor", "Request headers: ${request.headers}")
 
         val modifiedRequest = if (jsessionId != null) {
@@ -40,7 +39,6 @@ class JSessionInterceptor(private val sharedPreferences: SharedPreferences) : In
 
         val response = chain.proceed(modifiedRequest)
 
-        // Log the response headers to check if Set-Cookie is present
         response.headers("Set-Cookie").forEach { cookie ->
             Log.d("JSessionInterceptor", "Set-Cookie: $cookie")
             if (cookie.startsWith("JSESSIONID=")) {

@@ -84,7 +84,6 @@ import androidx.lifecycle.ViewModel
 import com.google.android.material.snackbar.Snackbar
 import android.view.View
 import android.widget.TextView
-import androidx.compose.material.AlertDialog
 import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.ui.activities.LoginActivity
 import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
@@ -138,9 +137,12 @@ fun TimeSlotSelector(
 
 
 
+
+
 @Composable
 fun ReservationOptions(
     onReservationSelected: (ReservationOption) -> Unit,
+    // isUserLoggedIn: Boolean,
     key: String?,
     navController: NavController,
     viewModel: GetBookingViewModel = hiltViewModel(),
@@ -149,10 +151,11 @@ fun ReservationOptions(
     selectedTimeSlot: String?,
     viewModel2: SaveBookingViewModel = hiltViewModel(),
     bookingViewModel: GetBookingViewModel = hiltViewModel(),
-    paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
+    paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
     sharedViewModel: SharedViewModel
+
 ) {
-    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false) // Observe login state
+    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
 
     var amountSelected by remember { mutableStateOf<Double?>(null) }
     var currencySymbol by remember { mutableStateOf<String?>(null) }
@@ -164,33 +167,37 @@ fun ReservationOptions(
     val filteredTimeSlots by viewModel.filteredTimeSlots.observeAsState(emptyList())
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
 
+
+
     when (val result = dataResultBooking) {
         is DataResultBooking.Loading -> LoadingState()
-        is DataResultBooking.Success -> {
-            // Check if user is logged in before proceeding
+        is DataResultBooking.Success -> SuccessState(
+            establishmentsList = result.data,
+            filteredTimeSlots = filteredTimeSlots.distinctBy { it.time }, // Ensure uniqueness
+            isUserLoggedIn = isUserLoggedIn,
+            navController = navController,
+            bookingViewModel = bookingViewModel,
+            saveBookingViewModel = viewModel2,
+            onReservationSelected = onReservationSelected,
+            setAmountSelected = { amountSelected = it },
+            setCurrencySymbol = { currencySymbol = it },
+            showLoginPopup = { showLoginPopup = it },
+            selectedTimeSlot = selectedTimeSlot,
+            onTimeSlotSelected = { selectedTimeSlot = it },
+            paymentPayAvoirViewModel= paymentPayAvoirViewModel
 
-            SuccessState(
-                establishmentsList = result.data,
-                filteredTimeSlots = filteredTimeSlots.distinctBy { it.time }, // Ensure uniqueness
-                isUserLoggedIn = isUserLoggedIn,
-                navController = navController,
-                bookingViewModel = bookingViewModel,
-                saveBookingViewModel = viewModel2,
-                onReservationSelected = onReservationSelected,
-                setAmountSelected = { amountSelected = it },
-                setCurrencySymbol = { currencySymbol = it },
-                showLoginPopup = { showLoginPopup = it },
-                selectedTimeSlot = selectedTimeSlot,
-                onTimeSlotSelected = { selectedTimeSlot = it },
-                paymentPayAvoirViewModel = paymentPayAvoirViewModel
-            )
-        }
-
+        )
         is DataResultBooking.Failure -> FailureState(result.errorMessage, setErrorMessage = { errorMessage = it })
     }
 
-}
+    if (showLoginPopup) {
+        // Handle login popup logic
+    }
 
+    errorMessage?.let {
+        Text(text = it, color = Color.Red, modifier = Modifier.padding(16.dp))
+    }
+}
 
 @Composable
 fun LoadingState() {
@@ -261,8 +268,7 @@ private fun EstablishmentCard(
     sharedViewModel: SharedViewModel = hiltViewModel() // Access SharedViewModel
 ) {
     // Observe login state from SharedViewModel
-    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false) // Observe login state
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
 
     // Filter plannings by the selected time slot
     val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
@@ -284,59 +290,28 @@ private fun EstablishmentCard(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp) // Reduced padding
                 .clickable {
-                    if (!isUserLoggedIn) {
-                        showLoginPopup = true
-                    } else {
-                        // Pass the login state to handleCardClick
-                        handleCardClick(
-                            selectedBooking = getBookingResponseDTO,
-                            planning = planning,
-                            bookingViewModel = bookingViewModel,
-                            navController = navController,
-                            isUserLoggedIn = isUserLoggedIn,  // Use the login state from SharedViewModel
-                            onLoginRequired = { showLoginPopup = true },
-                            saveBookingViewModel = saveBookingViewModel,
-                            viewModel1 = viewModel1,
-                            onReservationSelected = { reservationOption -> },
-                            paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-                            amountToShow = amountToShow,
-                            context = context,
-                            sharedViewModel = sharedViewModel
-                        )
-                    }
+                    // Pass the login state to handleCardClick
+                    handleCardClick(
+                        selectedBooking = getBookingResponseDTO,
+                        planning = planning,
+                        bookingViewModel = bookingViewModel,
+                        navController = navController,
+                        isUserLoggedIn = isUserLoggedIn,  // Use the login state from SharedViewModel
+                        onLoginRequired = { showLoginPopup = true },
+                        saveBookingViewModel = saveBookingViewModel,
+                        viewModel1 = viewModel1,
+                        onReservationSelected = { reservationOption -> },
+                        paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                        amountToShow = amountToShow,
+                        context = context,
+                        sharedViewModel = sharedViewModel
+                    )
                 },
             shape = RoundedCornerShape(10.dp), // Slightly smaller radius
             border = BorderStroke(1.dp, Color.Gray),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             EstablishmentCardContent(getBookingResponseDTO, planning)
-        }
-
-        if (showLoginPopup) {
-            AlertDialog(
-                onDismissRequest = { showLoginPopup = false },
-                title = { Text(text = "Login Required") },
-                text = { Text("You need to log in to proceed with the reservation.") },
-                confirmButton = {
-                    Button(
-                        onClick = {
-                            showLoginPopup = false
-                            navController.navigate("login_screen")
-                        }
-                    ) {
-                        Text("Login")
-                    }
-                },
-                dismissButton = {
-                    Button(onClick = { showLoginPopup = false }) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
-
-        errorMessage?.let {
-            Text(text = it, color = Color.Red, modifier = Modifier.padding(16.dp))
         }
     }
 

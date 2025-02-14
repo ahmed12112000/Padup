@@ -108,14 +108,10 @@ fun LoginScreen(
         if (hasRole) {
             // User has ROLE_USER, proceed to main screen
             balanceViewModel.fetchAndBalance()
-            sharedViewModel.setLoggedIn(true) // Persist login state
-
-            val intent = Intent(context, MainActivity::class.java).apply {
-                putExtra("navigate_to", destinationRoute)
+            navController.navigate(destinationRoute) {
+                popUpTo("login_screen") { inclusive = true }
             }
-            context.startActivity(intent)
-            (context as Activity).finish() // Close LoginActivity
-
+            sharedViewModel.setLoggedIn(true)
         } else {
             // User does not have the correct role, redirect to login page
             val intent =
@@ -123,6 +119,16 @@ fun LoginScreen(
             context.startActivity(intent)
         }
     }
+
+    LaunchedEffect(Unit) {
+        if (sharedViewModel.isLoggedIn.value == true) {
+            val intendedRoute = sharedViewModel.intendedRoute.value ?: "main_screen"
+            navController.navigate(intendedRoute) {
+                popUpTo("login_screen") { inclusive = true }
+            }
+        }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -267,29 +273,7 @@ fun LoginScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
-                /*
-            var checked by remember { mutableStateOf(false) }
-            Checkbox(
-                checked = checked,
-                onCheckedChange = { checked = it },
-                modifier = Modifier.size(11.dp),
-                colors = CheckboxDefaults.colors(
-                    checkedColor = MaterialTheme.colors.primary,
-                    uncheckedColor = Color.Gray,
-                    checkmarkColor = Color.White
-                )
-            )
 
-            Text(
-                text = "Rester-Connecté !",
-                color = Color.Gray,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                fontStyle = FontStyle.Normal,
-                modifier = Modifier.weight(1f).padding(horizontal = 8.dp)
-            )
-
-             */
                 Text(
                     text = stringResource(R.string.forgot_password),
                     color = Color(0xFF0054D8),
@@ -355,25 +339,7 @@ fun LoginScreen(
                         color = Color(android.graphics.Color.parseColor("#999999")),
                         thickness = 1.dp
                     )
-                    /*
-                    Text(
-                        text = "OU",
-                        modifier = Modifier.padding(horizontal = 8.dp),
-                        color = Color(android.graphics.Color.parseColor("#999999")),
 
-                        fontSize = 15.sp
-                    )
-
-                    Divider(
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(vertical = 8.dp),
-                        color = Color(android.graphics.Color.parseColor("#999999")),
-                        thickness = 1.dp
-                    )
-                    text = stringResource(R.string.signinredirection),
-
-                     */
                 }
                 Spacer(modifier = Modifier.height(1.dp))
                 Spacer(modifier = Modifier.height(60.dp))

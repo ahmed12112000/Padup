@@ -1,6 +1,7 @@
 package com.nevaDev.padeliummarhaba.ui.activities
 
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -8,7 +9,11 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.ManagedActivityResultLauncher
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.ActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -52,6 +57,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -67,7 +73,7 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.padelium.domain.dataresult.DataResult
 
-//   single task single activity..........instanse single one
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -77,6 +83,10 @@ class MainActivity : ComponentActivity() {
         setContent {
             PadeliumMarhabaTheme {
                 var showSplashScreen by remember { mutableStateOf(true) }
+                val navController = rememberNavController()
+                val viewModel: GetProfileViewModel = hiltViewModel()
+                val sharedViewModel: SharedViewModel = hiltViewModel()
+                val context = LocalContext.current
 
                 LaunchedEffect(Unit) {
                     delay(3100)
@@ -86,35 +96,52 @@ class MainActivity : ComponentActivity() {
                 if (showSplashScreen) {
                     SplashScreen()
                 } else {
-                    val viewModel: GetProfileViewModel = hiltViewModel()
-                    val sharedViewModel: SharedViewModel = hiltViewModel()
-                    val navController = rememberNavController()
-
-                    val context = LocalContext.current
                     val onLogout: () -> Unit = {
-                        // Handle logout logic
                         sharedPreferences.edit().clear().apply()
-                    }
-                    val isLoggedIn = intent.getBooleanExtra("isLoggedIn", false)
-                    sharedViewModel.setLoggedIn(isLoggedIn)
-
-                    // Retrieve the target route from intent
-                    val navigateTo = intent.getStringExtra("navigate_to")
-
-                    LaunchedEffect(navigateTo) {
-                        if (!navigateTo.isNullOrEmpty()) {
-                            navController.navigate(navigateTo)
+                        sharedViewModel.setLoggedIn(false)
+                        navController.navigate("login_screen") {
+                            popUpTo("main_screen") { inclusive = true }
                         }
                     }
 
-                    MainApp(context, sharedPreferences, viewModel, sharedViewModel, navController)
+                    val loginResultLauncher = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.StartActivityForResult()
+                    ) { result ->
+                        if (result.resultCode == Activity.RESULT_OK) {
+                            val destinationRoute = result.data?.getStringExtra("navigate_back_to")
+                            if (destinationRoute != null) {
+                                navController.navigate(destinationRoute) {
+                                    launchSingleTop = true
+                                    restoreState = true
+                                }
+                            }
+                        }
+                    }
+
+
+                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+                    val currentRoute = currentBackStackEntry?.destination?.route
+                    val shouldShowBottomBar = currentRoute !in listOf("splash_screen", "login_screen")
+                    val navigateToLogin: (String) -> Unit = { destinationRoute ->
+                        val intent = Intent(context, LoginActivity::class.java).apply {
+                            putExtra("destination_route", destinationRoute)
+                        }
+                        loginResultLauncher.launch(intent)
+                    }
+                    MainApp(
+                        context = context,
+                        sharedPreferences = sharedPreferences,
+                        viewModel = viewModel,
+                        sharedViewModel = sharedViewModel,
+                        navigateToLogin = navigateToLogin,
+                        navController = navController,
+                    )
                 }
             }
         }
     }
 }
 
-//   https://developer.android.com/guide/topics/manifest/activity-element#lmode
 
 
 @Composable
@@ -123,42 +150,20 @@ fun MainApp(
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
     sharedViewModel: SharedViewModel,
+    navigateToLogin: (String) -> Unit,
     navController: NavController,
 ) {
-
     val navController = rememberNavController()
-    val onLogoutAction: () -> Unit = {
-        // Clear shared preferences or any other data
-        sharedPreferences.edit().clear().apply()
-
-        // Navigate to the login screen
-        navController.navigate("login_screen") {
-            // Clear the back stack so that the user can't go back to the previous screen
-            popUpTo("login_screen") { inclusive = true }
-        }
-
-    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
-    var username by remember { mutableStateOf("") }
     val getReservationViewModel: GetReservationViewModel = hiltViewModel()
-    //  val currentBackStackEntry = navController.currentBackStackEntryAsState()
-    val sharedViewModel: SharedViewModel = hiltViewModel()
 
-    val screensWithTopBar = listOf("main_screen")  // Only main_screen will show the top bar
-    val profileData by viewModel.profileData.observeAsState()
-    val firstName by viewModel.firstName.observeAsState("")
-    val lastName by viewModel.lastName.observeAsState("")
-    //val image by viewModel.image.observeAsState("")
-    val currentBackStackEntry = navController.currentBackStackEntryAsState()
-    val selectedItem = currentBackStackEntry.value?.destination?.route ?: "main_screen"
 
-    // Determine if the bottom bar should be shown
-    val shouldShowBottomBar = when (selectedItem) {
-        "main_screen", "summary_screen", "CreditPayment", "Profile_screen" , "login_screen" -> true
-        else -> false
-    }
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val selectedItem = currentBackStackEntry?.destination?.route
+    val shouldShowBottomBar = selectedItem !in listOf("splash_screen", "login_screen")
+
 
     Scaffold(
         bottomBar = {
@@ -167,6 +172,7 @@ fun MainApp(
                     navController = navController,
                     getReservationViewModel = getReservationViewModel,
                     sharedViewModel = sharedViewModel,
+                    navigateToLogin = navigateToLogin
                 )
             }
         },
@@ -190,6 +196,8 @@ fun MainApp(
 
 
 
+
+
 @Composable
 fun TopBar(
     navController: NavController,
@@ -208,7 +216,6 @@ fun TopBar(
                 .fillMaxWidth()
                 .height(100.dp)
                 .padding(top = 1.dp)
-                //  .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 30.dp))
                 .background(Color(0xFF0054D8))
                 .shadow(
                     elevation = 200.dp,
@@ -223,27 +230,7 @@ fun TopBar(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                /*
-                Icon(
-                    painter = painterResource(id = R.drawable.sidebarblue),
-                    contentDescription = "Menu",
-                    tint = Color.Unspecified,
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .offset(x = -15.dp)
-                        .clickable {
-                            scope.launch {
-                                if (drawerState.isClosed) {
-                                    drawerState.open()
-                                } else {
-                                    drawerState.close()
-                                }
-                            }
-                        }
-                        .padding(8.dp)
-                )
-                 */
+
 
                 Icon(
                     painter = painterResource(id = R.drawable.logopadelium),
@@ -269,31 +256,13 @@ fun logout(context: Context) {
     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
 }
 
-/*
+
 @Composable
-fun ProfileScreen(onLogout: () -> Unit) {
-    // Your existing profile screen UI components
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Text(text = "Profile Screen")
-
-        // Add a Logout button
-        Button(onClick = {
-            onLogout() // Call the onLogout function passed from MainApp
-        }) {
-            Text("Logout")
-        }
-    }
-}
-*/@Composable
 fun MainScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
-    onReservationClicked: (LocalDate) -> Unit
+    onReservationClicked: (LocalDate) -> Unit,
+
 ) {
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var isButtonClicked by remember { mutableStateOf(false) }
@@ -450,10 +419,13 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 fun AnimatedBottomBar(
     navController: NavController,
     getReservationViewModel: GetReservationViewModel,
-    sharedViewModel: SharedViewModel
+    sharedViewModel: SharedViewModel,
+    modifier: Modifier = Modifier,
+    navigateToLogin: (String) -> Unit,
 ) {
-    val selectedItem = navController.currentBackStackEntry?.destination?.route ?: "main_screen"
+    val selectedItem by rememberUpdatedState(navController.currentBackStackEntry?.destination?.route)
     val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)
+    val isLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
 
     Box(
         modifier = Modifier
@@ -471,7 +443,7 @@ fun AnimatedBottomBar(
                 NavItem("main_screen", Icons.Filled.Home, "Accueil"),
                 NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
                 NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits"),
-                NavItem("Profile_screen", Icons.Filled.Person, "Profil") // Profile icon
+                NavItem("Profile_screen", Icons.Filled.Person, "Profil")
             ).forEach { item ->
                 CustomBottomNavItem(
                     navController = navController,
@@ -480,7 +452,15 @@ fun AnimatedBottomBar(
                     label = item.label,
                     isSelected = selectedItem == item.route,
                     context = LocalContext.current,
-                    sharedViewModel = sharedViewModel
+                    sharedViewModel = sharedViewModel,
+                    navigateToLogin = navigateToLogin ,
+                    onClick = {
+                        navController.navigate(item.route) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+
+                    }
                 )
             }
         }
@@ -494,8 +474,11 @@ fun CustomBottomNavItem(
     label: String,
     isSelected: Boolean,
     context: Context,
-    sharedViewModel: SharedViewModel
-) {
+    sharedViewModel: SharedViewModel,
+    onClick: (Double) -> Unit,
+    navigateToLogin: (String) -> Unit
+
+    ) {
     val isLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
 
     val animatedOffsetY by animateDpAsState(
@@ -523,12 +506,16 @@ fun CustomBottomNavItem(
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
                 when (route) {
-                    "Profile_screen", "CreditPayment", "summary_screen" -> {
+                    "Profile_screen", "main_screen" , "CreditPayment", "summary_screen" -> {
                         if (isLoggedIn) {
                             navController.navigate(route) {
-                                popUpTo("main_screen") { inclusive = false }
+                            //   popUpTo("main_screen") { inclusive = false  }
+                                // Ensure bottom bar remains intact and doesn’t get reset
+                                launchSingleTop = true
+                                restoreState = true
                             }
                         } else {
+                            navigateToLogin(route)
                             // Save the intended route to navigate after successful login
                             val intent = Intent(context, LoginActivity::class.java).apply {
                                 putExtra("destination_route", route) // Ensure correct destination is passed
@@ -539,7 +526,10 @@ fun CustomBottomNavItem(
                         }
                     }
                     else -> {
-                        // Handle any other cases if needed
+                        navController.navigate(route) {
+                            launchSingleTop = true
+                            restoreState = true
+                        }
                     }
                 }
             }
@@ -686,16 +676,7 @@ fun DrawerContent(navController: NavController, onItemSelected: (String) -> Unit
                     navController.navigate("main_screen")
                 }
             )
-            /*
-                        DrawerItem(
-                            icon = R.drawable.sidebarmenue,
-                            label = "Réserver un terrain",
-                            onClick = {
-                                navController.navigate("reservation_options/${LocalDate.now()}/${null}") // Pass the selected date and time slot
-                            }
-                        )
 
-             */
 
             DrawerItem(
                 icon = R.drawable.sidebarmenue,

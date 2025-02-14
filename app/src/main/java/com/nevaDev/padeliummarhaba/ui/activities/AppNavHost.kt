@@ -62,7 +62,6 @@ fun AppNavHost(
     ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
-    // Set the TopBar to be shown only on "main_screen"
     Column {
         if (currentRoute == "main_screen") {
             TopBar(
@@ -75,7 +74,6 @@ fun AppNavHost(
         NavHost(
             navController = navController,
             startDestination  = "main_screen"
-            //              startDestination = if (isUserLoggedIn) "main_screen" else "login_screen")
         ) {
             composable("Profile_screen") {
                 ProfileScreen()
@@ -90,7 +88,7 @@ fun AppNavHost(
                 LoginScreen(
                     onLoginSuccess = {
                         onLoginSuccess()
-                        navController.navigate(destinationRoute) { // Navigate to the intended destination
+                        navController.navigate(destinationRoute) {
                             popUpTo("login_screen") { inclusive = true }
                         }
                     },
@@ -107,14 +105,13 @@ fun AppNavHost(
             composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
                 val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
                 val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
-                val sharedViewModel: SharedViewModel = viewModel() // Ensure it's created
+                val sharedViewModel: SharedViewModel = viewModel()
 
                 ReservationOptions(
                     onReservationSelected = { /* Handle reservation selection */ },
-                 //   isUserLoggedIn = isUserLoggedIn,
                     key = null, // Pass any required key
                     navController = navController,
-                    selectedDate = selectedDate ?: LocalDate.now(), // Default to today if null
+                    selectedDate = selectedDate ?: LocalDate.now(),
                     selectedTimeSlot = selectedTimeSlot,
                     viewModel = hiltViewModel(),
                     viewModel1 = hiltViewModel(),
@@ -203,7 +200,6 @@ fun AppNavHost(
                 val encodedSharedList = backStackEntry.arguments?.getString("sharedList").orEmpty()
                 val encodedPrivateList = backStackEntry.arguments?.getString("privateList").orEmpty()
 
-                // Observe selectedParts from the StateFlow
                 WebViewScreen(
                     formUrl = paymentUrl,
                     navController = navController,
@@ -224,8 +220,8 @@ fun AppNavHost(
             composable("PaymentSuccessScreen") {
                 PaymentSuccessScreen(navController = navController)
             }
-            // MainScreen with top bar
             composable("main_screen") {
+
                 MainScreen(
                     navController = navController,
                     onReservationClicked = { selectedDate ->
@@ -306,21 +302,17 @@ fun AppNavHost(
             ) { backStackEntry ->
                 val name = backStackEntry.arguments?.getString("name").orEmpty()
                 val time = backStackEntry.arguments?.getString("time").orEmpty()
-                // val date = backStackEntry.arguments?.getString("date").orEmpty()
                 val price = backStackEntry.arguments?.getString("price").orEmpty()
                 val adjustedAmounte = backStackEntry.arguments?.getDouble("adjustedAmounte") ?: 0.0
                 val totalExtrasCost = backStackEntry.arguments?.getDouble("totalExtrasCost") ?: 0.0
                 val totalAmountSelected = backStackEntry.arguments?.getDouble("totalAmountSelected") ?: 0.0
 
-                // Get mappedBookingsJson from arguments
                 val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
 
-                // Deserialize JSON into List<GetBookingResponse>
                 val type = object : TypeToken<List<GetBookingResponse>>() {}.type
                 val mappedBookings: List<GetBookingResponse> = Gson().fromJson(mappedBookingsJson, type)
                 val selectedParts = backStackEntry.arguments?.getInt("selectedParts") ?: 1
 
-                // Use the deserialized mappedBookings in your UI
                 PaymentSection1(
                     selectedDate = LocalDate.now(),
                     selectedReservation = ReservationOption(name, time, price, mappedBookingsJson),
@@ -333,69 +325,24 @@ fun AppNavHost(
                     onTotalAmountCalculated = { totalAmount, currency ->
                     },
                     viewModel9 = hiltViewModel(),
-                    //totalExtrasCost = totalExtrasCost,
 
                 )
             }
 
             composable(
                 route = "PartnerPaymentScreen/{partnerPayId}",
-                arguments = listOf(navArgument("partnerPayId") { type = NavType.StringType }) // Expect a String argument
+                arguments = listOf(navArgument("partnerPayId") { type = NavType.StringType })
             ) { backStackEntry ->
                 val partnerPayId = backStackEntry.arguments?.getString("partnerPayId")
 
                 PartnerPaymentScreen(
                     navController = navController,
-                    partnerPayId = partnerPayId // Pass ID to screen
+                    partnerPayId = partnerPayId
                 )
             }
 
 
             composable("CreditPayment") { CreditPayment(navController = navController) }
-
-
-
-            /*
-                        composable("login_screen") {
-                            LoginScreen(
-                                onLoginSuccess = onLoginSuccess,
-                                navController = navController,
-                                loginRequest = LoginRequest("", "")
-                            )
-                        }
-
-
-
-            composable("signup_screen") {
-                SignUpScreen(
-                    onSignupSuccess = onSignupSuccess,
-                    navController = navController,
-                )
-            }
-
-             */
-
-            /*
-                        composable("Profile_screen") {
-                            ProfileScreen()
-                        }
-
-             */
-
-
-
-
-
-
-
-            /*
-
-
-             */
-            /*  composable("PaymentSuccessScreen") {
-                  PaymentSuccessScreen(navController = navController)
-              }*/
-
 
             composable("summary_screen") {
                 SummaryScreen(navController = navController)
