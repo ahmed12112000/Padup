@@ -59,6 +59,7 @@ import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
 import com.padelium.domain.dto.GetBookingResponse
+import com.padelium.domain.dto.InitBookingRequest
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -78,6 +79,7 @@ fun ReservationScreen(
     viewModel4: InitBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
     sharedViewModel: SharedViewModel
+
 ) {
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
@@ -97,37 +99,58 @@ fun ReservationScreen(
     // Function to fetch reservation data
     // Function to fetch reservation data
     fun fetchReservationData(date: LocalDate) {
+        if (isLoading) return
         val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
         isLoading = true
         viewModel.getReservationKey(fetchKeyRequest, date)
+    }
 
-        viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
-            when (result) {
-                is DataResultBooking.Loading -> isLoading = true
-                is DataResultBooking.Success -> {
-                    reservationKey.value = result.data.key
-                    isLoading = false
-                    onFetchSuccess()
+    // Observe ViewModel response for reservation key
+    LaunchedEffect(selectedDate.value) {
+        fetchReservationData(selectedDate.value)
+    }
 
-                    reservationKey.value?.let { key ->
-                        // Now that the key is ready, call getBooking to fetch the booking data
-                        //getBookingViewModel.getBooking(key, selectedDate.value)
-                    }
+    viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
+        when (result) {
+            is DataResultBooking.Loading -> isLoading = true
+            is DataResultBooking.Success -> {
+                reservationKey.value = result.data.key
+                isLoading = false
+                onFetchSuccess()
+
+                // Now that the new key is available, trigger other view models
+                reservationKey.value?.let { key ->
+                    viewModel3.searchList(key)
+                 //   viewModel2.GetInit(key, selectedDate.value)
+                    val initBookingRequest = InitBookingRequest(
+                        key = key,
+                    )
+                    viewModel4.InitBooking(initBookingRequest)
+                    getBookingViewModel.getBooking(key, selectedDate.value)
                 }
-                is DataResultBooking.Failure -> {
-                    isLoading = false
-                    errorMessage = result.errorMessage ?: "Unknown error occurred"
-                    Log.e("ReservationScreen", "Error: ${result.errorMessage}")
-                }
+            }
+            is DataResultBooking.Failure -> {
+                isLoading = false
+               // errorMessage = result.errorMessage ?: "Unknown error occurred"
+                //    Log.e("ReservationScreen", "Error: ${result.errorMessage}")
             }
         }
     }
 
+
+
+
     // Function to fetch time slots based on selected date
     fun filterSlotsByDate(newDate: LocalDate) {
         reservationKey.value?.let { key ->
+            viewModel3.searchList(key)
+           // viewModel2.GetInit(key, newDate)
+            val initBookingRequest = InitBookingRequest(
+                key = key,
+            )
+          //  viewModel4.InitBooking(initBookingRequest)
             getBookingViewModel.getBooking(key, newDate)
             Log.e("TAGGGGGG","innnnnnnnnnnnnnnnnnnn")
 
@@ -137,17 +160,15 @@ fun ReservationScreen(
             errorMessage = ""
         }
     }
+
     LaunchedEffect(selectedDate.value) {
-        fetchReservationData(selectedDate.value)
+      //  fetchReservationData(selectedDate.value)
         filterSlotsByDate(selectedDate.value)
     }
 
-/*
-    LaunchedEffect(selectedDate.value) {
-        fetchReservationData(selectedDate.value)
-        filterSlotsByDate(selectedDate.value)
-    }
-*/
+
+
+
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -180,7 +201,7 @@ fun ReservationScreen(
 
 //      ZoneId.of("GMT+1")
 
-   //     Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(10.dp))
 
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -204,59 +225,29 @@ fun ReservationScreen(
             )
 
         }
-/*
 
-                TimeSlotSelector(
-                    timeSlots = parsedTimeSlots,
-                    onTimeSlotSelected = { selectedTimeSlot.value = it },
-                    selectedTimeSlot = selectedTimeSlot.value
-                )
-
-*/
 
         if (parsedTimeSlots.isEmpty()) {
             Text(text = "", color = Color.Red, textAlign = TextAlign.Center)
         }
     }
 
-      //  Spacer(modifier = Modifier.height(16.dp))
+    Spacer(modifier = Modifier.height(16.dp))
 
-        if (!showPaymentSection) {
-            ReservationOptions(
-                onReservationSelected = { selectedReservation.value = it },
-              //  isUserLoggedIn = isUserLoggedIn,
-                key = reservationKey.value,
-                viewModel = getBookingViewModel,
-                navController = navController,
-                selectedDate = selectedDate.value ,
-                selectedTimeSlot = selectedTimeSlot.value,
-                paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-                sharedViewModel = sharedViewModel
-            )
-        }
-        /*
-                if (selectedReservation.value != null && selectedTimeSlot.value != null) {
-                    ReservationSummary(
-                        selectedDate = selectedDate.value,
-                        selectedReservation = selectedReservation.value!!,
-                        selectedTimeSlot = selectedTimeSlot.value!!,
-                        extrasCost = 0,
-                        selectedRaquette = "1",
-                        includeBalls = false,
-                        onTotalAmountCalculated = { totalAmount ->
-                            Log.d("TotalAmount", "Calculated Total Amount: $totalAmount")
-                        }
-                    )
-                } else if (showLoginPopup) {
-                    PopLoginDialog(
-                        onDismiss = { showLoginPopup = false },
-                        onLoginSuccess = {
-                            showLoginPopup = false
-                            showPaymentSection = true
-                        }
-                    )
-                }*/
+    if (!showPaymentSection) {
+        ReservationOptions(
+            onReservationSelected = { selectedReservation.value = it },
+            //  isUserLoggedIn = isUserLoggedIn,
+            key = reservationKey.value,
+            viewModel = getBookingViewModel,
+            navController = navController,
+            selectedDate = selectedDate.value ,
+            selectedTimeSlot = selectedTimeSlot.value,
+            paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+            sharedViewModel = sharedViewModel
+        )
     }
+}
 @Composable
 fun TimeSlotButton(
     timeSlots: List<TimeSlot>,
@@ -332,8 +323,7 @@ fun TabItem(
                     imageVector = Icons.Default.ArrowBack,
                     contentDescription = "Back",
                     tint = Color.Gray,
-                    modifier = Modifier.size(24.dp),
-
+                    modifier = Modifier.size(24.dp)
                 )
             }
 
@@ -572,71 +562,3 @@ fun DaySelectorWithArrows(
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-@Composable
-fun PopLoginDialog(onDismiss: () -> Unit, onLoginSuccess: () -> Unit) {
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier
-                .size(1000.dp)
-                .padding(vertical = 100.dp),
-            shape = RoundedCornerShape(16.dp)
-        ) { /*
-            LoginScreen(onLoginSuccess = {
-                onLoginSuccess()
-                onDismiss()
-                navController = navController
-
-                viewModel = hiltViewModel(), */
-            })
-        }
-    }
-}
-
-*/
-
-
-
-@Preview(showBackground = true)
-@Composable
-fun TabItemPreview() {
-    val navController = rememberNavController()
-
-    Row {
-        TabItem(
-            isSelected = true,
-            title = "CHOISIR UN CRÉNEAU",
-            icon = painterResource(id = R.drawable.calendre),
-            onClick = {
-                Log.d("TabItemPreview", "Tab clicked")
-            },
-            navController = navController,
-
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-
-    }
-}
-
-
-
-
-
-
-

@@ -40,18 +40,19 @@ object ViewModelModule {
     fun provideSearchListViewModel(
         searchListUseCase: SearchListUseCase,
         searchListMapper: SearchListMapper,
+        getInitViewModel: GetInitViewModel,
         initBookingViewModel: InitBookingViewModel // Dependency from InitBookingViewModel
     ): SearchListViewModel {
-        return SearchListViewModel(searchListUseCase, searchListMapper, initBookingViewModel)
+        return SearchListViewModel(searchListUseCase, searchListMapper, initBookingViewModel,getInitViewModel)
     }
 
 @Provides
 fun provideGetInitViewModel(
     getInitUseCase: GetInitUseCase,
     getInitMapper: GetInitMapper,
-    searchListViewModel: SearchListViewModel
+    initBookingViewModel: InitBookingViewModel
 ): GetInitViewModel {
-    return GetInitViewModel(getInitUseCase, getInitMapper, searchListViewModel)
+    return GetInitViewModel(getInitUseCase, getInitMapper, initBookingViewModel)
 }
     @Provides
     fun provideKeyViewModel(
@@ -63,7 +64,8 @@ fun provideGetInitViewModel(
         initBookingUseCase: InitBookingUseCase,
         initBookingMapper: InitBookingMapper,
         getBookingUseCase: GetBookingUseCase,
-        getBookingMapper: GetBookingMapper
+        getBookingMapper: GetBookingMapper,
+        searchListViewModel:SearchListViewModel
     ): KeyViewModel {
         return KeyViewModel(
             keyUseCase,
@@ -74,7 +76,8 @@ fun provideGetInitViewModel(
             initBookingUseCase,
             initBookingMapper,
             getBookingUseCase,
-            getBookingMapper
+            getBookingMapper,
+            searchListViewModel
         )
     }
 }

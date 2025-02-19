@@ -331,7 +331,7 @@ fun  PaymentSection1(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Requis pour votre réservation",
-                    fontSize = 25.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -365,7 +365,7 @@ fun  PaymentSection1(
                         },
                         modifier = Modifier
                             .offset(x = 3.dp)
-                            .width(200.dp)
+                            .width(180.dp)
                             .height(55.dp)
                             .padding(vertical = 4.dp),
 
@@ -391,7 +391,7 @@ fun  PaymentSection1(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .offset(x = 15.dp),
+                            .offset(x = 8.dp),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
 
@@ -413,8 +413,8 @@ fun  PaymentSection1(
                                 Text(
                                     text = "Modifier",
                                     color = Color(0xFF0054D8),
-                                    fontWeight = FontWeight.Bold,
-                                    fontSize = 18.sp
+                                    fontWeight = FontWeight.ExtraBold,
+                                    fontSize = 15.sp
                                 )
                             }
 
@@ -532,7 +532,7 @@ fun  PaymentSection1(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp), // optional padding for alignment
-                horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally) // Space between the buttons
+                horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally) // Space between the buttons
             ) {
 
                 val coroutineScope = rememberCoroutineScope()
@@ -745,23 +745,27 @@ fun  PaymentSection1(
                     enabled = !isLoading,
 
                     modifier = Modifier
-                        .height(48.dp).offset(x = -16.dp)
-                        .weight(1f), // Ensure both buttons take equal space
+                        .height(48.dp).offset(x = -28.dp)
+                        .weight(1.2f), // Ensure both buttons take equal space
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
                     shape = RoundedCornerShape(13.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically, // Aligns items vertically in the center
+                        horizontalArrangement = Arrangement.Center // Centers the content horizontally
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Payment,
                             contentDescription = "Card Payment",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp).offset(x=-7.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(3.dp)) // Increased spacing for better visibility
                         Text(
                             text = "Carte Crédit",
                             color = Color.White,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.ExtraBold
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                 }
@@ -902,22 +906,26 @@ fun  PaymentSection1(
                         }
                     },
                     modifier = Modifier
-                        .height(48.dp)
-                        .weight(1f), // Ensure both buttons take equal space
+                        .height(48.dp).offset(x=-7.dp)
+                        .weight(1.3f), // Ensure both buttons take equal space
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
                     shape = RoundedCornerShape(13.dp)
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically, // Aligns items vertically in the center
+                        horizontalArrangement = Arrangement.Center // Centers the content horizontally
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Money,
                             contentDescription = "Credits Payment",
-                            tint = Color.White
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp).offset(x=-7.dp)
                         )
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(3.dp))
                         Text(
                             text = "Crédit Padelium",
                             color = Color.White,
-                            fontSize = 16.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.ExtraBold
                         )
                     }

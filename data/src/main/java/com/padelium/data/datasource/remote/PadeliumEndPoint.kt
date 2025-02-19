@@ -81,13 +81,12 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     suspend fun getReservationKey(@Body request: FetchKeyRequestDTO): Response<FetchKeyResponse>
 
     @Headers("Content-Type: application/json")
-    @POST("/api/establishments/search/get/init")
-    suspend fun GetInit(@Body key: RequestBody): Response<GetInitResponse>
-
-
-    @Headers("Content-Type: application/json")
     @POST("/api/establishments/search/list")
     suspend fun SearchList(@Body key: RequestBody): Response<List<SearchListResponse>>
+
+    @Headers("Content-Type: application/json")
+    @POST("/api/establishments/search/get/init")
+    suspend fun GetInit(@Body key: RequestBody): Response<GetInitResponse>
 
     @Headers("Content-Type: application/json")
     @POST("api/establishments/search/init/booking")

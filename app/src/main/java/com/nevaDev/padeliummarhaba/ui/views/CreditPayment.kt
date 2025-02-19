@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -169,8 +170,9 @@ fun CreditPayment(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier.fillMaxWidth(0.8f).offset(x=110.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+
                 ) {
 
                     Button(
@@ -185,8 +187,7 @@ fun CreditPayment(
                         modifier = Modifier
                             .padding(start = 3.dp)
                             .height(50.dp)
-                            .fillMaxWidth(0.6f)
-                            .offset(x = 150.dp)
+                            .fillMaxWidth(0.8f) // Increased width to prevent text cut-off
                             .border(1.dp, Color(0xFF0054D8), RoundedCornerShape(13.dp)),
                         shape = RoundedCornerShape(15.dp)
                     ) {
@@ -194,12 +195,11 @@ fun CreditPayment(
                             text = "Charger votre compte",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier.wrapContentWidth(), // Ensures text is fully displayed
                             textAlign = TextAlign.Center
                         )
                     }
+
                 }
                 Spacer(modifier = Modifier.height(16.dp))
 
@@ -219,13 +219,7 @@ fun CreditPayment(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Display Alimentation List
-                Text(
-                    text = "Historiques - Alimentation",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = Color.Black,
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+
                 alimentations.forEach { credit ->
                     CreditCard(credit)
                 }
@@ -234,81 +228,93 @@ fun CreditPayment(
     }
 }
 
-    @Composable
-    fun CreditCard(credit: CreditPayResponse) {
-        Card(
-            shape = RoundedCornerShape(8.dp),
-            elevation = 4.dp,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+@Composable
+fun CreditCard(credit: CreditPayResponse) {
+    Card(
+        shape = RoundedCornerShape(8.dp),
+        elevation = 4.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(8.dp)
+            .border(1.dp, Color.Gray, RoundedCornerShape(8.dp))
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Box(
-                            modifier = Modifier.size(50.dp)
-                        ) {
-                            Image(
-                                painter = painterResource(id = R.drawable.raquettebl),
-                                contentDescription = "Reservation Icon",
-                                modifier = Modifier
-                                    .size(30.dp)
-                                    .align(Alignment.Center)
-                            )
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-
-                        Column(
-                            verticalArrangement = Arrangement.Center,
-                            horizontalAlignment = Alignment.Start
-                        ) {
-                            Text(
-                                text = credit.userAvoirTypeName,
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 16.sp
-                            )
-                            Spacer(modifier = Modifier.height(7.dp))
-                            Text(
-                                text = credit.createdStr,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 12.sp
-                            )
-                        }
+                    Box(modifier = Modifier.size(50.dp)) {
+                        Image(
+                            painter = painterResource(id = R.drawable.raquettebl),
+                            contentDescription = "Reservation Icon",
+                            modifier = Modifier
+                                .size(30.dp)
+                                .align(Alignment.Center)
+                        )
                     }
-
-                    Spacer(modifier = Modifier.width(130.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
 
                     Column(
-                        horizontalAlignment = Alignment.End
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.Start,
+                        modifier = Modifier.weight(1f)
                     ) {
-                        val formattedAmount = if (credit.amount.compareTo(BigDecimal.ZERO) == 0) {
-                            "0"
-                        } else {
-                            String.format("%.2f", credit.amount)
-                        }
+                        // Dynamically adjusting text size based on available space
                         Text(
-                            text = "$formattedAmount",
+                            text = credit.userAvoirTypeName,
                             fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            fontSize = 16.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
+                            modifier = Modifier.fillMaxWidth()
                         )
                         Spacer(modifier = Modifier.height(4.dp))
+
                         Text(
-                            text = "crédits",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 16.sp
+                            text = credit.createdStr,
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 14.sp,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            softWrap = false,
+                            modifier = Modifier.fillMaxWidth()
                         )
                     }
+                }
+
+                Spacer(modifier = Modifier.width(16.dp)) // Reduce extra space
+
+                Column(
+                    horizontalAlignment = Alignment.End
+                ) {
+                    val formattedAmount = if (credit.amount.compareTo(BigDecimal.ZERO) == 0) {
+                        "0"
+                    } else {
+                        String.format("%.2f", credit.amount)
+                    }
+                    Text(
+                        text = "$formattedAmount",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "crédits",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 16.sp
+                    )
                 }
             }
         }
     }
+}
+
 
 

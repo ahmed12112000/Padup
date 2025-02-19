@@ -202,17 +202,17 @@ fun LoginScreen(
                 ),
                 isError = isEmailError
             )
-/*
-            if (isEmailError) {
-                Text(
-                    text = stringResource(R.string.email_error),
-                    color = Color.Red,
-                    style = MaterialTheme.typography.body2,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
+            /*
+                        if (isEmailError) {
+                            Text(
+                                text = stringResource(R.string.email_error),
+                                color = Color.Red,
+                                style = MaterialTheme.typography.body2,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
 
- */
+             */
 
             Spacer(modifier = Modifier.height(8.dp))
 

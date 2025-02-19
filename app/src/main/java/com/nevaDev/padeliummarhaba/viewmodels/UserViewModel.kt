@@ -45,6 +45,27 @@ class UserViewModel @Inject constructor(
             dataResult1.postValue(result)
         }
     }
+
+    /**
+     * Start InitBooking
+     */
+
+    /*
+     fun InitBooking(initBookingRequest: InitBookingRequest) {
+        viewModelScope.launch {
+            dataResult1.postValue(Resulta.Loading)
+            val result = initBookingUseCase.InitBooking(initBookingRequest)
+            dataResult1.postValue(result)
+        }
+    }
+     */
+
+
+
+
+
+
+
     /**
      * Start signup
      */

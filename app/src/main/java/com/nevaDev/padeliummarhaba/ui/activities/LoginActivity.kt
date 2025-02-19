@@ -126,7 +126,7 @@ class LoginActivity : ComponentActivity() {
                             composable("login_screen") {
                                 LoginScreen(
                                     onLoginSuccess = {
-                                        sharedViewModel.setLoggedIn(true)
+                                        sharedViewModel.setLoggedIn(true) // Set login state
                                         navigateToMainActivity()
                                     },
                                     viewModel = viewModel,

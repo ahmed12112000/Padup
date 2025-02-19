@@ -16,7 +16,7 @@ import javax.inject.Inject
 class GetInitViewModel @Inject constructor(
     private val getInitUseCase: GetInitUseCase,
     private val getInitMapper: GetInitMapper,
-    private val searchListViewModel: SearchListViewModel // Inject SearchListViewModel
+    private val initBookingViewModel: InitBookingViewModel
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<GetInitResponseDTO>>()
@@ -35,7 +35,7 @@ class GetInitViewModel @Inject constructor(
                     val getInitResponseDTO = getInitMapper.GetInitResponseToGetInitResponseDto(result.data)
 
                     // Trigger SearchListViewModel's searchList method
-                    searchListViewModel.searchList(key, selectedDate)
+                //    initBookingViewModel.InitBooking(key, selectedDate)
 
                     // Return success with the mapped DTO
                     DataResultBooking.Success(getInitResponseDTO)

@@ -82,7 +82,7 @@ fun AppNavHost(
             composable("login_screen") { backStackEntry ->
                 val viewModel: UserViewModel = hiltViewModel()
                 val getProfileViewModel: GetProfileViewModel = hiltViewModel()
-                val sharedViewModel: SharedViewModel = viewModel()
+                val sharedViewModel: SharedViewModel = hiltViewModel()
                 val destinationRoute = backStackEntry.arguments?.getString("destination_route") ?: "main_screen"
 
                 LoginScreen(
@@ -220,13 +220,13 @@ fun AppNavHost(
             composable("PaymentSuccessScreen") {
                 PaymentSuccessScreen(navController = navController)
             }
-            composable("main_screen") {
 
+            composable("main_screen") {
                 MainScreen(
                     navController = navController,
                     onReservationClicked = { selectedDate ->
+                    },
 
-                    }
                 )
             }
             composable("main_screen") {
@@ -247,7 +247,8 @@ fun AppNavHost(
                         val destination =
                             "reservation_screen/$key/$formattedDate/$activityName/$cityName/$activityId/$cityId/$establishmentId/$time/$isCity"
                         navController.navigate(destination)
-                    }
+                    },
+
                 )
             }
             // Reservation Screen
@@ -326,7 +327,7 @@ fun AppNavHost(
                     },
                     viewModel9 = hiltViewModel(),
 
-                )
+                    )
             }
 
             composable(
@@ -366,7 +367,8 @@ fun AppNavHost(
                         val destination =
                             "reservation_screen/$key/$formattedDate/$activityName/$cityName/$activityId/$cityId/$establishmentId/$time/$isCity"
                         navController.navigate(destination)
-                    }
+                    },
+
                 )
             }
 

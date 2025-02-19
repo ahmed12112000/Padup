@@ -22,14 +22,16 @@ import javax.inject.Inject
 class SearchListViewModel @Inject constructor(
     private val searchListUseCase: SearchListUseCase,
     private val searchListMapper: SearchListMapper,
-    private val initBookingViewModel: InitBookingViewModel
+    private val initBookingViewModel: InitBookingViewModel,
+    private val getInitViewModel: GetInitViewModel, // Inject GetInitViewModel
+
 ) : ViewModel() {
 
     private val establishments4 = MutableStateFlow<List<EstablishmentDTO>>(emptyList())
     val establishments: StateFlow<List<EstablishmentDTO>> = establishments4
     val dataResultBooking = MutableLiveData<DataResultBooking<List<SearchListResponseDTO>>>()
 
-    fun searchList(key: String, selectedDate: LocalDate) {
+    fun searchList(key: String) {
         // Set to loading state
         dataResultBooking.value = DataResultBooking.Loading
 
@@ -46,7 +48,7 @@ class SearchListViewModel @Inject constructor(
                     }
 
                     // Trigger InitBookingViewModel's InitBooking method
-                    initBookingViewModel.InitBooking(key, selectedDate)
+                   // initBookingViewModel.InitBooking(key, selectedDate)
 
                     // Return success with the mapped DTO
                     DataResultBooking.Success(searchListResponseDTO)

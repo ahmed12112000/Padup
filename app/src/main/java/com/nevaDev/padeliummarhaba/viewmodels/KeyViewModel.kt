@@ -30,6 +30,7 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
+
 @HiltViewModel
 class KeyViewModel @Inject constructor(
     private val keyUseCase: KeyUseCase,
@@ -40,22 +41,14 @@ class KeyViewModel @Inject constructor(
     private val initBookingUseCase: InitBookingUseCase,
     private val initBookingMapper : InitBookingMapper,
     private val getBookingUseCase: GetBookingUseCase,
-    private val getBookingMapper : GetBookingMapper
+    private val getBookingMapper : GetBookingMapper,
+    private val searchListViewModel: SearchListViewModel // Inject SearchListViewModel
+
 ) : ViewModel() {
 
-    private val establishments4 = MutableStateFlow<List<EstablishmentDTO>>(emptyList())
-    val establishments: StateFlow<List<EstablishmentDTO>> = establishments4
     val dataResultBooking = MutableLiveData<DataResultBooking<FetchKeyResponseDTO>>()
-    val initDataResultBooking = MutableLiveData<DataResultBooking<GetInitResponseDTO>>()
-    val searchListDataResultBooking = MutableLiveData<DataResultBooking<List<SearchListResponseDTO>>>()
-    val initBookingDataResultBooking = MutableLiveData<DataResultBooking<List<InitBookingResponseDTO>>>()
-    val getBookingDataResultBooking = MutableLiveData<DataResultBooking<List<GetBookingResponseDTO>>>() // To store GetBooking results
-    val errorMessage = MutableStateFlow<String?>(null)
 
-    /**
-     * Fetch reservation key and on success, call GetInit with the key.
-     */
-    fun getReservationKey(fetchKeyRequest: FetchKeyRequest, selectedDate: LocalDate) {
+    fun getReservationKey(fetchKeyRequest: FetchKeyRequest,selectedDate: LocalDate) {
         dataResultBooking.value = DataResultBooking.Loading
 
         viewModelScope.launch {
@@ -63,10 +56,6 @@ class KeyViewModel @Inject constructor(
             dataResultBooking.value = when (result) {
                 is DataResultBooking.Success -> {
                     val fetchKeyResponseDTO = keyMapper.fetchKeyResponseToFetchKeyResponseDTO(result.data)
-
-                    // Trigger GetInitViewModel's GetInit method after fetching the key
-                    result.data.key?.let { getInitViewModel.GetInit(it, selectedDate) }
-
                     DataResultBooking.Success(fetchKeyResponseDTO)
                 }
                 is DataResultBooking.Failure -> {
@@ -87,6 +76,7 @@ class KeyViewModel @Inject constructor(
         }
     }
 }
+
 
 /*
 

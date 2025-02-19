@@ -7,44 +7,68 @@ import com.padelium.domain.dto.InitBookingRequest
 import com.padelium.domain.dto.InitBookingResponse
 import java.math.BigDecimal
 import java.time.Instant
+import java.time.LocalDate
 import javax.inject.Inject
 
 class InitBookingMapper @Inject constructor() {
+
     fun initBookingRequestToInitBookingRequestDto(initBookingRequest: InitBookingRequest): InitBookingRequestDTO {
         return InitBookingRequestDTO(
             key = initBookingRequest.key
-
         )
     }
+
     fun initBookingResponseToInitBookingResponseDTO(
         initBookingResponse: List<InitBookingResponse>
     ): List<InitBookingResponseDTO> {
-
         return initBookingResponse.map { response ->
             InitBookingResponseDTO(
-                from = response.from ?: Instant.now(), // Set default value if null
-                to = response.to ?: Instant.now(),
-                available = response.available,
+                establishmentPictureDTO = response.establishmentPictureDTO ?: emptyList(),
+                amount = response.amount ?: BigDecimal.ZERO,
+                decimalNumber = response.decimalNumber ?: 0,
+                currencySymbol = response.currencySymbol ?: "",
+                facadeUrl = response.facadeUrl ?: "",
                 openTime = response.openTime ?: Instant.now(),
                 closeTime = response.closeTime ?: Instant.now(),
-                bookings = response.bookings?: emptyList(),
-                availableBol = response.availableBol,
-                dayWithBooking = response.dayWithBooking,
-                fromStr = response.fromStr?: "",
-                toStr = response.toStr?: "",
-                price = response.price ?: BigDecimal.ZERO,
-                feeTransaction = response.feeTransaction ?: BigDecimal.ZERO,
-                reductionPrice = response.reductionPrice ?: BigDecimal.ZERO,
-                rfeeTransaction = response.rfeeTransaction ?: BigDecimal.ZERO,
-                currencySymbol = response.currencySymbol?: "",
-                reductionPriceBol = response.reductionPriceBol,
-                secondPrice = response.secondPrice,
-                isHappyHours = response.isHappyHours,
-                annulationDate = response.annulationDate?: ""
+                searchDate = response.searchDate ?: LocalDate.now(),
+                from = response.from ?: Instant.now(),
+                to = response.to ?: Instant.now(),
+                numberOfPlayer = response.numberOfPlayer ?: 0,
+                description = response.description ?: "",
+                currencyId = response.currencyId ?: 0L,
+                mgAmount = response.mgAmount ?: BigDecimal.ZERO,
+                totalFeed = response.totalFeed ?: 0,
+                moyFeed = response.moyFeed ?: 0.0,
+                bookingAnnulationDTOSet = response.bookingAnnulationDTOSet ?: emptyList(),
+                secondAmount = response.secondAmount ?: BigDecimal.ZERO,
+                secondAamount = response.secondAamount ?: BigDecimal.ZERO,
+                happyHours = response.happyHours ?: emptyList(),
+                withSecondPrice = response.withSecondPrice ?: false,
+                reductionAmount = response.reductionAmount ?: BigDecimal.ZERO,
+                reductionSecondAmount = response.reductionSecondAmount ?: BigDecimal.ZERO,
+                payFromAvoir = response.payFromAvoir ?: false,
+                reduction = response.reduction ?: BigDecimal.ZERO,
+                reductionaAmount = response.reductionaAmount ?: BigDecimal.ZERO,
+                reductionaSecondAmount = response.reductionaSecondAmount ?: BigDecimal.ZERO,
+                start = response.start ?: "",
+                end = response.end ?: "",
+                amountfeeTrans = response.amountfeeTrans ?: BigDecimal.ZERO,
+                samountfeeTrans = response.samountfeeTrans ?: BigDecimal.ZERO,
+                ramountfeeTrans = response.ramountfeeTrans ?: BigDecimal.ZERO,
+                rsamountfeeTrans = response.rsamountfeeTrans ?: BigDecimal.ZERO,
+                couponCode = response.couponCode ?: "",
+                establishmentPacksDTO = response.establishmentPacksDTO ?: emptyList(),
+                establishmentPacksId = response.establishmentPacksId ?: 0L,
+                plannings = response.plannings ?: emptyList(),
+                users = response.users ?: emptyList(),
+                Client = response.Client ?: false,
+                secondReduction = response.secondReduction ?: BigDecimal.ZERO,
+                aamount = response.aamount ?: BigDecimal.ZERO
             )
         }
     }
 }
+
 /*
    fun initBookingRequestToInitBookingRequestDto(initBookingRequest: InitBookingRequest): InitBookingRequestDTO {
         return InitBookingRequestDTO(

@@ -199,6 +199,30 @@ data class PlanningDTO(
      val annulationDate: String = "" */ // Default value
 ) : Serializable
 
+data class PlanningDTOo(
+    val name: String,
+    val fromStr: String,
+    val toStr: String,
+    val from:String,
+    val to: String,
+    val available: Int,
+    val reductionPrice: BigDecimal = BigDecimal.ZERO,
+
+     val openTime: Instant = Instant.now(),
+     val closeTime: Instant = Instant.now(),
+     val bookings: List<bookingDTO> = emptyList(),
+     val availableBol: Boolean ,
+     val dayWithBooking: Boolean = false, // Default value
+     val price: BigDecimal = BigDecimal.ZERO, // Default value
+     val feeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
+     val rfeeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
+     val currencySymbol: String = "", // Default value
+     val reductionPriceBol: Boolean = false, // Default value
+     val secondPrice: Boolean = false, // Default value
+     val isHappyHours: Boolean = false, // Default value
+     val annulationDate: String = ""  // Default value
+) : Serializable
+
 data class establishmentFeatureDTO(
     val id:Long,
     val created: Instant,

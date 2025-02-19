@@ -27,6 +27,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -59,6 +60,9 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.pager.ExperimentalPagerApi
 import java.time.LocalDate
@@ -68,10 +72,18 @@ import com.nevadev.padeliummarhaba.R
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
+import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.ui.views.CopyrightText
+import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.FetchKeyRequest
+import java.time.ZoneId
+import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 
 
 @AndroidEntryPoint
@@ -87,6 +99,9 @@ class MainActivity : ComponentActivity() {
                 val viewModel: GetProfileViewModel = hiltViewModel()
                 val sharedViewModel: SharedViewModel = hiltViewModel()
                 val context = LocalContext.current
+                val isLoggedInState by sharedViewModel.isLoggedIn.observeAsState(false)
+
+
 
                 LaunchedEffect(Unit) {
                     delay(3100)
@@ -136,6 +151,8 @@ class MainActivity : ComponentActivity() {
                         navigateToLogin = navigateToLogin,
                         navController = navController,
                     )
+
+
                 }
             }
         }
@@ -151,9 +168,8 @@ fun MainApp(
     viewModel: GetProfileViewModel,
     sharedViewModel: SharedViewModel,
     navigateToLogin: (String) -> Unit,
-    navController: NavController,
+    navController: NavHostController,
 ) {
-    val navController = rememberNavController()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
@@ -256,14 +272,13 @@ fun logout(context: Context) {
     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
 }
 
-
 @Composable
 fun MainScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     onReservationClicked: (LocalDate) -> Unit,
-
-) {
+    viewModel: KeyViewModel = hiltViewModel(),
+    ) {
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var isButtonClicked by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -277,6 +292,7 @@ fun MainScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
+
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -364,6 +380,7 @@ fun MainScreen(
         )
     }
 }
+
 
 @OptIn(ExperimentalPagerApi::class)
 @Composable
@@ -478,7 +495,7 @@ fun CustomBottomNavItem(
     onClick: (Double) -> Unit,
     navigateToLogin: (String) -> Unit
 
-    ) {
+) {
     val isLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
 
     val animatedOffsetY by animateDpAsState(
@@ -506,10 +523,10 @@ fun CustomBottomNavItem(
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
                 when (route) {
-                    "Profile_screen", "main_screen" , "CreditPayment", "summary_screen" -> {
+                    "Profile_screen", "payment_section1" , "CreditPayment", "summary_screen" -> {
                         if (isLoggedIn) {
                             navController.navigate(route) {
-                            //   popUpTo("main_screen") { inclusive = false  }
+                                //   popUpTo("main_screen") { inclusive = false  }
                                 // Ensure bottom bar remains intact and doesn’t get reset
                                 launchSingleTop = true
                                 restoreState = true

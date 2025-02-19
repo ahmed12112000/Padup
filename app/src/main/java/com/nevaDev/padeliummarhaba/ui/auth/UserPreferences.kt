@@ -6,25 +6,34 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import androidx.datastore.preferences.core.*
+import androidx.datastore.preferences.preferencesDataStore
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
+// Define the DataStore extension property
 private val Context.dataStore by preferencesDataStore(name = "user_prefs")
 
-class UserPreferences(private val context: Context) {
+class UserPreferences(context: Context) {
+    private val dataStore = context.dataStore
 
     companion object {
-        private val IS_LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
+        private val LOGGED_IN_KEY = booleanPreferencesKey("is_logged_in")
     }
 
-    // Save login state
+    val isLoggedIn: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[LOGGED_IN_KEY] ?: false
+    }
+
     suspend fun saveLoginState(isLoggedIn: Boolean) {
-        context.dataStore.edit { preferences ->
-            preferences[IS_LOGGED_IN_KEY] = isLoggedIn
+        dataStore.edit { preferences ->
+            preferences[LOGGED_IN_KEY] = isLoggedIn
         }
     }
 
-    // Read login state
-    val isLoggedIn: Flow<Boolean> = context.dataStore.data
-        .map { preferences ->
-            preferences[IS_LOGGED_IN_KEY] ?: false
-        }
+    fun getLoginStateSync(): Boolean {
+        return runBlocking { isLoggedIn.first() }
+    }
 }
+

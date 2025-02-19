@@ -25,6 +25,7 @@
         <activity
             android:name="com.nevaDev.padeliummarhaba.ui.activities.MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:label="@string/app_name"
             android:theme="@style/Theme.PadeliumMarhaba">
             <intent-filter>
