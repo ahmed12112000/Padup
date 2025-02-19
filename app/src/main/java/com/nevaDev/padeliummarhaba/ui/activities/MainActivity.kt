@@ -268,7 +268,6 @@ fun TopBar(
 
 fun logout(context: Context) {
     val sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-    //sharedPreferences.edit().remove("JSESSIONID").apply()
     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
 }
 
