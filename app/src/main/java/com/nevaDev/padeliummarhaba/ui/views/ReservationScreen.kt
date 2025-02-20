@@ -83,9 +83,7 @@ fun ReservationScreen(
 ) {
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
-    var showLoginPopup by remember { mutableStateOf(false) }
     val selectedReservation = remember { mutableStateOf<ReservationOption?>(null) }
-    val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
     val selectedDate = remember { mutableStateOf(LocalDate.now()) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
@@ -123,7 +121,7 @@ fun ReservationScreen(
                 // Now that the new key is available, trigger other view models
                 reservationKey.value?.let { key ->
                     viewModel3.searchList(key)
-                 //   viewModel2.GetInit(key, selectedDate.value)
+                    viewModel2.GetInit(key)
                     val initBookingRequest = InitBookingRequest(
                         key = key,
                     )
@@ -133,8 +131,7 @@ fun ReservationScreen(
             }
             is DataResultBooking.Failure -> {
                 isLoading = false
-               // errorMessage = result.errorMessage ?: "Unknown error occurred"
-                //    Log.e("ReservationScreen", "Error: ${result.errorMessage}")
+
             }
         }
     }
@@ -146,7 +143,7 @@ fun ReservationScreen(
     fun filterSlotsByDate(newDate: LocalDate) {
         reservationKey.value?.let { key ->
             viewModel3.searchList(key)
-           // viewModel2.GetInit(key, newDate)
+            viewModel2.GetInit(key)
             val initBookingRequest = InitBookingRequest(
                 key = key,
             )

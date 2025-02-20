@@ -85,6 +85,7 @@ import com.google.android.material.snackbar.Snackbar
 import android.view.View
 import android.widget.TextView
 import com.android.identity.util.AndroidAttestationExtensionParser
+import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.ui.activities.LoginActivity
 import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 
@@ -267,8 +268,8 @@ private fun EstablishmentCard(
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
     sharedViewModel: SharedViewModel = hiltViewModel() // Access SharedViewModel
 ) {
-    // Observe login state from SharedViewModel
-    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) } // ✅ Create SessionManager instance
 
     // Filter plannings by the selected time slot
     val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
@@ -283,7 +284,6 @@ private fun EstablishmentCard(
         } else {
             getBookingResponseDTO.amount ?: BigDecimal.ZERO
         }
-        val context = LocalContext.current
 
         Card(
             modifier = Modifier
@@ -296,7 +296,6 @@ private fun EstablishmentCard(
                         planning = planning,
                         bookingViewModel = bookingViewModel,
                         navController = navController,
-                        isUserLoggedIn = isUserLoggedIn,  // Use the login state from SharedViewModel
                         onLoginRequired = { showLoginPopup = true },
                         saveBookingViewModel = saveBookingViewModel,
                         viewModel1 = viewModel1,
@@ -304,7 +303,7 @@ private fun EstablishmentCard(
                         paymentPayAvoirViewModel = paymentPayAvoirViewModel,
                         amountToShow = amountToShow,
                         context = context,
-                        sharedViewModel = sharedViewModel
+                        sessionManager = sessionManager // ✅ Pass SessionManager
                     )
                 },
             shape = RoundedCornerShape(10.dp), // Slightly smaller radius
@@ -445,7 +444,6 @@ fun handleCardClick(
     planning: PlanningDTO,
     bookingViewModel: GetBookingViewModel,
     navController: NavController,
-    isUserLoggedIn: Boolean,
     onLoginRequired: () -> Unit,
     saveBookingViewModel: SaveBookingViewModel,
     viewModel1: ExtrasViewModel,
@@ -453,10 +451,8 @@ fun handleCardClick(
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
     amountToShow: BigDecimal,
     context: Context,
-    sharedViewModel: SharedViewModel // Add SharedViewModel to update login state
+    sessionManager: SessionManager, // ✅ Inject SessionManager to check login status
 ) {
-
-
     val currencySymbol = selectedBooking.currencySymbol ?: "€"
     val formattedAmount = String.format("%.2f", amountToShow)
     val price = " $formattedAmount"
@@ -469,7 +465,7 @@ fun handleCardClick(
     bookingViewModel.updateBookings(listOf(updatedBooking))
     Log.d("BookingViewModel", "updateBookings called with selected booking")
 
-    if (!isUserLoggedIn) {
+    if (!sessionManager.isLoggedIn()) { // ✅ Check token-based login status
         // Redirect to LoginActivity and pass the destination
         val intent = Intent(context, LoginActivity::class.java).apply {
             putExtra(
@@ -479,9 +475,6 @@ fun handleCardClick(
         }
         context.startActivity(intent)
     } else {
-        // **Set user as logged in before navigation**
-        sharedViewModel.setLoggedIn(true)
-
         // Proceed with booking
         val mappedBookingsJson = Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))
 
@@ -508,6 +501,7 @@ fun handleCardClick(
         )
     }
 }
+
 
 
 

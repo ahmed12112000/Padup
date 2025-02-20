@@ -331,7 +331,7 @@ fun  PaymentSection1(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Requis pour votre réservation",
-                    fontSize = 22.sp,
+                    fontSize = 19.sp,
                     fontWeight = FontWeight.Bold
                 )
             }

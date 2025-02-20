@@ -39,6 +39,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import coil.compose.rememberAsyncImagePainter
+import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ProfileViewModel
 import com.nevadev.padeliummarhaba.R
@@ -52,7 +53,7 @@ import java.io.InputStream
 @Composable
 fun ProfileScreen(
     viewModel2: ProfileViewModel = hiltViewModel(),
-    viewModel: GetProfileViewModel = hiltViewModel()
+    viewModel: GetProfileViewModel = hiltViewModel(),
 ) {
     var activated by remember { mutableStateOf(false) }
     var authorities by remember { mutableStateOf("") }
@@ -77,22 +78,18 @@ fun ProfileScreen(
         }
     }
 
-    // Fetch profile data on screen load
     LaunchedEffect(Unit) {
         viewModel.fetchProfileData()
     }
 
 
-    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
-    var isLoading by remember { mutableStateOf(false) }
 
 
 
 
     when (val result = profileData) {
         is DataResult.Success -> {
-            // Extract profile data into variables
             val profile = result.data as? GetProfileResponse
             if (profile != null && !firstName.isNotEmpty()) {
                 firstName = profile.firstName
@@ -163,9 +160,7 @@ fun ProfileScreen(
         OutlinedTextField(
             value = phoneNumber,
             onValueChange = {
-                // Allow digits, the plus sign (+), and restrict the length to 8 characters
                 if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
-                    // Ensure that the plus sign only appears at the beginning
                     if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains('+'))) {
                         phoneNumber = it
                     }
@@ -185,19 +180,18 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(36.dp))
 
-        // Profile Image Section
         Column(
             modifier = Modifier
-                .fillMaxSize(), // Fill the entire screen
-            verticalArrangement = Arrangement.Center, // Center vertically
-            horizontalAlignment = Alignment.CenterHorizontally // Center horizontally
+                .fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Photo de profile",
                 color = Color.Black,
                 fontWeight = FontWeight.Bold,
                 fontSize = 19.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally) // Ensure the text is centered
+                modifier = Modifier.align(Alignment.CenterHorizontally)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -245,33 +239,31 @@ fun ProfileScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp), // Add horizontal padding for smoother spacing
-            horizontalArrangement = Arrangement.Center // Center the button horizontally
+                .padding(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.Center
         ) {
 
 
 
             Button(
                 onClick = {
-                    // Create account JSON
                     val base64Image = profileImageUri?.let { getBase64FromUri(context, it) } ?: image
 
                     val accountData = mapOf(
                         "activated" to activated,
-                        "authorities" to listOf(authorities), // Replace with actual authorities if needed
-                        "email" to email, // Set this to the user's email if available
+                        "authorities" to listOf(authorities),
+                        "email" to email,
                         "firstName" to firstName,
-                        "image" to base64Image, // Use the new image if available
-                        "imageUrl" to imageUrl, // Set this to the actual image URL if available
-                        "langKey" to langKey, // Set this to the actual language key if available
+                        "image" to base64Image,
+                        "imageUrl" to imageUrl,
+                        "langKey" to langKey,
                         "lastName" to lastName,
-                        "login" to login, // Set this to the user's login if available
+                        "login" to login,
                         "phone" to phoneNumber,
                     )
                     val accountJson = JSONObject(accountData).toString()
                     Log.d("ProfileUpdate", "Account JSON: $accountJson")
 
-                    // Call the ViewModel to update the profile
                     viewModel2.Profile(accountJson, profileImageUri)
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -309,7 +301,7 @@ fun getBase64FromUri(context: Context, uri: Uri): String? {
         val byteArrayOutputStream = ByteArrayOutputStream()
         bitmap.compress(Bitmap.CompressFormat.JPEG, 100, byteArrayOutputStream)
         val byteArray: ByteArray = byteArrayOutputStream.toByteArray()
-        Base64.encodeToString(byteArray, Base64.NO_WRAP) // Encode to base64
+        Base64.encodeToString(byteArray, Base64.NO_WRAP)
     } catch (e: Exception) {
         e.printStackTrace()
         null

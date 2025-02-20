@@ -22,6 +22,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PadeliumMarhaba"
         tools:targetApi="31">
+
+
         <activity
             android:name="com.nevaDev.padeliummarhaba.ui.activities.MainActivity"
             android:exported="true"
@@ -34,6 +36,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+
         <activity
             android:name="com.nevaDev.padeliummarhaba.ui.activities.LoginActivity"
             android:label="Login"
@@ -41,6 +45,7 @@
             android:theme="@style/Theme.PadeliumMarhaba"
             android:exported="true">
         </activity>
+
 
 
         <meta-data

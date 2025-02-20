@@ -297,10 +297,9 @@ data class bookingAnnulationDTO(
 
 data class HappyHours(
     val id:Long,
-    val from: Instant,
-    val to: Instant,
+    val from: String,
+    val to: String,
     val establishmentPriceId: Long,
-    val available:Int,
 
     ) : Serializable
 

@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -50,6 +51,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.CreditPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
 import com.nevadev.padeliummarhaba.R
@@ -65,6 +67,7 @@ fun CreditPayment(
     navController: NavController,
     viewModel: GetPacksViewModel = hiltViewModel(),
     viewModel2: CreditPayViewModel = hiltViewModel(),
+
 ) {
     val packsData by viewModel.packsData.observeAsState(DataResult.Loading)
 
@@ -87,6 +90,7 @@ fun CreditPayment(
 
     val CreditsData by viewModel2.CreditsData.observeAsState()
     val Credits = remember { mutableStateOf<List<CreditPayResponse>>(emptyList()) }
+
 
     // On data change, update reservations list
     LaunchedEffect(CreditsData) {

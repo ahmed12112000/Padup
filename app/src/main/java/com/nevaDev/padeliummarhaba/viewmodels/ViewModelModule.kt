@@ -30,54 +30,34 @@ object ViewModelModule {
     @Provides
     fun provideInitBookingViewModel(
         initBookingUseCase: InitBookingUseCase,
-        initBookingMapper: InitBookingMapper,
-        getBookingViewModel: GetBookingViewModel // Dependency from GetBookingViewModel
     ): InitBookingViewModel {
-        return InitBookingViewModel(initBookingUseCase, initBookingMapper, getBookingViewModel)
+        return InitBookingViewModel(initBookingUseCase)
     }
 
     @Provides
     fun provideSearchListViewModel(
         searchListUseCase: SearchListUseCase,
         searchListMapper: SearchListMapper,
-        getInitViewModel: GetInitViewModel,
-        initBookingViewModel: InitBookingViewModel // Dependency from InitBookingViewModel
     ): SearchListViewModel {
-        return SearchListViewModel(searchListUseCase, searchListMapper, initBookingViewModel,getInitViewModel)
+        return SearchListViewModel(searchListUseCase, searchListMapper)
     }
 
 @Provides
 fun provideGetInitViewModel(
     getInitUseCase: GetInitUseCase,
     getInitMapper: GetInitMapper,
-    initBookingViewModel: InitBookingViewModel
 ): GetInitViewModel {
-    return GetInitViewModel(getInitUseCase, getInitMapper, initBookingViewModel)
+    return GetInitViewModel(getInitUseCase, getInitMapper)
 }
     @Provides
     fun provideKeyViewModel(
         keyUseCase: KeyUseCase,
         keyMapper: KeyMapper,
-        getInitViewModel: GetInitViewModel, // Injecting GetInitViewModel
-        searchListUseCase: SearchListUseCase,
-        searchListMapper: SearchListMapper,
-        initBookingUseCase: InitBookingUseCase,
-        initBookingMapper: InitBookingMapper,
-        getBookingUseCase: GetBookingUseCase,
-        getBookingMapper: GetBookingMapper,
-        searchListViewModel:SearchListViewModel
+
     ): KeyViewModel {
         return KeyViewModel(
             keyUseCase,
             keyMapper,
-            getInitViewModel,
-            searchListUseCase,
-            searchListMapper,
-            initBookingUseCase,
-            initBookingMapper,
-            getBookingUseCase,
-            getBookingMapper,
-            searchListViewModel
         )
     }
 }

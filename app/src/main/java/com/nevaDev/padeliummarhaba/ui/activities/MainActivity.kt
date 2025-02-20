@@ -72,6 +72,7 @@ import com.nevadev.padeliummarhaba.R
 import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
+import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.ui.views.CopyrightText
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
@@ -85,13 +86,14 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val sharedPreferences = getSharedPreferences("csrf_prefs", MODE_PRIVATE)
+        val sessionManager = SessionManager(this) // ✅ Initialize SessionManager
+
         setContent {
             PadeliumMarhabaTheme {
                 var showSplashScreen by remember { mutableStateOf(true) }
@@ -99,9 +101,7 @@ class MainActivity : ComponentActivity() {
                 val viewModel: GetProfileViewModel = hiltViewModel()
                 val sharedViewModel: SharedViewModel = hiltViewModel()
                 val context = LocalContext.current
-                val isLoggedInState by sharedViewModel.isLoggedIn.observeAsState(false)
-
-
+                val isLoggedInState by sharedViewModel.isLoggedIn.observeAsState(initial = sessionManager.isLoggedIn()) // ✅ Check token state
 
                 LaunchedEffect(Unit) {
                     delay(3100)
@@ -113,9 +113,19 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val onLogout: () -> Unit = {
                         sharedPreferences.edit().clear().apply()
+                        sessionManager.logout() // ✅ Clear token on logout
                         sharedViewModel.setLoggedIn(false)
                         navController.navigate("login_screen") {
                             popUpTo("main_screen") { inclusive = true }
+                        }
+                    }
+
+                    LaunchedEffect(isLoggedInState) {
+                        if (isLoggedInState == true) {
+                            sessionManager.updateLastActiveTime() // ✅ Update last active time when logged in
+                            navController.navigate("main_screen") {
+                                popUpTo("login_screen") { inclusive = true }
+                            }
                         }
                     }
 
@@ -125,6 +135,7 @@ class MainActivity : ComponentActivity() {
                         if (result.resultCode == Activity.RESULT_OK) {
                             val destinationRoute = result.data?.getStringExtra("navigate_back_to")
                             if (destinationRoute != null) {
+                                sessionManager.updateLastActiveTime() // ✅ Update last active time on successful login
                                 navController.navigate(destinationRoute) {
                                     launchSingleTop = true
                                     restoreState = true
@@ -133,26 +144,29 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry?.destination?.route
                     val shouldShowBottomBar = currentRoute !in listOf("splash_screen", "login_screen")
+
                     val navigateToLogin: (String) -> Unit = { destinationRoute ->
-                        val intent = Intent(context, LoginActivity::class.java).apply {
-                            putExtra("destination_route", destinationRoute)
+                        if (!sessionManager.isLoggedIn()) { // ✅ Ensure login only if not logged in
+                            val intent = Intent(context, LoginActivity::class.java).apply {
+                                putExtra("destination_route", destinationRoute)
+                            }
+                            loginResultLauncher.launch(intent)
+                        } else {
+                            sessionManager.updateLastActiveTime() // ✅ Update last active time on navigation
+                            navController.navigate(destinationRoute)
                         }
-                        loginResultLauncher.launch(intent)
                     }
+
                     MainApp(
                         context = context,
                         sharedPreferences = sharedPreferences,
                         viewModel = viewModel,
-                        sharedViewModel = sharedViewModel,
                         navigateToLogin = navigateToLogin,
                         navController = navController,
                     )
-
-
                 }
             }
         }
@@ -166,20 +180,22 @@ fun MainApp(
     context: Context,
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
-    sharedViewModel: SharedViewModel,
     navigateToLogin: (String) -> Unit,
     navController: NavHostController,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
-    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
     val getReservationViewModel: GetReservationViewModel = hiltViewModel()
-
+    val sessionManager = remember { SessionManager(context) }
 
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val selectedItem = currentBackStackEntry?.destination?.route
     val shouldShowBottomBar = selectedItem !in listOf("splash_screen", "login_screen")
 
+    // Update last active time whenever user navigates
+    LaunchedEffect(selectedItem) {
+        sessionManager.updateLastActiveTime()
+    }
 
     Scaffold(
         bottomBar = {
@@ -187,7 +203,6 @@ fun MainApp(
                 AnimatedBottomBar(
                     navController = navController,
                     getReservationViewModel = getReservationViewModel,
-                    sharedViewModel = sharedViewModel,
                     navigateToLogin = navigateToLogin
                 )
             }
@@ -196,19 +211,20 @@ fun MainApp(
             Box(modifier = Modifier.padding(innerPadding)) {
                 AppNavHost(
                     navController = navController,
-                    isUserLoggedIn = isUserLoggedIn,
-                    onLoginSuccess = { sharedViewModel.setLoggedIn(true) },
-                    onLogout = { sharedViewModel.setLoggedIn(false) },
+                    isUserLoggedIn = sessionManager.isLoggedIn(),
+                    onLoginSuccess = { sessionManager.updateLastActiveTime() },
+                    onLogout = { sessionManager.logout() },
                     context = context,
                     sharedPreferences = sharedPreferences,
                     drawerState = drawerState,
                     scope = scope,
-                    onSignupSuccess = { sharedViewModel.setLoggedIn(false) },
+                    onSignupSuccess = { sessionManager.updateLastActiveTime() },
                 )
             }
         }
     )
 }
+
 
 
 
@@ -435,13 +451,11 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 fun AnimatedBottomBar(
     navController: NavController,
     getReservationViewModel: GetReservationViewModel,
-    sharedViewModel: SharedViewModel,
     modifier: Modifier = Modifier,
     navigateToLogin: (String) -> Unit,
 ) {
     val selectedItem by rememberUpdatedState(navController.currentBackStackEntry?.destination?.route)
     val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)
-    val isLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
 
     Box(
         modifier = Modifier
@@ -468,7 +482,6 @@ fun AnimatedBottomBar(
                     label = item.label,
                     isSelected = selectedItem == item.route,
                     context = LocalContext.current,
-                    sharedViewModel = sharedViewModel,
                     navigateToLogin = navigateToLogin ,
                     onClick = {
                         navController.navigate(item.route) {
@@ -490,12 +503,12 @@ fun CustomBottomNavItem(
     label: String,
     isSelected: Boolean,
     context: Context,
-    sharedViewModel: SharedViewModel,
     onClick: (Double) -> Unit,
     navigateToLogin: (String) -> Unit
 
 ) {
-    val isLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
+    val sessionManager = remember { SessionManager(context) } // ✅ Use SessionManager
+    val isUserLoggedIn = sessionManager.isLoggedIn()
 
     val animatedOffsetY by animateDpAsState(
         targetValue = if (isSelected) (-12).dp else 0.dp,
@@ -521,9 +534,10 @@ fun CustomBottomNavItem(
         modifier = Modifier
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
+                sessionManager.updateLastActiveTime() // ✅ Update session time on navigation
                 when (route) {
-                    "Profile_screen", "payment_section1" , "CreditPayment", "summary_screen" -> {
-                        if (isLoggedIn) {
+                    "Profile_screen", "payment_section1" , "CreditPayment", "summary_screen", "reservation_options" -> {
+                        if (isUserLoggedIn) {
                             navController.navigate(route) {
                                 //   popUpTo("main_screen") { inclusive = false  }
                                 // Ensure bottom bar remains intact and doesn’t get reset

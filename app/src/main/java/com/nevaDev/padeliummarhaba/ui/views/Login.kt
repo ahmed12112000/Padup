@@ -33,6 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.ui.activities.MainActivity
 import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
@@ -46,13 +47,12 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: () -> Unit,
+    onLoginSuccess: (String) -> Unit, // ✅ Accept token parameter
     viewModel: UserViewModel = hiltViewModel(),
     getProfileViewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
     loginRequest: LoginRequest,
     destinationRoute: String,
-    sharedViewModel: SharedViewModel  // Access SharedViewModel
 
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -67,9 +67,12 @@ fun LoginScreen(
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp
-    val screenHeight = configuration.screenHeightDp
+    val sessionManager = SessionManager(context)
+    val token = sessionManager.getAuthToken()
+
+    if (token != null && sessionManager.isTokenExpired()) {
+        sessionManager.invalidateToken() // Clear expired token
+    }
 
     viewModel.dataResult1.observe(lifecycleOwner) { result ->
         isLoading = false
@@ -111,7 +114,6 @@ fun LoginScreen(
             navController.navigate(destinationRoute) {
                 popUpTo("login_screen") { inclusive = true }
             }
-            sharedViewModel.setLoggedIn(true)
         } else {
             // User does not have the correct role, redirect to login page
             val intent =
@@ -119,7 +121,7 @@ fun LoginScreen(
             context.startActivity(intent)
         }
     }
-
+/*
     LaunchedEffect(Unit) {
         if (sharedViewModel.isLoggedIn.value == true) {
             val intendedRoute = sharedViewModel.intendedRoute.value ?: "main_screen"
@@ -128,6 +130,8 @@ fun LoginScreen(
             }
         }
     }
+
+ */
 
     Box(
         modifier = Modifier
@@ -297,7 +301,9 @@ fun LoginScreen(
                             password = password,
                         )
                         viewModel.loginUser(updatedRequest)
-
+                        val newToken  = "AhmeD98821607" // Replace with actual token from API response
+                        sessionManager.saveAuthToken(newToken)
+                        onLoginSuccess(newToken)
 
                     }
                 },

@@ -32,6 +32,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileByIdViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetStatusesViewModel
@@ -74,6 +75,8 @@ fun SummaryScreen(
     val reservationData by viewModel.ReservationsData.observeAsState()
     val profilesData by viewModel1.profilesData.observeAsState()
     val reservationData1 by viewModel2.ReservationsData1.observeAsState()
+
+
 
     LaunchedEffect(reservationData) {
         if (reservationData is DataResultBooking.Success) {

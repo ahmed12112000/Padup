@@ -35,15 +35,6 @@ import javax.inject.Inject
 class KeyViewModel @Inject constructor(
     private val keyUseCase: KeyUseCase,
     private val keyMapper: KeyMapper,
-    private val getInitViewModel: GetInitViewModel, // Inject GetInitViewModel
-    private val searchListUseCase: SearchListUseCase,
-    private val searchListMapper : SearchListMapper,
-    private val initBookingUseCase: InitBookingUseCase,
-    private val initBookingMapper : InitBookingMapper,
-    private val getBookingUseCase: GetBookingUseCase,
-    private val getBookingMapper : GetBookingMapper,
-    private val searchListViewModel: SearchListViewModel // Inject SearchListViewModel
-
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<FetchKeyResponseDTO>>()
@@ -60,164 +51,19 @@ class KeyViewModel @Inject constructor(
                 }
                 is DataResultBooking.Failure -> {
                     DataResultBooking.Failure(
-                        exception = result.exception,
-                        errorCode = result.errorCode,
-                        errorMessage = result.errorMessage
+                        exception = null,
+                        errorCode = null,
+                        errorMessage = ""
                     )
                 }
                 else -> {
                     DataResultBooking.Failure(
                         exception = null,
                         errorCode = null,
-                        errorMessage = "An unexpected error occurred while fetching the reservation key"
+                        errorMessage = ""
                     )
                 }
             }
         }
     }
 }
-
-
-/*
-
-    // Function to call GetInit
-    private fun fetchInitData(key: String) {
-        initDataResultBooking.value = DataResultBooking.Loading
-
-        viewModelScope.launch {
-            val result = getInitUseCase.execute(key)
-
-            initDataResultBooking.value = when (result) {
-                is DataResultBooking.Success -> {
-                    val getInitResponseDTO = getInitMapper.GetInitResponseToGetInitResponseDto(result.data)
-                    DataResultBooking.Success(getInitResponseDTO)
-                }
-                is DataResultBooking.Failure -> {
-                    DataResultBooking.Failure(
-                        exception = result.exception,
-                        errorCode = result.errorCode,
-                        errorMessage = result.errorMessage
-                    )
-                }
-                else -> {
-                    DataResultBooking.Failure(
-                        exception = null,
-                        errorCode = null,
-                        errorMessage = "An unexpected error occurred while fetching the initialization data"
-                    )
-                }
-            }
-        }
-    }
-
-
-
-
-    private fun fetchListData1(key: String) {
-        searchListDataResultBooking.value = DataResultBooking.Loading
-
-        viewModelScope.launch {
-            val result = searchListUseCase.execute(key)
-
-            searchListDataResultBooking.value = when (result) {
-                is DataResultBooking.Success -> {
-                    val searchListResponseDTO = searchListMapper.SearchListResponseToSearchListResponseDto(result.data)
-                    DataResultBooking.Success(searchListResponseDTO)
-                }
-                is DataResultBooking.Failure -> {
-                    DataResultBooking.Failure(
-                        exception = result.exception,
-                        errorCode = result.errorCode,
-                        errorMessage = result.errorMessage
-                    )
-                }
-                else -> {
-                    DataResultBooking.Failure(
-                        exception = null,
-                        errorCode = null,
-                        errorMessage = "An unexpected error occurred while fetching the list data"
-                    )
-                }
-            }
-        }
-    }
-
-
-    private fun fetchListData2(key: String) {
-        initBookingDataResultBooking.value = DataResultBooking.Loading
-
-        viewModelScope.launch {
-            val result = initBookingUseCase.execute(key)
-
-            initBookingDataResultBooking.value = when (result) {
-                is DataResultBooking.Success -> {
-                    val initBookingResponseDTO = initBookingMapper.initBookingResponseToInitBookingResponseDTO(result.data)
-                    DataResultBooking.Success(initBookingResponseDTO)
-                }
-                is DataResultBooking.Failure -> {
-                    DataResultBooking.Failure(
-                        exception = result.exception,
-                        errorCode = result.errorCode,
-                        errorMessage = result.errorMessage
-                    )
-                }
-                else -> {
-                    DataResultBooking.Failure(
-                        exception = null,
-                        errorCode = null,
-                        errorMessage = "An unexpected error occurred while fetching the list data"
-                    )
-                }
-            }
-        }
-    }
-    private fun fetchListData3(key: String)  {
-        getBookingDataResultBooking.value = DataResultBooking.Loading
-
-        viewModelScope.launch {
-            try {
-                val result = getBookingUseCase.execute(key)
-                Log.d("GetBookingUseCase", "Result: $result")
-
-                getBookingDataResultBooking.value = when (result) {
-                    is DataResultBooking.Success -> {
-                        val getBookingResponseDTO = getBookingMapper.GetBookingResponseToGetBookingResponseDto(result.data)
-                        Log.d("MappedResponse", "Mapped DTO: $getBookingResponseDTO")
-                        DataResultBooking.Success(getBookingResponseDTO)
-                    }
-                    is DataResultBooking.Failure -> {
-                        Log.e("FetchError", "Error Code: ${result.errorCode}, Message: ${result.errorMessage}")
-                        DataResultBooking.Failure(
-                            exception = result.exception,
-                            errorCode = result.errorCode,
-                            errorMessage = result.errorMessage
-                        )
-                    }
-                    else -> {
-                        DataResultBooking.Failure(
-                            exception = null,
-                            errorCode = null,
-                            errorMessage = "An unexpected error occurred while fetching the list data"
-                        )
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e("FetchError", "Exception occurred: ${e.message}")
-                getBookingDataResultBooking.value = DataResultBooking.Failure(
-                    exception = e,
-                    errorCode = null,
-                    errorMessage = "An error occurred while fetching the list data"
-                )
-            }
-        }
-    }
-
-
-
-
-
-}
-*/
-
-
-

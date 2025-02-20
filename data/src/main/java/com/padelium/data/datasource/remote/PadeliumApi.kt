@@ -92,7 +92,9 @@ class PadeliumApi @Inject constructor(
 
 
     suspend fun loginUser(username: String, password: String): Response<ResponseBody> {
-        return endPoint.loginUser(username, password)
+        val csrfToken = ""
+
+        return endPoint.loginUser( username, password)
     }
 
 

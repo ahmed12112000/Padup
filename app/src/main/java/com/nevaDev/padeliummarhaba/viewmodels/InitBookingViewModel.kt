@@ -19,15 +19,14 @@ import javax.inject.Inject
 @HiltViewModel
 class InitBookingViewModel @Inject constructor(
     private val initBookingUseCase: InitBookingUseCase,
-    private val initBookingMapper: InitBookingMapper,
-    private val getBookingViewModel: GetBookingViewModel // Inject the GetBookingViewModel
+
 ) : ViewModel() {
 
     val dataResult1 = MutableLiveData<DataResult>()
 
     fun InitBooking(initBookingRequest: InitBookingRequest) {
         viewModelScope.launch {
-            dataResult1.postValue(DataResult.Loading)  // Indicate loading state
+            dataResult1.postValue(DataResult.Loading)
             val result = initBookingUseCase.InitBooking(initBookingRequest)
             dataResult1.postValue(result)
         }

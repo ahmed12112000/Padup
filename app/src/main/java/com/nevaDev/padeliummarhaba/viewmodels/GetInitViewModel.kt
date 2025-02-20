@@ -16,43 +16,34 @@ import javax.inject.Inject
 class GetInitViewModel @Inject constructor(
     private val getInitUseCase: GetInitUseCase,
     private val getInitMapper: GetInitMapper,
-    private val initBookingViewModel: InitBookingViewModel
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<GetInitResponseDTO>>()
 
-    fun GetInit(key: String, selectedDate: LocalDate) {
-        dataResultBooking.value = DataResultBooking.Loading // Set to loading state
+    fun GetInit(key: String) {
+        dataResultBooking.value = DataResultBooking.Loading
 
         viewModelScope.launch {
-            // Call the use case directly with the string key
             val result = getInitUseCase.execute(key)
 
-            // Handle the result of the use case call
             dataResultBooking.value = when (result) {
                 is DataResultBooking.Success -> {
-                    // Map the response from GetInitResponse to GetInitResponseDTO
                     val getInitResponseDTO = getInitMapper.GetInitResponseToGetInitResponseDto(result.data)
 
-                    // Trigger SearchListViewModel's searchList method
-                //    initBookingViewModel.InitBooking(key, selectedDate)
-
-                    // Return success with the mapped DTO
                     DataResultBooking.Success(getInitResponseDTO)
                 }
                 is DataResultBooking.Failure -> {
-                    // Forward failure details
                     DataResultBooking.Failure(
-                        exception = result.exception,
-                        errorCode = result.errorCode,
-                        errorMessage = result.errorMessage
+                        exception = null,
+                        errorCode = null,
+                        errorMessage = ""
                     )
                 }
                 else -> {
                     DataResultBooking.Failure(
                         exception = null,
                         errorCode = null,
-                        errorMessage = "An unexpected error occurred while fetching the initialization data"
+                        errorMessage = ""
                     )
                 }
             }

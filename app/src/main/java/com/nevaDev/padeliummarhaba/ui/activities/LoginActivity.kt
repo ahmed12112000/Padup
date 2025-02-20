@@ -12,6 +12,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
+import androidx.compose.compiler.plugins.kotlin.ComposeCallableIds.remember
+import androidx.compose.compiler.plugins.kotlin.ComposeFqNames.remember
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.Scaffold
@@ -20,6 +22,8 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -29,6 +33,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -37,6 +42,7 @@ import androidx.navigation.navArgument
 import androidx.navigation.navDeepLink
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.ui.auth.UserPreferences
 import com.nevaDev.padeliummarhaba.ui.views.CreditCharge
@@ -44,6 +50,7 @@ import com.nevaDev.padeliummarhaba.ui.views.CreditPayment
 import com.nevaDev.padeliummarhaba.ui.views.LoginScreen
 import com.nevaDev.padeliummarhaba.ui.views.PaymentSection1
 import com.nevaDev.padeliummarhaba.ui.views.ProfileScreen
+import com.nevaDev.padeliummarhaba.ui.views.ReservationOptions
 import com.nevaDev.padeliummarhaba.ui.views.SignUpScreen
 import com.nevaDev.padeliummarhaba.ui.views.SummaryScreen
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
@@ -54,6 +61,7 @@ import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.LoginRequest
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
@@ -61,9 +69,8 @@ import javax.inject.Inject
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
     private val viewModel: UserViewModel by viewModels()
-    private val sharedViewModel: SharedViewModel by viewModels()
     private val getProfileViewModel: GetProfileViewModel by viewModels()
-    private val sharedViewModel1: com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel by viewModels()
+    private val sessionManager by lazy { SessionManager(this) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -72,32 +79,35 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
-            val isLoggedInState by sharedViewModel.isLoggedIn.observeAsState(false)
+            var isLoggedInState by remember { mutableStateOf(sessionManager.isLoggedIn()) }
             val getReservationViewModel: GetReservationViewModel = hiltViewModel()
-            val context = LocalContext.current
-            val sharedPreferences = getSharedPreferences("csrf_prefs", MODE_PRIVATE)
 
             val navigateToMainActivity: () -> Unit = {
+                sessionManager.updateLastActiveTime() // ✅ Update session time on successful login
                 val intent = Intent(this@LoginActivity, MainActivity::class.java)
                 startActivity(intent)
                 finish()
             }
 
+            // 🔥 Auto Logout Mechanism: Check if the session is still valid
             LaunchedEffect(isLoggedInState) {
-                if (isLoggedInState) {
-                    if (destinationRoute == "main_screen") {
-                        navigateToMainActivity()
-                    } else {
-                        navController.navigate(destinationRoute) {
-                            popUpTo("login_screen") { inclusive = true }
-                            launchSingleTop = true
-                            restoreState = true
+                if (!sessionManager.isLoggedIn()) {
+                    sessionManager.logout() // ✅ Clear session if inactive for 2 mins
+                    isLoggedInState = false
+                } else {
+                    if (isLoggedInState) {
+                        if (destinationRoute == "main_screen") {
+                            navigateToMainActivity()
+                        } else {
+                            navController.navigate(destinationRoute) {
+                                popUpTo("login_screen") { inclusive = true }
+                            }
+                            val intent = Intent().apply {
+                                putExtra("navigate_back_to", destinationRoute)
+                            }
+                            setResult(Activity.RESULT_OK, intent)
+                            finish()
                         }
-                        val intent = Intent().apply {
-                            putExtra("navigate_back_to", destinationRoute)
-                        }
-                        setResult(Activity.RESULT_OK, intent)
-                        finish()
                     }
                 }
             }
@@ -107,7 +117,6 @@ class LoginActivity : ComponentActivity() {
                     AnimatedBottomBar(
                         navController = navController,
                         getReservationViewModel = getReservationViewModel,
-                        sharedViewModel = sharedViewModel,
                         navigateToLogin = { route ->
                             navController.navigate(route) {
                                 popUpTo("login_screen") { inclusive = true }
@@ -125,16 +134,15 @@ class LoginActivity : ComponentActivity() {
                         ) {
                             composable("login_screen") {
                                 LoginScreen(
-                                    onLoginSuccess = {
-                                        sharedViewModel.setLoggedIn(true) // Set login state
+                                    onLoginSuccess = { token ->
+                                        sessionManager.saveAuthToken(token) // ✅ Save token & reset timer
                                         navigateToMainActivity()
                                     },
                                     viewModel = viewModel,
                                     getProfileViewModel = getProfileViewModel,
                                     navController = navController,
                                     loginRequest = LoginRequest(username = "", password = ""),
-                                    destinationRoute = destinationRoute,
-                                    sharedViewModel = sharedViewModel1
+                                    destinationRoute = destinationRoute
                                 )
                             }
                             composable("signup_screen") {
@@ -150,7 +158,9 @@ class LoginActivity : ComponentActivity() {
                             composable("CreditCharge") {
                                 CreditCharge(navController = navController)
                             }
-                            composable("CreditPayment") { CreditPayment(navController = navController) }
+                            composable("CreditPayment") {
+                                CreditPayment(navController = navController)
+                            }
                             composable("summary_screen") {
                                 SummaryScreen(navController = navController)
                             }
@@ -192,6 +202,25 @@ class LoginActivity : ComponentActivity() {
                                     viewModel9 = hiltViewModel()
                                 )
                             }
+                            composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
+                                val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
+                                val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
+                                val sharedViewModel: SharedViewModel = viewModel()
+
+                                ReservationOptions(
+                                    onReservationSelected = { /* Handle reservation selection */ },
+                                    key = null, // Pass any required key
+                                    navController = navController,
+                                    selectedDate = selectedDate ?: LocalDate.now(),
+                                    selectedTimeSlot = selectedTimeSlot,
+                                    viewModel = hiltViewModel(),
+                                    viewModel1 = hiltViewModel(),
+                                    viewModel2 = hiltViewModel(),
+                                    bookingViewModel = hiltViewModel(),
+                                    paymentPayAvoirViewModel = hiltViewModel(),
+                                    sharedViewModel = sharedViewModel
+                                )
+                            }
                         }
                     }
                 }
@@ -206,7 +235,7 @@ class LoginActivity : ComponentActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
-        outState.putBoolean("isLoggedIn", sharedViewModel.isLoggedIn.value ?: false)
+        outState.putBoolean("isLoggedIn", sessionManager.isLoggedIn())
     }
 }
 
@@ -215,19 +244,20 @@ class LoginActivity : ComponentActivity() {
 class SharedViewModel(application: Application) : AndroidViewModel(application) {
     private val userPreferences = UserPreferences(application)
 
-    val isLoggedIn: LiveData<Boolean> = userPreferences.isLoggedIn.asLiveData()
+    private val _isLoggedIn = MutableLiveData<Boolean>()
+    val isLoggedIn: LiveData<Boolean> = _isLoggedIn
 
-    private val _intendedRoute = MutableLiveData<String?>()
-    val intendedRoute: LiveData<String?> = _intendedRoute
+    init {
+        viewModelScope.launch {
+            _isLoggedIn.value = userPreferences.isLoggedIn.first() // Read from DataStore
+        }
+    }
 
     fun setLoggedIn(isLoggedIn: Boolean) {
         viewModelScope.launch {
             userPreferences.saveLoginState(isLoggedIn)
+            _isLoggedIn.postValue(isLoggedIn)
         }
-    }
-
-    fun setIntendedRoute(route: String) {
-        _intendedRoute.value = route
     }
 }
 

@@ -76,7 +76,10 @@ fun AppNavHost(
             startDestination  = "main_screen"
         ) {
             composable("Profile_screen") {
-                ProfileScreen()
+                val sharedViewModel: SharedViewModel = hiltViewModel()
+
+                ProfileScreen(
+                )
             }
 
             composable("login_screen") { backStackEntry ->
@@ -97,7 +100,6 @@ fun AppNavHost(
                     navController = navController,
                     loginRequest = LoginRequest("", ""),
                     destinationRoute = destinationRoute,
-                    sharedViewModel = sharedViewModel
 
                 )
             }
@@ -343,10 +345,17 @@ fun AppNavHost(
             }
 
 
-            composable("CreditPayment") { CreditPayment(navController = navController) }
+            composable("CreditPayment") {
+                val sharedViewModel: SharedViewModel = hiltViewModel()
+
+                CreditPayment(
+                    navController = navController) }
 
             composable("summary_screen") {
-                SummaryScreen(navController = navController)
+                val sharedViewModel: SharedViewModel = hiltViewModel()
+
+                SummaryScreen(
+                    navController = navController)
             }
 
             composable("main_screen") {
