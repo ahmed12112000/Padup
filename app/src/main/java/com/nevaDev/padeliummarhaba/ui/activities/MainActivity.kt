@@ -70,6 +70,12 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.padelium.domain.dataresult.DataResult
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.compose.currentBackStackEntryAsState
+import com.nevaDev.padeliummarhaba.ui.views.LoginScreen
 
 
 @AndroidEntryPoint
@@ -87,10 +93,10 @@ class MainActivity : ComponentActivity() {
                 val viewModel: GetProfileViewModel = hiltViewModel()
                 val sharedViewModel: SharedViewModel = hiltViewModel()
                 val context = LocalContext.current
-                val isLoggedInState by sharedViewModel.isLoggedIn.observeAsState(initial = sessionManager.isLoggedIn()) // ✅ Check token state
-
+                val sessionManager = remember { SessionManager(context) }
+                val isUserLoggedIn = sessionManager.isLoggedIn()
                 LaunchedEffect(Unit) {
-                    delay(3100)
+                    delay(300)
                     showSplashScreen = false
                 }
 
@@ -101,16 +107,16 @@ class MainActivity : ComponentActivity() {
                         sharedPreferences.edit().clear().apply()
                         sessionManager.logout() // ✅ Clear token on logout
                         sharedViewModel.setLoggedIn(false)
-                        navController.navigate("login_screen") {
-                            popUpTo("main_screen") { inclusive = true }
-                        }
+
                     }
 
-                    LaunchedEffect(isLoggedInState) {
-                        if (isLoggedInState == true) {
+                    LaunchedEffect(isUserLoggedIn) {
+                        if (isUserLoggedIn) {
+                            delay(200) // Small delay to ensure state is updated
                             sessionManager.updateLastActiveTime()
                             navController.navigate("main_screen") {
                                 popUpTo("login_screen") { inclusive = true }
+                                launchSingleTop = true
                             }
                         }
                     }
@@ -453,6 +459,12 @@ fun AnimatedBottomBar(
 ) {
     val selectedItem by rememberUpdatedState(navController.currentBackStackEntry?.destination?.route)
     val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)
+    val context = LocalContext.current
+    val sessionManager = remember { SessionManager(context) }
+    val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
+
+
+    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen")
 
     Box(
         modifier = Modifier
@@ -480,13 +492,7 @@ fun AnimatedBottomBar(
                     isSelected = selectedItem == item.route,
                     context = LocalContext.current,
                     navigateToLogin = navigateToLogin ,
-                    onClick = {
-                        navController.navigate(item.route) {
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-
-                    }
+                    isUserLoggedIn = isUserLoggedIn,
                 )
             }
         }
@@ -500,11 +506,11 @@ fun CustomBottomNavItem(
     label: String,
     isSelected: Boolean,
     context: Context,
-    onClick: (Double) -> Unit,
-    navigateToLogin: (String) -> Unit
+    navigateToLogin: (String) -> Unit,
+    isUserLoggedIn: Boolean, // ✅ Receive updated state dynamically
+
 ) {
     val sessionManager = remember { SessionManager(context) }
-    val isUserLoggedIn = sessionManager.isLoggedIn()
 
     val animatedOffsetY by animateDpAsState(
         targetValue = if (isSelected) (-12).dp else 0.dp,
@@ -524,38 +530,50 @@ fun CustomBottomNavItem(
         animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
     )
     val textColor = if (isSelected) Color(0xFFD7F057) else Color.White
+    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen","main_screen")
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
-                when (route) {
-                    "Profile_screen", "payment_section1", "CreditPayment", "summary_screen" -> {
-                        if (isUserLoggedIn) {
-                            navController.navigate(route) {
-                                launchSingleTop = true
-                                restoreState = true
-                            }
-                        } else {
-                            // User not logged in, navigate to login screen
-                            navigateToLogin(route)
-                            // Save the intended route to navigate after successful login
-                            val intent = Intent(context, LoginActivity::class.java).apply {
-                                putExtra("destination_route", route) // Ensure the route is passed to LoginActivity
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK // Clear previous activities
-                            }
-                            context.startActivity(intent)
-                        }
-                    }
-                    else -> {
+                Log.d("CustomBottomNavItem", "Clicked on $route, isUserLoggedIn: $isUserLoggedIn")
+
+                val activity = context as? Activity
+
+                if (route == "main_screen") {
+                    if (activity is LoginActivity) {
+                        // ✅ If in LoginActivity, launch MainActivity and finish LoginActivity
+                        Log.d("CustomBottomNavItem", "Redirecting from LoginActivity to MainActivity")
+                        val intent = Intent(context, MainActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
+                        context.startActivity(intent)
+                        activity.finish() // Close LoginActivity
+                    } else {
+                        // ✅ If already in MainActivity, just navigate
                         navController.navigate(route) {
                             launchSingleTop = true
                             restoreState = true
+                            popUpTo("main_screen") { inclusive = true }
                         }
+                    }
+                } else if (route in restrictedRoutes && !isUserLoggedIn) {
+                    Log.d("CustomBottomNavItem", "Redirecting to login for route: $route")
+                    navigateToLogin("login_screen?redirect=$route") // ✅ Pass the intended route
+                } else {
+                    Log.d("CustomBottomNavItem", "User already logged in, navigating to $route")
+                    navController.navigate(route) {
+                        launchSingleTop = true
+                        restoreState = true
+                        popUpTo("login_screen") { inclusive = false }
                     }
                 }
             }
+
+
+
+
+
             .padding(10.dp)
 
     ) {

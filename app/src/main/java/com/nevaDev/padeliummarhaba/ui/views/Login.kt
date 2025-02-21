@@ -48,7 +48,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit, // ✅ Now takes a Boolean instead of token
+    onLoginSuccess: () -> Unit, // ✅ No need to pass the token outside
     viewModel: UserViewModel = hiltViewModel(),
     getProfileViewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
@@ -68,6 +68,7 @@ fun LoginScreen(
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
+    val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Initialize session manager
 
 
     viewModel.dataResult1.observe(lifecycleOwner) { result ->
@@ -75,14 +76,13 @@ fun LoginScreen(
         when (result) {
             is Resulta.Loading -> isLoading = true
             is Resulta.Success -> {
-                if (result.data != null) {
+                result.data?.let { token ->
+                    sessionManager.saveAuthToken(token.toString()) // ✅ Save token in session
                     getProfileViewModel.fetchProfileData()
-                    // On successful login, navigate to the intended route without restarting the app
-                    val token = "AhmeD98821607"
-                    onLoginSuccess(token)
+                    onLoginSuccess() // ✅ No need to pass the token manually
+
                     navController.navigate(destinationRoute) {
                         popUpTo("login_screen") { inclusive = true }
-                        launchSingleTop = true  // Ensure we don't re-launch the login screen
                     }
                 }
             }
@@ -96,28 +96,25 @@ fun LoginScreen(
     getProfileViewModel.hasUserRole.observe(lifecycleOwner) { hasRole ->
         if (hasRole) {
             balanceViewModel.fetchAndBalance()
-            // Navigate to the destination route
-            navController.navigate(destinationRoute) {
-                popUpTo("login_screen") { inclusive = true }
-                launchSingleTop = true  // Prevent reopening the login screen
-            }
+            navController.popBackStack() // ✅ Return instead of restarting app
         } else {
-            val intent =
-                Intent(Intent.ACTION_VIEW, Uri.parse("http://141.94.246.248/account/login"))
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("http://141.94.246.248/account/login"))
             context.startActivity(intent)
         }
     }
-/*
-    LaunchedEffect(Unit) {
-        if (sharedViewModel.isLoggedIn.value == true) {
-            val intendedRoute = sharedViewModel.intendedRoute.value ?: "main_screen"
-            navController.navigate(intendedRoute) {
-                popUpTo("login_screen") { inclusive = true }
+
+
+    /*
+        LaunchedEffect(Unit) {
+            if (sharedViewModel.isLoggedIn.value == true) {
+                val intendedRoute = sharedViewModel.intendedRoute.value ?: "main_screen"
+                navController.navigate(intendedRoute) {
+                    popUpTo("login_screen") { inclusive = true }
+                }
             }
         }
-    }
 
- */
+     */
 
     Box(
         modifier = Modifier
@@ -154,7 +151,7 @@ fun LoginScreen(
                     contentDescription = "Overlay Image",
                     modifier = Modifier
                         .fillMaxSize()
-                        .offset(x = 140.dp, y = 60.dp),
+                        .offset(x = 145.dp, y = 60.dp),
                     //.height(200.dp)
                     //   .border(2.dp, Color.Unspecified),                              .align(Alignment.CenterEnd),
                     contentScale = ContentScale.Fit // Adjust as needed
@@ -274,7 +271,7 @@ fun LoginScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(26.dp))
             val isEmailValid = email.matches(emailPattern)
             val isPasswordValid = password.length >= 8
             val isButtonEnabled = isEmailValid && isPasswordValid && email.isNotBlank() && password.isNotBlank()
@@ -287,18 +284,18 @@ fun LoginScreen(
                         val response = viewModel.loginUser(updatedRequest)
 
                         if (response is Resulta.Success) {
-                            val token = "AhmeD98821607"
-                            onLoginSuccess(token)
+                            sessionManager.saveAuthToken(response.data.toString()) // ✅ Store token
                             errorMessage = null
-                            // Navigate to the destination route without restarting the app
+                            onLoginSuccess()
+
                             navController.navigate(destinationRoute) {
                                 popUpTo("login_screen") { inclusive = true }
-                                launchSingleTop = true  // Prevent reopening the login screen
                             }
                         } else if (response is Resulta.Failure) {
                             errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
                         }
                     }
+
                 },
                 enabled = !isLoading && isButtonEnabled,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -321,7 +318,7 @@ fun LoginScreen(
                 Text(text = it, color = Color.Red, modifier = Modifier.padding(top = 8.dp))
             }
 
-            Spacer(modifier = Modifier.height(36.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Column(
                 modifier = Modifier.fillMaxWidth(),
@@ -341,7 +338,7 @@ fun LoginScreen(
 
                 }
                 Spacer(modifier = Modifier.height(1.dp))
-                Spacer(modifier = Modifier.height(60.dp))
+                Spacer(modifier = Modifier.height(20.dp))
                 Row {
                     Text(
                         text = stringResource(R.string.signinbutoon),

@@ -8,6 +8,7 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
@@ -433,8 +435,10 @@ fun DaySelectorWithArrows(
 
     val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
     val finalSelectedDate = selectedDate ?: currentDate
-    val startOfWeek = finalSelectedDate.minusDays(finalSelectedDate.dayOfWeek.value.toLong() - 1L)
-    val daysInWeek = (0..6).map { offset -> startOfWeek.plusDays(offset.toLong()) }
+    val startDate = currentDate // Start from today
+    val daysInWeek = List(21) { startDate.plusDays(it.toLong()) }
+
+
     val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
     val listState = rememberLazyListState()
 
@@ -504,14 +508,16 @@ fun DaySelectorWithArrows(
                 Icon(Icons.Default.ArrowForward, contentDescription = "Next day", tint = Color.Gray)
             }
         }
+        val scrollState = rememberScrollState()
+
 
         // Days of the Week
         LazyRow(
             state = listState,
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween // Evenly distribute days
+                .fillMaxWidth(),
+               // .padding(vertical = 8.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             items(daysInWeek) { day ->
                 Column(
@@ -555,6 +561,7 @@ fun DaySelectorWithArrows(
                     )
                 }
             }
+
         }
     }
 }

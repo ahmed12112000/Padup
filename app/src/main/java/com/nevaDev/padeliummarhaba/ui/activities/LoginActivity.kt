@@ -24,6 +24,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -59,10 +60,14 @@ import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.LoginRequest
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import javax.inject.Inject
+
+
 
 @AndroidEntryPoint
 class LoginActivity : ComponentActivity() {
@@ -77,6 +82,7 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
+            var loginSuccess by remember { mutableStateOf(false) }
 
             val isLoggedInState by rememberUpdatedState(sessionManager.isLoggedIn())
             Log.d("LoginActivity", "isLoggedInState: $isLoggedInState, destinationRoute: $destinationRoute")
@@ -85,8 +91,9 @@ class LoginActivity : ComponentActivity() {
 
             val navigateToMainActivity: () -> Unit = {
                 val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP // This will clear any activities on top of MainActivity
                 startActivity(intent)
-                finish()
+                finish() // Close LoginActivity
             }
 
             LaunchedEffect(isLoggedInState) {
@@ -137,10 +144,34 @@ class LoginActivity : ComponentActivity() {
                         ) {
                             composable("login_screen") {
                                 LoginScreen(
-                                    onLoginSuccess = { token ->
-                                        Log.d("LoginActivity", "Login success, token: $token")
-                                        sessionManager.saveAuthToken(token)
-                                        navigateToMainActivity()
+                                    onLoginSuccess = {
+                                        Log.d("LoginActivity", "Login success")
+
+                                        // Save the authentication token inside LoginScreen itself
+                                        val token = sessionManager.getAuthToken()
+                                        if (token != null) {
+                                            sessionManager.saveAuthToken(token)
+                                        }
+
+                                        // Update session activity time
+                                        sessionManager.updateLastActiveTime()
+
+                                        // Update the state to trigger navigation
+                                        loginSuccess = true
+
+                                        // Navigate to the appropriate screen
+                                        if (destinationRoute == "main_screen") {
+                                            navigateToMainActivity()
+                                        } else {
+                                            navController.navigate(destinationRoute) {
+                                                popUpTo("login_screen") { inclusive = true }
+                                            }
+                                            val intent = Intent().apply {
+                                                putExtra("navigate_back_to", destinationRoute)
+                                            }
+                                            setResult(Activity.RESULT_OK, intent)
+                                            finish()
+                                        }
                                     },
                                     viewModel = viewModel,
                                     getProfileViewModel = getProfileViewModel,
@@ -148,6 +179,12 @@ class LoginActivity : ComponentActivity() {
                                     loginRequest = LoginRequest(username = "", password = ""),
                                     destinationRoute = destinationRoute
                                 )
+                                LaunchedEffect(loginSuccess) {
+                                    if (loginSuccess) {
+                                        delay(200) // Small delay to allow session update
+                                        navigateToMainActivity()
+                                    }
+                                }
                             }
                             composable("signup_screen") {
                                 SignUpScreen(
@@ -157,7 +194,7 @@ class LoginActivity : ComponentActivity() {
                                 )
                             }
                             composable("Profile_screen") {
-                                ProfileScreen()
+                                ProfileScreen(navController = navController,)
                             }
                             composable("CreditCharge") {
                                 CreditCharge(navController = navController)
@@ -206,6 +243,7 @@ class LoginActivity : ComponentActivity() {
                                     viewModel9 = hiltViewModel()
                                 )
                             }
+
                         }
                     }
                 }

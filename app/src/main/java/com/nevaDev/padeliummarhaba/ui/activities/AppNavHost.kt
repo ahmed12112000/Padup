@@ -78,10 +78,15 @@ fun AppNavHost(
             composable("Profile_screen") {
                 val sharedViewModel: SharedViewModel = hiltViewModel()
 
-                ProfileScreen(
+                ProfileScreen(navController = navController,)
+            }
+            composable("signup_screen") {
+                SignUpScreen(
+                    navController = navController,
+                    onSignupSuccess = {},
+                    viewModel = hiltViewModel()
                 )
             }
-
             composable("login_screen") { backStackEntry ->
                 val viewModel: UserViewModel = hiltViewModel()
                 val getProfileViewModel: GetProfileViewModel = hiltViewModel()

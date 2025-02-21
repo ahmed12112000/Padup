@@ -38,7 +38,9 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ProfileViewModel
@@ -54,7 +56,9 @@ import java.io.InputStream
 fun ProfileScreen(
     viewModel2: ProfileViewModel = hiltViewModel(),
     viewModel: GetProfileViewModel = hiltViewModel(),
-) {
+    navController: NavController,
+
+    ) {
     var activated by remember { mutableStateOf(false) }
     var authorities by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -84,6 +88,8 @@ fun ProfileScreen(
 
 
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
+    val sessionManager = remember { SessionManager(context) }
+    val isLoggedInState by rememberUpdatedState(sessionManager.isLoggedIn())
 
 
 
