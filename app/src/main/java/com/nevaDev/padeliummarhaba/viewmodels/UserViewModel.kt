@@ -33,17 +33,31 @@ class UserViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
-    val dataResult1 = MutableLiveData<Resulta>()
 
+    private val _dataResult1 = MutableLiveData<Resulta>()
+    val dataResult1: LiveData<Resulta> get() = _dataResult1
+
+    private val _loginResult = MutableLiveData<Resulta?>()
+    val loginResult: MutableLiveData<Resulta?> get() = _loginResult
     /**
      * Start getting data
      */
-    fun loginUser(loginRequest: LoginRequest) {
-        viewModelScope.launch {
-            dataResult1.postValue(Resulta.Loading)
+    suspend fun loginUser(loginRequest: LoginRequest): Resulta {
+        return try {
+            _dataResult1.postValue(Resulta.Loading)
             val result = userUseCase.loginUser(loginRequest)
-            dataResult1.postValue(result)
+            _dataResult1.postValue(result)
+            _loginResult.postValue(result)
+            result // ✅ Return the Resulta object
+        } catch (e: Exception) {
+            val failureResult = Resulta.Failure(e, null, 500, e.message ?: "Unknown error")
+            _dataResult1.postValue(failureResult)
+            _loginResult.postValue(failureResult)
+            failureResult // ✅ Ensure function returns Resulta
         }
+    }
+    fun resetLoginResult() {
+        _loginResult.value = null // Reset after displaying toast
     }
 
     /**

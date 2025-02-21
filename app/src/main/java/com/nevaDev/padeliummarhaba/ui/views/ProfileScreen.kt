@@ -74,7 +74,7 @@ fun ProfileScreen(
         if (uri != null) {
             profileImageUri = uri
         } else {
-            Toast.makeText(context, "Image selection cancelled", Toast.LENGTH_SHORT).show()
+          //  Toast.makeText(context, "Image selection cancelled", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -108,10 +108,10 @@ fun ProfileScreen(
             }
         }
         is DataResult.Loading -> {
-            Text(text = "Loading profile data...")
+          //  Text(text = "Loading profile data...")
         }
         is DataResult.Failure -> {
-            Text(text = "Error: ${result.errorMessage}")
+          //  Text(text = "Error: ${result.errorMessage}")
         }
     }
 
@@ -262,7 +262,6 @@ fun ProfileScreen(
                         "phone" to phoneNumber,
                     )
                     val accountJson = JSONObject(accountData).toString()
-                    Log.d("ProfileUpdate", "Account JSON: $accountJson")
 
                     viewModel2.Profile(accountJson, profileImageUri)
                 },

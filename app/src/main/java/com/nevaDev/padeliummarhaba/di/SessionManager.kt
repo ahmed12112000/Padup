@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.di
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.SharedPreferences
 
@@ -11,7 +12,6 @@ class SessionManager(private val context: Context) {
     fun saveAuthToken(token: String) {
         prefs.edit()
             .putString(KEY_AUTH_TOKEN, token)
-            .putLong(KEY_LAST_ACTIVE, System.currentTimeMillis()) // ✅ Store last active time
             .apply()
     }
 
@@ -21,15 +21,11 @@ class SessionManager(private val context: Context) {
 
     fun isLoggedIn(): Boolean {
         val token = getAuthToken()
-        val lastActive = prefs.getLong(KEY_LAST_ACTIVE, 0)
-        val currentTime = System.currentTimeMillis()
-        val inactiveDuration = currentTime - lastActive
-
-        return !token.isNullOrEmpty() && inactiveDuration < SESSION_TIMEOUT
+        return !token.isNullOrEmpty()
     }
 
     fun updateLastActiveTime() {
-        prefs.edit().putLong(KEY_LAST_ACTIVE, System.currentTimeMillis()).apply()
+        // No need to store last active time anymore
     }
 
     fun logout() {
@@ -39,19 +35,19 @@ class SessionManager(private val context: Context) {
     companion object {
         private const val PREFS_NAME = "user_session"
         private const val KEY_AUTH_TOKEN = "auth_token"
-        private const val KEY_LAST_ACTIVE = "last_active"
-        private const val SESSION_TIMEOUT = 2 * 60 * 1000 // 2 minutes in milliseconds
-    }
 
-    fun isTokenExpired(): Boolean {
-        val lastActive = prefs.getLong(KEY_LAST_ACTIVE, 0)
-        val currentTime = System.currentTimeMillis()
-        val inactiveDuration = currentTime - lastActive
+        @SuppressLint("StaticFieldLeak")
+        @Volatile
+        private var INSTANCE: SessionManager? = null
 
-        return inactiveDuration >= SESSION_TIMEOUT
+        fun getInstance(context: Context): SessionManager {
+            return INSTANCE ?: synchronized(this) {
+                INSTANCE ?: SessionManager(context.applicationContext).also { INSTANCE = it }
+            }
+        }
     }
 
     fun invalidateToken() {
-        prefs.edit().remove(KEY_AUTH_TOKEN).apply() // Remove the token if expired
+        prefs.edit().remove(KEY_AUTH_TOKEN).apply() // Remove the token when invalidated
     }
 }

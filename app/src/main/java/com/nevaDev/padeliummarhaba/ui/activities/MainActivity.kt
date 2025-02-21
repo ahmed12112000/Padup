@@ -9,13 +9,10 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.ManagedActivityResultLauncher
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -26,8 +23,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Icon
@@ -58,10 +53,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.zIndex
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.google.accompanist.pager.ExperimentalPagerApi
@@ -73,18 +65,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import com.google.accompanist.pager.HorizontalPager
 import com.google.accompanist.pager.rememberPagerState
 import com.nevaDev.padeliummarhaba.di.SessionManager
-import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.ui.views.CopyrightText
-import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dataresult.DataResultBooking
-import com.padelium.domain.dto.FetchKeyRequest
-import java.time.ZoneId
-import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
+
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -122,7 +108,7 @@ class MainActivity : ComponentActivity() {
 
                     LaunchedEffect(isLoggedInState) {
                         if (isLoggedInState == true) {
-                            sessionManager.updateLastActiveTime() // ✅ Update last active time when logged in
+                            sessionManager.updateLastActiveTime()
                             navController.navigate("main_screen") {
                                 popUpTo("login_screen") { inclusive = true }
                             }
@@ -135,7 +121,7 @@ class MainActivity : ComponentActivity() {
                         if (result.resultCode == Activity.RESULT_OK) {
                             val destinationRoute = result.data?.getStringExtra("navigate_back_to")
                             if (destinationRoute != null) {
-                                sessionManager.updateLastActiveTime() // ✅ Update last active time on successful login
+                                sessionManager.updateLastActiveTime()
                                 navController.navigate(destinationRoute) {
                                     launchSingleTop = true
                                     restoreState = true
@@ -143,10 +129,17 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    val destinationRoute = intent.getStringExtra("destination_route")
+                    destinationRoute?.let {
+                        // Navigate to the route if it's provided
+                        navController.navigate(it) {
+                            launchSingleTop = true
+                        }
+                    }
+
 
                     val currentBackStackEntry by navController.currentBackStackEntryAsState()
                     val currentRoute = currentBackStackEntry?.destination?.route
-                    val shouldShowBottomBar = currentRoute !in listOf("splash_screen", "login_screen")
 
                     val navigateToLogin: (String) -> Unit = { destinationRoute ->
                         if (!sessionManager.isLoggedIn()) { // ✅ Ensure login only if not logged in
@@ -155,10 +148,10 @@ class MainActivity : ComponentActivity() {
                             }
                             loginResultLauncher.launch(intent)
                         } else {
-                            sessionManager.updateLastActiveTime() // ✅ Update last active time on navigation
                             navController.navigate(destinationRoute)
                         }
                     }
+
 
                     MainApp(
                         context = context,
@@ -236,18 +229,14 @@ fun TopBar(
     drawerState: DrawerState,
     scope: CoroutineScope
 ) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(100.dp)
-    ) {
+
 
 
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(100.dp)
-                .padding(top = 1.dp)
+              //  .padding(top = 3.dp)
                 .background(Color(0xFF0054D8))
                 .shadow(
                     elevation = 200.dp,
@@ -255,13 +244,6 @@ fun TopBar(
                     clip = true
                 )
         ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
 
 
                 Icon(
@@ -269,19 +251,34 @@ fun TopBar(
                     contentDescription = "Right Icon",
                     tint = Color.Unspecified,
                     modifier = Modifier
-                        .size(2000.dp)
+                        .fillMaxSize(0.6f)
                         .clip(CircleShape)
                         .clickable {
                             navController.navigate("main_screen")
                         }
-                        .padding(8.dp)
-                        .offset(x = 80.dp)
+                        .align(Alignment.CenterEnd)
+
                 )
-            }
-        }
+
+
+
     }
 }
+@Preview(showBackground = true, name = "TopBar Preview")
+@Composable
+fun TopBarPreview() {
+    // Mocking parameters for the preview
+    val navController = rememberNavController() // Mock NavController
+    val drawerState = rememberDrawerState(DrawerValue.Closed) // Mock DrawerState
+    val scope = rememberCoroutineScope() // Mock CoroutineScope
 
+    // Call the TopBar composable with mock data
+    TopBar(
+        navController = navController,
+        drawerState = drawerState,
+        scope = scope
+    )
+}
 fun logout(context: Context) {
     val sharedPreferences = context.getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
@@ -391,7 +388,7 @@ fun MainScreen(
             modifier = Modifier
                 .padding(top = 30.dp)
                 .fillMaxWidth()
-                .height(350.dp)
+                .height(335.dp)
         )
     }
 }
@@ -505,9 +502,8 @@ fun CustomBottomNavItem(
     context: Context,
     onClick: (Double) -> Unit,
     navigateToLogin: (String) -> Unit
-
 ) {
-    val sessionManager = remember { SessionManager(context) } // ✅ Use SessionManager
+    val sessionManager = remember { SessionManager(context) }
     val isUserLoggedIn = sessionManager.isLoggedIn()
 
     val animatedOffsetY by animateDpAsState(
@@ -534,25 +530,22 @@ fun CustomBottomNavItem(
         modifier = Modifier
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
-                sessionManager.updateLastActiveTime() // ✅ Update session time on navigation
                 when (route) {
-                    "Profile_screen", "payment_section1" , "CreditPayment", "summary_screen", "reservation_options" -> {
+                    "Profile_screen", "payment_section1", "CreditPayment", "summary_screen" -> {
                         if (isUserLoggedIn) {
                             navController.navigate(route) {
-                                //   popUpTo("main_screen") { inclusive = false  }
-                                // Ensure bottom bar remains intact and doesn’t get reset
                                 launchSingleTop = true
                                 restoreState = true
                             }
                         } else {
+                            // User not logged in, navigate to login screen
                             navigateToLogin(route)
                             // Save the intended route to navigate after successful login
                             val intent = Intent(context, LoginActivity::class.java).apply {
-                                putExtra("destination_route", route) // Ensure correct destination is passed
-                                flags = Intent.FLAG_ACTIVITY_NEW_TASK // Keep the task but don't clear everything
+                                putExtra("destination_route", route) // Ensure the route is passed to LoginActivity
+                                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK // Clear previous activities
                             }
                             context.startActivity(intent)
-
                         }
                     }
                     else -> {

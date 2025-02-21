@@ -23,7 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -33,7 +33,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -50,7 +49,6 @@ import com.nevaDev.padeliummarhaba.ui.views.CreditPayment
 import com.nevaDev.padeliummarhaba.ui.views.LoginScreen
 import com.nevaDev.padeliummarhaba.ui.views.PaymentSection1
 import com.nevaDev.padeliummarhaba.ui.views.ProfileScreen
-import com.nevaDev.padeliummarhaba.ui.views.ReservationOptions
 import com.nevaDev.padeliummarhaba.ui.views.SignUpScreen
 import com.nevaDev.padeliummarhaba.ui.views.SummaryScreen
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
@@ -79,35 +77,39 @@ class LoginActivity : ComponentActivity() {
 
         setContent {
             val navController = rememberNavController()
-            var isLoggedInState by remember { mutableStateOf(sessionManager.isLoggedIn()) }
+
+            val isLoggedInState by rememberUpdatedState(sessionManager.isLoggedIn())
+            Log.d("LoginActivity", "isLoggedInState: $isLoggedInState, destinationRoute: $destinationRoute")
+
             val getReservationViewModel: GetReservationViewModel = hiltViewModel()
 
             val navigateToMainActivity: () -> Unit = {
-                sessionManager.updateLastActiveTime() // ✅ Update session time on successful login
                 val intent = Intent(this@LoginActivity, MainActivity::class.java)
                 startActivity(intent)
                 finish()
             }
 
-            // 🔥 Auto Logout Mechanism: Check if the session is still valid
             LaunchedEffect(isLoggedInState) {
-                if (!sessionManager.isLoggedIn()) {
-                    sessionManager.logout() // ✅ Clear session if inactive for 2 mins
-                    isLoggedInState = false
-                } else {
-                    if (isLoggedInState) {
-                        if (destinationRoute == "main_screen") {
-                            navigateToMainActivity()
-                        } else {
-                            navController.navigate(destinationRoute) {
-                                popUpTo("login_screen") { inclusive = true }
-                            }
-                            val intent = Intent().apply {
-                                putExtra("navigate_back_to", destinationRoute)
-                            }
-                            setResult(Activity.RESULT_OK, intent)
-                            finish()
+                Log.d("LoginActivity", "LaunchedEffect triggered with isLoggedInState: $isLoggedInState")
+
+                if (isLoggedInState) {
+                    if (destinationRoute == "main_screen") {
+                        navigateToMainActivity()
+                    } else {
+                        navController.navigate(destinationRoute) {
+                            popUpTo("login_screen") { inclusive = true }
                         }
+                        val intent = Intent().apply {
+                            putExtra("navigate_back_to", destinationRoute)
+                        }
+                        setResult(Activity.RESULT_OK, intent)
+                        finish()
+                    }
+                } else {
+                    Log.d("LoginActivity", "Not logged in, showing LoginScreen")
+                    navController.popBackStack("login_screen", inclusive = false) // Clear back stack
+                    navController.navigate("login_screen") { // Force navigation to login screen
+                        popUpTo("login_screen") { inclusive = true } // Clear any previous instance
                     }
                 }
             }
@@ -118,6 +120,7 @@ class LoginActivity : ComponentActivity() {
                         navController = navController,
                         getReservationViewModel = getReservationViewModel,
                         navigateToLogin = { route ->
+                            Log.d("LoginActivity", "Navigating to Login screen with route: $route")
                             navController.navigate(route) {
                                 popUpTo("login_screen") { inclusive = true }
                                 launchSingleTop = true
@@ -135,7 +138,8 @@ class LoginActivity : ComponentActivity() {
                             composable("login_screen") {
                                 LoginScreen(
                                     onLoginSuccess = { token ->
-                                        sessionManager.saveAuthToken(token) // ✅ Save token & reset timer
+                                        Log.d("LoginActivity", "Login success, token: $token")
+                                        sessionManager.saveAuthToken(token)
                                         navigateToMainActivity()
                                     },
                                     viewModel = viewModel,
@@ -202,39 +206,21 @@ class LoginActivity : ComponentActivity() {
                                     viewModel9 = hiltViewModel()
                                 )
                             }
-                            composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
-                                val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
-                                val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
-                                val sharedViewModel: SharedViewModel = viewModel()
-
-                                ReservationOptions(
-                                    onReservationSelected = { /* Handle reservation selection */ },
-                                    key = null, // Pass any required key
-                                    navController = navController,
-                                    selectedDate = selectedDate ?: LocalDate.now(),
-                                    selectedTimeSlot = selectedTimeSlot,
-                                    viewModel = hiltViewModel(),
-                                    viewModel1 = hiltViewModel(),
-                                    viewModel2 = hiltViewModel(),
-                                    bookingViewModel = hiltViewModel(),
-                                    paymentPayAvoirViewModel = hiltViewModel(),
-                                    sharedViewModel = sharedViewModel
-                                )
-                            }
                         }
                     }
                 }
             )
         }
     }
-
     @SuppressLint("MissingSuperCall")
     override fun onBackPressed() {
+        Log.d("LoginActivity", "Back pressed, finishing activity")
         finish()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        Log.d("LoginActivity", "Saving instance state, isLoggedIn: ${sessionManager.isLoggedIn()}")
         outState.putBoolean("isLoggedIn", sessionManager.isLoggedIn())
     }
 }

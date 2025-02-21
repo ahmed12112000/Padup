@@ -304,10 +304,10 @@ fun  PaymentSection1(
             }
         }
         is DataResult.Loading -> {
-            androidx.compose.material.Text(text = "Loading profile data...")
+           // androidx.compose.material.Text(text = "Loading profile data...")
         }
         is DataResult.Failure -> {
-            androidx.compose.material.Text(text = "Error: ${result.errorMessage}")
+           // androidx.compose.material.Text(text = "Error: ${result.errorMessage}")
         }
     }
 
@@ -567,11 +567,7 @@ fun  PaymentSection1(
                                     Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
 
                                     if (totalAmountSelected <= 0) {
-                                        Toast.makeText(
-                                            context,
-                                            "Total amount not calculated or is zero",
-                                            Toast.LENGTH_LONG
-                                        ).show()
+
                                         isLoading = false
                                         return@collectLatest
                                     }
@@ -694,49 +690,29 @@ fun  PaymentSection1(
                                                                         "Payment",
                                                                         "No form URL found in the response."
                                                                     )
-                                                                    Toast.makeText(
-                                                                        context,
-                                                                        "Payment failed: No form URL received.",
-                                                                        Toast.LENGTH_LONG
-                                                                    ).show()
+
                                                                 }
                                                             }
 
                                                             is DataResult.Failure -> {
-                                                                Toast.makeText(
-                                                                    context,
-                                                                    "Payment failed: ${paymentResult.errorMessage}",
-                                                                    Toast.LENGTH_LONG
-                                                                ).show()
+
                                                             }
                                                         }
                                                     }
                                                 } else {
-                                                    Toast.makeText(
-                                                        context,
-                                                        "Failed to retrieve booking ID.",
-                                                        Toast.LENGTH_LONG
-                                                    ).show()
+
                                                 }
                                             }
 
                                             is DataResult.Failure -> {
                                                 isLoading = false
-                                                Toast.makeText(
-                                                    context,
-                                                    "Failed to save booking: ${result.errorMessage}",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
+
                                             }
                                         }
                                     }
                                 } else {
                                     isLoading = false
-                                    Toast.makeText(
-                                        context,
-                                        "No valid booking data available.",
-                                        Toast.LENGTH_LONG
-                                    ).show()
+
                                 }
                             }
                         }
@@ -785,11 +761,7 @@ fun  PaymentSection1(
                                     Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
 
                                     if (totalAmountSelected <= 0) {
-                                        Toast.makeText(
-                                            context,
-                                            "Total amount not calculated or is zero",
-                                            Toast.LENGTH_LONG
-                                        ).show()
+
                                         isLoading = false
                                         return@collectLatest
                                     }
@@ -870,21 +842,13 @@ fun  PaymentSection1(
 
                                                                 confirmBookingViewModel.GetPayment(confirmBookingRequest)
                                                             } else {
-                                                                Toast.makeText(
-                                                                    context,
-                                                                    "No booking data available.",
-                                                                    Toast.LENGTH_LONG
-                                                                ).show()
+
                                                             }
                                                         }
 
                                                         is DataResult.Failure -> {
                                                             isLoading = false
-                                                            Toast.makeText(
-                                                                context,
-                                                                "Failed to save booking.",
-                                                                Toast.LENGTH_LONG
-                                                            ).show()
+
                                                         }
                                                     }
                                                 }
@@ -893,11 +857,7 @@ fun  PaymentSection1(
                                             is DataResult.Failure -> {
                                                 isLoading = false
                                                 Log.e("PAYMENT", "PaymentPayAvoir failed: ${paymentResult.errorMessage}")
-                                                Toast.makeText(
-                                                    context,
-                                                    "Payment processing failed.",
-                                                    Toast.LENGTH_LONG
-                                                ).show()
+
                                             }
                                         }
                                     }
@@ -983,7 +943,6 @@ fun WebViewScreen(
                     url?.let {
                         if (it.contains("paymentSuccess")) {
                             Log.e("paymentSuccess", "Payment successful URL: $it")
-                            Toast.makeText(context, "Payment Successful", Toast.LENGTH_LONG).show()
                             navController.navigate("PaymentSuccessScreen")
                             return true
                         }
@@ -1027,7 +986,6 @@ fun WebViewScreen(
                                 navController.navigate("PaymentSuccessScreen")
                             } catch (e: Exception) {
                                 Log.e("WebViewScreen", "Error processing payment: $e")
-                                Toast.makeText(context, "An error occurred: ${e.message}", Toast.LENGTH_LONG).show()
                             }
                         }
                     } else {
@@ -1064,15 +1022,10 @@ fun WebViewScreen(
                 Log.d("WebViewScreen", "Fetching payment details...")
             }
             is DataResult.Success -> {
-                Toast.makeText(context, "Payment details fetched successfully!", Toast.LENGTH_LONG).show()
                 navController.navigate("PaymentSuccessScreen")
             }
             is DataResult.Failure -> {
-                Toast.makeText(
-                    context,
-                    "Failed to fetch payment details: ${result.errorMessage} (Code: ${result.errorCode})",
-                    Toast.LENGTH_LONG
-                ).show()
+
                 Log.e("WebViewScreen", "Error fetching payment details", result.exception)
             }
         }

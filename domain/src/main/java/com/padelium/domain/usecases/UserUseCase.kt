@@ -17,18 +17,20 @@ class UserUseCase @Inject constructor(private val userRepository: IUserRepositor
             val response = userRepository.loginUser(loginRequest)
 
             if (response.isSuccessful) {
-                Log.d("LoginResponse", "Login successful: ${response.body()}")
                 Resulta.Success(response.body() ?: "No data available")
             } else {
-                val errorMessage = response.errorBody()?.string() ?: "Unknown error occurred"
-                Log.e("LoginResponse", "Error: $errorMessage")
-                Resulta.Failure(null, response.code(), response.code(), errorMessage)
+                val errorMessage = response.errorBody()?.string()?.takeIf { it.isNotEmpty() } ?: "Unknown error occurred"
+
+                // Ensuring only one error message is displayed
+                if (response.code() == 401) { // Unauthorized (Wrong credentials)
+                    Resulta.Failure(null, response.code(), response.code(), "Invalid credentials. Please try again.")
+                } else {
+                    Resulta.Failure(null, response.code(), response.code(), errorMessage)
+                }
             }
         } catch (ex: HttpException) {
-            Log.e("LoginResponse", "HTTP Exception: ${ex.localizedMessage}")
             Resulta.Failure(ex, null, ex.code(), ex.localizedMessage ?: "An error occurred")
         } catch (ex: Exception) {
-            Log.e("LoginResponse", "Exception: ${ex.localizedMessage}")
             Resulta.Failure(ex, null, 500, ex.localizedMessage ?: "An error occurred")
         }
     }

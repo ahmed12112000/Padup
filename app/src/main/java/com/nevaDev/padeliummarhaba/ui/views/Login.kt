@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -47,7 +48,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
-    onLoginSuccess: (String) -> Unit, // ✅ Accept token parameter
+    onLoginSuccess: (String) -> Unit, // ✅ Now takes a Boolean instead of token
     viewModel: UserViewModel = hiltViewModel(),
     getProfileViewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
@@ -67,55 +68,40 @@ fun LoginScreen(
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
-    val sessionManager = SessionManager(context)
-    val token = sessionManager.getAuthToken()
 
-    if (token != null && sessionManager.isTokenExpired()) {
-        sessionManager.invalidateToken() // Clear expired token
-    }
 
     viewModel.dataResult1.observe(lifecycleOwner) { result ->
         isLoading = false
         when (result) {
-            is Resulta.Loading -> {
-                isLoading = true
-            }
-
+            is Resulta.Loading -> isLoading = true
             is Resulta.Success -> {
                 if (result.data != null) {
-                    Log.d("LoginResponse", "Success: User logged in successfully")
-
-                    // Fetch profile data after successful login
                     getProfileViewModel.fetchProfileData()
+                    // On successful login, navigate to the intended route without restarting the app
+                    val token = "AhmeD98821607"
+                    onLoginSuccess(token)
                     navController.navigate(destinationRoute) {
                         popUpTo("login_screen") { inclusive = true }
+                        launchSingleTop = true  // Ensure we don't re-launch the login screen
                     }
-                } else {
-                    Toast.makeText(
-                        context,
-                        "Unexpected empty response from server",
-                        Toast.LENGTH_SHORT
-                    ).show()
                 }
             }
-
             is Resulta.Failure -> {
-                Log.e("LoginResponse", "Error: ${result.errorMessage} | Code: ${result.statusCode}")
-                Toast.makeText(context, "Error: ${result.errorMessage}", Toast.LENGTH_SHORT).show()
+                errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
             }
         }
     }
 
-    // Observe the profile data to check for user role
+    // Observe user role after login
     getProfileViewModel.hasUserRole.observe(lifecycleOwner) { hasRole ->
         if (hasRole) {
-            // User has ROLE_USER, proceed to main screen
             balanceViewModel.fetchAndBalance()
+            // Navigate to the destination route
             navController.navigate(destinationRoute) {
                 popUpTo("login_screen") { inclusive = true }
+                launchSingleTop = true  // Prevent reopening the login screen
             }
         } else {
-            // User does not have the correct role, redirect to login page
             val intent =
                 Intent(Intent.ACTION_VIEW, Uri.parse("http://141.94.246.248/account/login"))
             context.startActivity(intent)
@@ -170,7 +156,7 @@ fun LoginScreen(
                         .fillMaxSize()
                         .offset(x = 140.dp, y = 60.dp),
                     //.height(200.dp)
-                    //   .border(2.dp, Color.Unspecified),
+                    //   .border(2.dp, Color.Unspecified),                              .align(Alignment.CenterEnd),
                     contentScale = ContentScale.Fit // Adjust as needed
 
                 )
@@ -257,7 +243,8 @@ fun LoginScreen(
                 ),
                 isError = isPasswordError
             )
-            /*
+
+/*
             if (isPasswordError) {
                 Text(
                     text = stringResource(R.string.password_error),
@@ -266,8 +253,8 @@ fun LoginScreen(
                     modifier = Modifier.padding(start = 16.dp)
                 )
             }
+*/
 
-             */
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -296,15 +283,21 @@ fun LoginScreen(
                 onClick = {
                     coroutineScope.launch {
                         isLoading = true
-                        val updatedRequest = loginRequest.copy(
-                            username = email,
-                            password = password,
-                        )
-                        viewModel.loginUser(updatedRequest)
-                        val newToken  = "AhmeD98821607" // Replace with actual token from API response
-                        sessionManager.saveAuthToken(newToken)
-                        onLoginSuccess(newToken)
+                        val updatedRequest = loginRequest.copy(username = email, password = password)
+                        val response = viewModel.loginUser(updatedRequest)
 
+                        if (response is Resulta.Success) {
+                            val token = "AhmeD98821607"
+                            onLoginSuccess(token)
+                            errorMessage = null
+                            // Navigate to the destination route without restarting the app
+                            navController.navigate(destinationRoute) {
+                                popUpTo("login_screen") { inclusive = true }
+                                launchSingleTop = true  // Prevent reopening the login screen
+                            }
+                        } else if (response is Resulta.Failure) {
+                            errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
+                        }
                     }
                 },
                 enabled = !isLoading && isButtonEnabled,

@@ -505,57 +505,64 @@ fun DaySelectorWithArrows(
             }
         }
 
+        // Days of the Week
         LazyRow(
             state = listState,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp) // Add space between days
+                .padding(vertical = 8.dp, horizontal = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween // Evenly distribute days
         ) {
             items(daysInWeek) { day ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Column(
-                        modifier = Modifier
-                            .clickable {
-                                onDateSelected(day)
-                            }
-                            .background(
-                                color = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .border(
-                                width = if (day == finalSelectedDate) 0.dp else 1.dp,
-                                color = Color.Gray,
-                                shape = RoundedCornerShape(8.dp)
-                            )
-                            .padding(vertical = 4.dp, horizontal = 4.dp)
-                            .width(40.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = dayFormatter.format(day).uppercase(),
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                            color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                            fontSize = 10.sp
+                Column(
+                    modifier = Modifier
+                        .clickable {
+                            onDateSelected(day)
+                        }
+                        .background(
+                            color = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White,
+                            shape = RoundedCornerShape(8.dp)
                         )
-                        Text(
-                            text = dateFormatter.format(day),
-                            fontWeight = FontWeight.Bold,
-                            textAlign = TextAlign.Center,
-                            color = if (day == finalSelectedDate) Color.White else Color.Black,
-                            fontSize = 14.sp
+                        .border(
+                            width = if (day == finalSelectedDate) 0.dp else 1.dp,
+                            color = Color.Gray,
+                            shape = RoundedCornerShape(8.dp)
                         )
-                        Text(
-                            text = monthFormatter.format(day).uppercase(),
-                            fontWeight = FontWeight.Normal,
-                            textAlign = TextAlign.Center,
-                            color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                            fontSize = 10.sp
-                        )
-                    }
+                        .padding(vertical = 4.dp, horizontal = 4.dp)
+                        .width(40.dp), // Fixed width for each day
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = dayFormatter.format(day).uppercase(),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = if (day == finalSelectedDate) Color.White else Color.Gray,
+                        fontSize = 10.sp
+                    )
+                    Text(
+                        text = dateFormatter.format(day),
+                        fontWeight = FontWeight.Bold,
+                        textAlign = TextAlign.Center,
+                        color = if (day == finalSelectedDate) Color.White else Color.Black,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = monthFormatter.format(day).uppercase(),
+                        fontWeight = FontWeight.Normal,
+                        textAlign = TextAlign.Center,
+                        color = if (day == finalSelectedDate) Color.White else Color.Gray,
+                        fontSize = 10.sp
+                    )
                 }
             }
         }
     }
+}
+@Preview(showBackground = true)
+@Composable
+fun PreviewDaySelectorWithArrows() {
+    DaySelectorWithArrows(
+        selectedDate = LocalDate.now(), // Set the selected date to today for the preview
+        onDateSelected = {}
+    )
 }
