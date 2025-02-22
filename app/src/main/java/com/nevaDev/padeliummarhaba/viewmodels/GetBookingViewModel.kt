@@ -149,6 +149,10 @@ class GetBookingViewModel @Inject constructor(
             }
         }
     }
+    fun resetTimeSlots() {
+        _filteredTimeSlots.value = emptyList()
+        _parsedTimeSlotss.value = emptyList()
+    }
 }
 
 data class TimeSlot(

@@ -169,7 +169,6 @@ fun ReservationOptions(
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
 
 
-
     when (val result = dataResultBooking) {
         is DataResultBooking.Loading -> LoadingState()
         is DataResultBooking.Success -> SuccessState(

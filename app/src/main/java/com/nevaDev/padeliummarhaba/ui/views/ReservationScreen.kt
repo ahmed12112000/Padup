@@ -107,6 +107,7 @@ fun ReservationScreen(
         viewModel.getReservationKey(fetchKeyRequest, date)
     }
 
+
     // Observe ViewModel response for reservation key
     LaunchedEffect(selectedDate.value) {
         fetchReservationData(selectedDate.value)
@@ -167,7 +168,6 @@ fun ReservationScreen(
 
 
 
-
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -204,30 +204,6 @@ fun ReservationScreen(
 
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        } else if (errorMessage != null) {
-            Text(
-                text = errorMessage!!,
-                color = Color.Red,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-        } else if (parsedTimeSlots.isNotEmpty()) {
-            // Display available time slots here, e.g., in a LazyColumn or other UI component
-            LazyColumn(modifier = Modifier.fillMaxWidth()) {
-                items(parsedTimeSlots) { timeSlot ->
-                    Text(text = timeSlot.toString(), modifier = Modifier.padding(8.dp))
-                }
-            }
-        } else {
-            Text(
-                text = "",
-                modifier = Modifier.align(Alignment.CenterHorizontally)
-            )
-
-        }
-
-
-        if (parsedTimeSlots.isEmpty()) {
-            Text(text = "", color = Color.Red, textAlign = TextAlign.Center)
         }
     }
 

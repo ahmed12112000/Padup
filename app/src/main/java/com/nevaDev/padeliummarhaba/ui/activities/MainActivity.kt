@@ -74,8 +74,13 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.nevaDev.padeliummarhaba.ui.views.LoginScreen
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 
 
 @AndroidEntryPoint
@@ -96,7 +101,7 @@ class MainActivity : ComponentActivity() {
                 val sessionManager = remember { SessionManager(context) }
                 val isUserLoggedIn = sessionManager.isLoggedIn()
                 LaunchedEffect(Unit) {
-                    delay(300)
+                    delay(900)
                     showSplashScreen = false
                 }
 
@@ -498,6 +503,17 @@ fun AnimatedBottomBar(
         }
     }
 }
+
+class AuthViewModel(context: Context) : ViewModel() {
+    private val sessionManager = SessionManager(context)
+    val isLoggedInFlow: StateFlow<Boolean> = sessionManager.isLoggedInFlow.stateIn(
+        viewModelScope,
+        SharingStarted.Lazily,
+        false
+    )
+}
+
+
 @Composable
 fun CustomBottomNavItem(
     navController: NavController,
