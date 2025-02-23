@@ -34,6 +34,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -50,6 +51,7 @@ import com.nevaDev.padeliummarhaba.ui.views.CreditPayment
 import com.nevaDev.padeliummarhaba.ui.views.LoginScreen
 import com.nevaDev.padeliummarhaba.ui.views.PaymentSection1
 import com.nevaDev.padeliummarhaba.ui.views.ProfileScreen
+import com.nevaDev.padeliummarhaba.ui.views.ReservationOptions
 import com.nevaDev.padeliummarhaba.ui.views.SignUpScreen
 import com.nevaDev.padeliummarhaba.ui.views.SummaryScreen
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
@@ -186,6 +188,26 @@ class LoginActivity : ComponentActivity() {
                                     }
                                 }
                             }
+                            composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
+                                val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
+                                val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
+                                val sharedViewModel: SharedViewModel = viewModel()
+
+                                ReservationOptions(
+                                    onReservationSelected = { /* Handle reservation selection */ },
+                                    key = null, // Pass any required key
+                                    navController = navController,
+                                    selectedDate = selectedDate ?: LocalDate.now(),
+                                    selectedTimeSlot = selectedTimeSlot,
+                                    viewModel = hiltViewModel(),
+                                    viewModel1 = hiltViewModel(),
+                                    viewModel2 = hiltViewModel(),
+                                    bookingViewModel = hiltViewModel(),
+                                    paymentPayAvoirViewModel = hiltViewModel(),
+                                    sharedViewModel = sharedViewModel,
+
+                                )
+                            }
                             composable("signup_screen") {
                                 SignUpScreen(
                                     navController = navController,
@@ -194,16 +216,46 @@ class LoginActivity : ComponentActivity() {
                                 )
                             }
                             composable("Profile_screen") {
-                                ProfileScreen(navController = navController,)
+                                ProfileScreen(
+                                    navController = navController,
+                                    navigateToLogin = { route ->
+                                        Log.d("LoginActivity", "Navigating to Login screen with route: $route")
+                                        navController.navigate(route) {
+                                            popUpTo("login_screen") { inclusive = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
                             }
                             composable("CreditCharge") {
                                 CreditCharge(navController = navController)
                             }
                             composable("CreditPayment") {
-                                CreditPayment(navController = navController)
+                                CreditPayment(
+                                    navController = navController,
+                                    navigateToLogin = { route ->
+                                        Log.d("LoginActivity", "Navigating to Login screen with route: $route")
+                                        navController.navigate(route) {
+                                            popUpTo("login_screen") { inclusive = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
                             }
                             composable("summary_screen") {
-                                SummaryScreen(navController = navController)
+                                SummaryScreen(
+                                    navController = navController,
+                                    navigateToLogin = { route ->
+                                        Log.d("LoginActivity", "Navigating to Login screen with route: $route")
+                                        navController.navigate(route) {
+                                            popUpTo("login_screen") { inclusive = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
+                                )
                             }
                             composable("main_screen") {
                                 navigateToMainActivity()
@@ -240,7 +292,15 @@ class LoginActivity : ComponentActivity() {
                                     mappedBookingsJson = mappedBookingsJson,
                                     price = price,
                                     onTotalAmountCalculated = { totalAmount, currency -> },
-                                    viewModel9 = hiltViewModel()
+                                    viewModel9 = hiltViewModel(),
+                                    navigateToLogin = { route ->
+                                        Log.d("LoginActivity", "Navigating to Login screen with route: $route")
+                                        navController.navigate(route) {
+                                            popUpTo("login_screen") { inclusive = true }
+                                            launchSingleTop = true
+                                            restoreState = true
+                                        }
+                                    }
                                 )
                             }
 

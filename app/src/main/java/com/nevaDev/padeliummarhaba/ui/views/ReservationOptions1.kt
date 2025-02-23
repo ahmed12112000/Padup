@@ -84,6 +84,7 @@ import androidx.lifecycle.ViewModel
 import com.google.android.material.snackbar.Snackbar
 import android.view.View
 import android.widget.TextView
+import androidx.compose.runtime.collectAsState
 import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.ui.activities.LoginActivity
@@ -156,7 +157,10 @@ fun ReservationOptions(
     sharedViewModel: SharedViewModel
 
 ) {
-    val isUserLoggedIn by sharedViewModel.isLoggedIn.observeAsState(false)
+    val context = LocalContext.current
+
+    val sessionManager = remember { SessionManager(context) }
+    val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
     var amountSelected by remember { mutableStateOf<Double?>(null) }
     var currencySymbol by remember { mutableStateOf<String?>(null) }

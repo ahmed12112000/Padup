@@ -59,7 +59,7 @@ fun SummaryScreen(
     viewModel1: GetProfileByIdViewModel = hiltViewModel(),
     viewModel2: GetStatusesViewModel = hiltViewModel(),
     navController: NavController,
-
+    navigateToLogin: (String) -> Unit,
     ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }

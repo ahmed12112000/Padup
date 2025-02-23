@@ -60,8 +60,14 @@ import com.nevaDev.padeliummarhaba.viewmodels.InitBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
+import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.InitBookingRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -79,10 +85,11 @@ fun ReservationScreen(
     viewModel2: GetInitViewModel = hiltViewModel(),
     viewModel3: SearchListViewModel = hiltViewModel(),
     viewModel4: InitBookingViewModel = hiltViewModel(),
-    paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
+    paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
     sharedViewModel: SharedViewModel
-
 ) {
+    var fetchJob by remember { mutableStateOf<Job?>(null) }
+
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
     val selectedReservation = remember { mutableStateOf<ReservationOption?>(null) }
@@ -91,22 +98,25 @@ fun ReservationScreen(
     var isLoading by remember { mutableStateOf(false) }
     val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
 
+    var hasCompletedFetch by remember { mutableStateOf(false) } // Flag to prevent repeated fetches
+    var hasFetchedInitBooking by remember { mutableStateOf(false) } // Flag for InitBooking
+    var hasFetchedGetBooking by remember { mutableStateOf(false) }
+    var hasFetchedSearchList by remember { mutableStateOf(false) }
+
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
-    // Observing parsed time slots from ViewModel
     val parsedTimeSlots by getBookingViewModel.parsedTimeSlots.collectAsState(initial = emptyList())
 
     // Function to fetch reservation data
-    // Function to fetch reservation data
     fun fetchReservationData(date: LocalDate) {
-        if (isLoading) return
+        if (isLoading || hasCompletedFetch) return // Don't fetch if already loading or completed
         val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
         isLoading = true
         viewModel.getReservationKey(fetchKeyRequest, date)
+        Log.d("Tagggg", "FETCH KEY 1")
     }
-
 
     // Observe ViewModel response for reservation key
     LaunchedEffect(selectedDate.value) {
@@ -117,54 +127,107 @@ fun ReservationScreen(
         when (result) {
             is DataResultBooking.Loading -> isLoading = true
             is DataResultBooking.Success -> {
-                reservationKey.value = result.data.key
-                isLoading = false
-                onFetchSuccess()
-
-                // Now that the new key is available, trigger other view models
-                reservationKey.value?.let { key ->
-                    viewModel3.searchList(key)
-                    viewModel2.GetInit(key)
-                    val initBookingRequest = InitBookingRequest(
-                        key = key,
-                    )
-                    viewModel4.InitBooking(initBookingRequest)
-                    getBookingViewModel.getBooking(key, selectedDate.value)
+                if (!hasFetchedInitBooking) {
+                    reservationKey.value = result.data.key
+                    isLoading = false
+                    onFetchSuccess()
+                    reservationKey.value?.let { key ->
+                        // Step 1: Call searchList and observe its result
+                        viewModel3.searchList(key)
+                        Log.d("Tagggg", "FETCH KEY 2")
+                    }
                 }
             }
             is DataResultBooking.Failure -> {
                 isLoading = false
-
             }
         }
     }
+
+    // Step 2: Observe searchList results
+    viewModel3.dataResultBooking.observe(lifecycleOwner) { searchResult ->
+        when (searchResult) {
+            is DataResultBooking.Success -> {
+                reservationKey.value?.let { key ->
+                    if (!hasFetchedInitBooking) {
+                        viewModel2.GetInit(key)
+                        Log.d("Tagggg", "FETCH TERRAIN 3********")
+                        hasFetchedInitBooking = true // Mark as completed
+                    }
+                }
+            }
+            is DataResultBooking.Failure -> {
+                // Handle failure if needed
+            }
+            else -> {}
+        }
+    }
+
+    // Step 3: Observe GetInit results
+    viewModel2.dataResultBooking.observe(lifecycleOwner) { searchResult ->
+        when (searchResult) {
+            is DataResultBooking.Success -> {
+                if (!hasFetchedSearchList) {
+                    reservationKey.value?.let { key ->
+
+                        val initBookingRequest = InitBookingRequest(key = key)
+                        viewModel4.InitBooking(initBookingRequest)
+                        Log.d("Tagggg", "FETCH DATA 4********")
+                    }
+                }
+            }
+            is DataResultBooking.Failure -> {
+                // Handle failure if needed
+            }
+            else -> {}
+        }
+    }
+
+    // Step 4: Observe InitBooking results
+    viewModel4.dataResult1.observe(lifecycleOwner) { initResult ->
+        when (initResult) {
+            is DataResult.Success -> {
+                if (!hasCompletedFetch) {
+                    reservationKey.value?.let { key ->
+                        getBookingViewModel.getBooking(key, selectedDate.value)
+                        Log.d("Tagggg", "FETCH FULL DATA 5********")
+                        hasCompletedFetch = true // Mark as completed
+                    }
+                }
+            }
+            is DataResult.Failure -> {
+                // Handle failure if needed
+            }
+            else -> {}
+        }
+    }
+
 
 
 
 
     // Function to fetch time slots based on selected date
     fun filterSlotsByDate(newDate: LocalDate) {
-        reservationKey.value?.let { key ->
-            viewModel3.searchList(key)
-            viewModel2.GetInit(key)
-            val initBookingRequest = InitBookingRequest(
-                key = key,
-            )
-          //  viewModel4.InitBooking(initBookingRequest)
-            getBookingViewModel.getBooking(key, newDate)
-            Log.e("TAGGGGGG","innnnnnnnnnnnnnnnnnnn")
+        fetchJob?.cancel() // Cancel previous job
 
-        } ?: run {
-            Log.e("TAGGGGGG","ahhhhhhhhhhhhhhhhhhhhhh")
-
-            errorMessage = ""
+        fetchJob = CoroutineScope(Dispatchers.Main).launch { // ✅ Use CoroutineScope
+            delay(1000) // Debounce API calls
+            reservationKey.value?.let { key ->
+                getBookingViewModel.getBooking(key, newDate)
+            } ?: run {
+                errorMessage = ""
+            }
         }
     }
 
-    LaunchedEffect(selectedDate.value) {
-      //  fetchReservationData(selectedDate.value)
-        filterSlotsByDate(selectedDate.value)
+    LaunchedEffect(selectedDate.value, reservationKey.value) {
+        reservationKey.value?.let { key ->
+            filterSlotsByDate(selectedDate.value)
+            //  fetchReservationData(selectedDate.value)
+
+        }
     }
+
 
 
 
@@ -219,7 +282,8 @@ fun ReservationScreen(
             selectedDate = selectedDate.value ,
             selectedTimeSlot = selectedTimeSlot.value,
             paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-            sharedViewModel = sharedViewModel
+            sharedViewModel = sharedViewModel,
+
         )
     }
 }

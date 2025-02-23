@@ -77,10 +77,11 @@ fun LoginScreen(
             is Resulta.Loading -> isLoading = true
             is Resulta.Success -> {
                 result.data?.let { token ->
-                    sessionManager.saveAuthToken(token.toString()) // ✅ Save token in session
+                    sessionManager.saveAuthToken(token.toString()) // Save token in session
                     getProfileViewModel.fetchProfileData()
-                    onLoginSuccess() // ✅ No need to pass the token manually
+                    onLoginSuccess() // Trigger the login success callback
 
+                    // Navigate to the destination route
                     navController.navigate(destinationRoute) {
                         popUpTo("login_screen") { inclusive = true }
                     }
@@ -96,12 +97,13 @@ fun LoginScreen(
     getProfileViewModel.hasUserRole.observe(lifecycleOwner) { hasRole ->
         if (hasRole) {
             balanceViewModel.fetchAndBalance()
-            navController.popBackStack() // ✅ Return instead of restarting app
+            navController.popBackStack() // Return instead of restarting app
         } else {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse("http://141.94.246.248/account/login"))
             context.startActivity(intent)
         }
     }
+
 
 
     /*
@@ -281,13 +283,14 @@ fun LoginScreen(
                     coroutineScope.launch {
                         isLoading = true
                         val updatedRequest = loginRequest.copy(username = email, password = password)
-                        val response = viewModel.loginUser(updatedRequest)
+                        val response = viewModel.loginUser (updatedRequest)
 
                         if (response is Resulta.Success) {
-                            sessionManager.saveAuthToken(response.data.toString()) // ✅ Store token
+                            sessionManager.saveAuthToken(response.data.toString()) // Store token
                             errorMessage = null
-                            onLoginSuccess()
+                            onLoginSuccess() // Trigger the login success callback
 
+                            // Navigate to the destination route
                             navController.navigate(destinationRoute) {
                                 popUpTo("login_screen") { inclusive = true }
                             }
@@ -295,8 +298,8 @@ fun LoginScreen(
                             errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
                         }
                     }
-
                 },
+
                 enabled = !isLoading && isButtonEnabled,
                 modifier = Modifier.fillMaxWidth().height(48.dp),
                 colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),

@@ -82,14 +82,13 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
         val sharedPreferences = getSharedPreferences("csrf_prefs", MODE_PRIVATE)
-        val sessionManager = SessionManager(this) // ✅ Initialize SessionManager
+        val sessionManager = SessionManager(this)
 
         setContent {
             PadeliumMarhabaTheme {
@@ -101,7 +100,7 @@ class MainActivity : ComponentActivity() {
                 val sessionManager = remember { SessionManager(context) }
                 val isUserLoggedIn = sessionManager.isLoggedIn()
                 LaunchedEffect(Unit) {
-                    delay(900)
+                    delay(300)
                     showSplashScreen = false
                 }
 
@@ -223,6 +222,7 @@ fun MainApp(
                     drawerState = drawerState,
                     scope = scope,
                     onSignupSuccess = { sessionManager.updateLastActiveTime() },
+                    navigateToLogin = navigateToLogin
                 )
             }
         }
@@ -469,7 +469,7 @@ fun AnimatedBottomBar(
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
 
-    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen")
+    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen","reservation_options")
 
     Box(
         modifier = Modifier
@@ -546,7 +546,7 @@ fun CustomBottomNavItem(
         animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
     )
     val textColor = if (isSelected) Color(0xFFD7F057) else Color.White
-    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen","main_screen")
+    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen","main_screen","reservation_options")
 
     Box(
         contentAlignment = Alignment.Center,
@@ -555,41 +555,19 @@ fun CustomBottomNavItem(
             .clickable {
                 Log.d("CustomBottomNavItem", "Clicked on $route, isUserLoggedIn: $isUserLoggedIn")
 
-                val activity = context as? Activity
-
-                if (route == "main_screen") {
-                    if (activity is LoginActivity) {
-                        // ✅ If in LoginActivity, launch MainActivity and finish LoginActivity
-                        Log.d("CustomBottomNavItem", "Redirecting from LoginActivity to MainActivity")
-                        val intent = Intent(context, MainActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_NEW_TASK
-                        context.startActivity(intent)
-                        activity.finish() // Close LoginActivity
-                    } else {
-                        // ✅ If already in MainActivity, just navigate
-                        navController.navigate(route) {
-                            launchSingleTop = true
-                            restoreState = true
-                            popUpTo("main_screen") { inclusive = true }
-                        }
-                    }
-                } else if (route in restrictedRoutes && !isUserLoggedIn) {
+                if (route in restrictedRoutes && !isUserLoggedIn) {
                     Log.d("CustomBottomNavItem", "Redirecting to login for route: $route")
                     navigateToLogin("login_screen?redirect=$route") // ✅ Pass the intended route
-                } else {
+                } else if (isUserLoggedIn) {
                     Log.d("CustomBottomNavItem", "User already logged in, navigating to $route")
                     navController.navigate(route) {
                         launchSingleTop = true
                         restoreState = true
                         popUpTo("login_screen") { inclusive = false }
+
                     }
                 }
             }
-
-
-
-
-
             .padding(10.dp)
 
     ) {

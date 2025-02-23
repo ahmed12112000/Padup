@@ -58,7 +58,7 @@ fun AppNavHost(
     sharedPreferences: SharedPreferences,
     drawerState: DrawerState,
     scope: CoroutineScope,
-
+    navigateToLogin: (String) -> Unit,
     ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -78,7 +78,10 @@ fun AppNavHost(
             composable("Profile_screen") {
                 val sharedViewModel: SharedViewModel = hiltViewModel()
 
-                ProfileScreen(navController = navController,)
+                ProfileScreen(
+                    navController = navController,
+                    navigateToLogin = navigateToLogin
+                )
             }
             composable("signup_screen") {
                 SignUpScreen(
@@ -113,6 +116,7 @@ fun AppNavHost(
                 val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
                 val selectedTimeSlot = backStackEntry.arguments?.getString("selectedTimeSlot")
                 val sharedViewModel: SharedViewModel = viewModel()
+                val destinationRoute = backStackEntry.arguments?.getString("destination_route") ?: "main_screen"
 
                 ReservationOptions(
                     onReservationSelected = { /* Handle reservation selection */ },
@@ -125,7 +129,8 @@ fun AppNavHost(
                     viewModel2 = hiltViewModel(),
                     bookingViewModel = hiltViewModel(),
                     paymentPayAvoirViewModel = hiltViewModel(),
-                    sharedViewModel = sharedViewModel
+                    sharedViewModel = sharedViewModel,
+
                 )
             }
 
@@ -277,6 +282,7 @@ fun AppNavHost(
                 val getBookingViewModel: GetBookingViewModel = hiltViewModel()
                 val paymentPayAvoirViewModel: PaymentPayAvoirViewModel = hiltViewModel()
                 val sharedViewModel: SharedViewModel = viewModel() // Ensure it's created
+                val destinationRoute = backStackEntry.arguments?.getString("destination_route") ?: "main_screen"
 
                 ReservationScreen(
                     navController = navController,
@@ -287,7 +293,8 @@ fun AppNavHost(
                     viewModel = viewModel,
                     getBookingViewModel = getBookingViewModel,
                     paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-                    sharedViewModel = sharedViewModel
+                    sharedViewModel = sharedViewModel,
+
                 )
             }
 
@@ -333,7 +340,7 @@ fun AppNavHost(
                     onTotalAmountCalculated = { totalAmount, currency ->
                     },
                     viewModel9 = hiltViewModel(),
-
+                    navigateToLogin = navigateToLogin
                     )
             }
 
@@ -354,13 +361,18 @@ fun AppNavHost(
                 val sharedViewModel: SharedViewModel = hiltViewModel()
 
                 CreditPayment(
-                    navController = navController) }
+                    navController = navController,
+                    navigateToLogin = navigateToLogin
+                )
+            }
 
             composable("summary_screen") {
                 val sharedViewModel: SharedViewModel = hiltViewModel()
 
                 SummaryScreen(
-                    navController = navController)
+                    navController = navController,
+                    navigateToLogin = navigateToLogin
+                )
             }
 
             composable("main_screen") {

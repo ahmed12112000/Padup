@@ -67,6 +67,7 @@ fun CreditPayment(
     navController: NavController,
     viewModel: GetPacksViewModel = hiltViewModel(),
     viewModel2: CreditPayViewModel = hiltViewModel(),
+    navigateToLogin: (String) -> Unit,
 
 ) {
     val packsData by viewModel.packsData.observeAsState(DataResult.Loading)

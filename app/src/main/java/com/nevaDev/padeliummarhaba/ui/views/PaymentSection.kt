@@ -228,8 +228,8 @@ fun  PaymentSection1(
     viewModel9: SharedViewModel,
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
-    viewModel3: GetProfileViewModel = hiltViewModel()
-
+    viewModel3: GetProfileViewModel = hiltViewModel(),
+    navigateToLogin: (String) -> Unit,
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
@@ -273,7 +273,13 @@ fun  PaymentSection1(
 
     val extrasCost = (if (includeBalls) 5 else 0) + (selectedRaquette * 2)
     onExtrasUpdate(extrasCost, selectedRaquette, includeBalls)
+    val updatePhoneResult by updatePhoneViewModel.dataResult.observeAsState()
 
+    LaunchedEffect(updatePhoneResult) {
+        if (updatePhoneResult is DataResult.Success) {
+            Toast.makeText(context, "Phone number updated successfully", Toast.LENGTH_LONG).show()
+        }
+    }
 
     //onExtrasUpdate(totalExtrasCost.toInt(), selectedRaquette, includeBalls)
     //onExtrasUpdate(totalExtrasCost.toInt(), selectedRaquette, includeBalls)
@@ -849,6 +855,22 @@ fun  PaymentSection1(
                                                                             )
 
                                                                             confirmBookingViewModel.GetPayment(confirmBookingRequest)
+
+                                                                            // Observe confirmBookingViewModel result
+                                                                            confirmBookingViewModel.dataResult.observe(lifecycleOwner) { confirmResult ->
+                                                                                when (confirmResult) {
+                                                                                    is DataResult.Success -> {
+                                                                                        Log.d("BOOKING", "Booking confirmation successful")
+                                                                                        navController.navigate("PaymentSuccessScreen")
+                                                                                    }
+                                                                                    is DataResult.Failure -> {
+                                                                                        Log.e("BOOKING", "Booking confirmation failed: ${confirmResult.errorMessage}")
+                                                                                    }
+                                                                                    is DataResult.Loading -> {
+                                                                                        Log.d("BOOKING", "Confirming booking...")
+                                                                                    }
+                                                                                }
+                                                                            }
                                                                         }
 
                                                                         is DataResult.Failure -> {
@@ -880,6 +902,7 @@ fun  PaymentSection1(
                                 }
                             }
                         }
+
                     },
                     modifier = Modifier
                         .height(48.dp).offset(x=-7.dp)
