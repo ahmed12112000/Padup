@@ -12,8 +12,13 @@ class BalanceUseCase @Inject constructor(private val balanceRepository: IBalance
         return try {
             val response = balanceRepository.Balance(Id)
             if (response.isSuccessful) {
-                Log.e("TAG", "Balance result: ${response.code()}")
-                DataResult.Success(response)
+                val balance = response.body() // Directly get BigDecimal value
+                if (balance != null) {
+                    Log.e("TAG", "Balance result: $balance") // Log actual balance
+                    DataResult.Success(balance) // Return BigDecimal directly
+                } else {
+                    DataResult.Failure(null, response.code(), "Balance response is null")
+                }
             } else {
                 val errorMessage = response.errorBody()?.string() ?: "Unknown error occurred"
                 DataResult.Failure(null, response.code(), errorMessage)
@@ -22,4 +27,6 @@ class BalanceUseCase @Inject constructor(private val balanceRepository: IBalance
             DataResult.Failure(ex, null, ex.localizedMessage ?: "An error occurred during balance fetching")
         }
     }
+
+
 }

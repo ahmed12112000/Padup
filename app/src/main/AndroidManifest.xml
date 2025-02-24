@@ -38,15 +38,6 @@
         </activity>
 
 
-        <activity
-            android:name="com.nevaDev.padeliummarhaba.ui.activities.LoginActivity"
-            android:label="Login"
-            android:launchMode="singleTask"
-            android:theme="@style/Theme.PadeliumMarhaba"
-            android:exported="true">
-        </activity>
-
-
 
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"

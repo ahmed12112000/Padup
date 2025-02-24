@@ -87,8 +87,6 @@ import android.widget.TextView
 import androidx.compose.runtime.collectAsState
 import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.di.SessionManager
-import com.nevaDev.padeliummarhaba.ui.activities.LoginActivity
-import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 
 @Composable
 fun TimeSlotSelector(
@@ -97,6 +95,17 @@ fun TimeSlotSelector(
     selectedTimeSlot: String?
 ) {
     val uniqueTimeSlots = timeSlots.distinctBy { it.time }
+    val firstTimeSlot = uniqueTimeSlots.firstOrNull()?.time?.format(DateTimeFormatter.ofPattern("H:mm"))
+
+    val selectedTime = remember { mutableStateOf(selectedTimeSlot ?: firstTimeSlot) }
+
+    // Ensure the first time slot is selected by default
+    LaunchedEffect(firstTimeSlot) {
+        firstTimeSlot?.let {
+            onTimeSlotSelected(it)
+            selectedTime.value = it
+        }
+    }
 
     LazyVerticalGrid(
         columns = GridCells.Fixed(4),
@@ -108,27 +117,30 @@ fun TimeSlotSelector(
     ) {
         items(uniqueTimeSlots) { timeSlot ->
             val formattedTime = timeSlot.time.format(DateTimeFormatter.ofPattern("H:mm"))
-            val isSelected = selectedTimeSlot == formattedTime
+            val isSelected = selectedTime.value == formattedTime
 
             Button(
-                onClick = { onTimeSlotSelected(formattedTime) },
+                onClick = {
+                    selectedTime.value = formattedTime
+                    onTimeSlotSelected(formattedTime)
+                },
                 shape = RoundedCornerShape(8.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (isSelected) Color(0xFF0054D8) else Color.White // White background if not selected
+                    containerColor = if (isSelected) Color(0xFF0054D8) else Color.White
                 ),
                 border = if (!isSelected) {
-                    BorderStroke(1.dp, Color.Black) // Black border if not selected
+                    BorderStroke(1.dp, Color.Black)
                 } else {
-                    null // No border if selected
+                    null
                 },
                 modifier = Modifier
-                    .size(30.dp) // Reduced size for button
+                    .size(30.dp)
             ) {
                 Text(
                     text = formattedTime,
-                    color = if (selectedTimeSlot == formattedTime) Color.White else Color.Black,
+                    color = if (isSelected) Color.White else Color.Black,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 12.sp // Reduced font size
+                    fontSize = 12.sp
                 )
             }
         }
@@ -154,9 +166,9 @@ fun ReservationOptions(
     viewModel2: SaveBookingViewModel = hiltViewModel(),
     bookingViewModel: GetBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
-    sharedViewModel: SharedViewModel
 
-) {
+    ) {
+    Log.e("SelectedDateeeeeeee", "Failed to save booking: ${selectedDate}")
     val context = LocalContext.current
 
     val sessionManager = remember { SessionManager(context) }
@@ -188,8 +200,8 @@ fun ReservationOptions(
             showLoginPopup = { showLoginPopup = it },
             selectedTimeSlot = selectedTimeSlot,
             onTimeSlotSelected = { selectedTimeSlot = it },
-            paymentPayAvoirViewModel= paymentPayAvoirViewModel
-
+            paymentPayAvoirViewModel= paymentPayAvoirViewModel,
+            selectedDate = selectedDate
         )
         is DataResultBooking.Failure -> FailureState(result.errorMessage, setErrorMessage = { errorMessage = it })
     }
@@ -223,8 +235,8 @@ fun SuccessState(
     setAmountSelected: (Double) -> Unit,
     setCurrencySymbol: (String) -> Unit,
     showLoginPopup: (Boolean) -> Unit,
-    paymentPayAvoirViewModel: PaymentPayAvoirViewModel
-
+    paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
+    selectedDate: LocalDate
 ) {
     Column(modifier = Modifier
         .fillMaxSize()
@@ -248,8 +260,8 @@ fun SuccessState(
                     setAmountSelected = setAmountSelected,
                     setCurrencySymbol = setCurrencySymbol,
                     selectedTimeSlot = selectedTimeSlot,
-                    paymentPayAvoirViewModel= paymentPayAvoirViewModel
-
+                    paymentPayAvoirViewModel= paymentPayAvoirViewModel,
+                    selectedDate = selectedDate
                 )
             }
         }
@@ -269,10 +281,12 @@ private fun EstablishmentCard(
     viewModel1: ExtrasViewModel = hiltViewModel(),
     selectedTimeSlot: String?,
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
-    sharedViewModel: SharedViewModel = hiltViewModel() // Access SharedViewModel
+    sharedViewModel: SharedViewModel = hiltViewModel(),
+    selectedDate: LocalDate
 ) {
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager(context) } // ✅ Create SessionManager instance
+    val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Use Singleton
+    val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
     // Filter plannings by the selected time slot
     val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
@@ -294,20 +308,20 @@ private fun EstablishmentCard(
                 .padding(vertical = 4.dp) // Reduced padding
                 .clickable {
                     // Pass the login state to handleCardClick
-                    handleCardClick(
-                        selectedBooking = getBookingResponseDTO,
-                        planning = planning,
-                        bookingViewModel = bookingViewModel,
-                        navController = navController,
-                        onLoginRequired = { showLoginPopup = true },
-                        saveBookingViewModel = saveBookingViewModel,
-                        viewModel1 = viewModel1,
-                        onReservationSelected = { reservationOption -> },
-                        paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-                        amountToShow = amountToShow,
-                        context = context,
-                        sessionManager = sessionManager // ✅ Pass SessionManager
-                    )
+                        handleCardClick(
+                            selectedBooking = getBookingResponseDTO,
+                            planning = planning,
+                            bookingViewModel = bookingViewModel,
+                            navController = navController,
+                            saveBookingViewModel = saveBookingViewModel,
+                            viewModel1 = viewModel1,
+                            onReservationSelected = { reservationOption -> },
+                            paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                            amountToShow = amountToShow,
+                            context = context,
+                            selectedDate = selectedDate,
+                            isUserLoggedIn = isUserLoggedIn
+                        )
                 },
             shape = RoundedCornerShape(10.dp), // Slightly smaller radius
             border = BorderStroke(1.dp, Color.Gray),
@@ -439,22 +453,19 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
 @Composable
 fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     setErrorMessage(errorMessage ?: "An unexpected error occurred.")
-}
-
-
-fun handleCardClick(
+}fun handleCardClick(
     selectedBooking: GetBookingResponseDTO,
     planning: PlanningDTO,
     bookingViewModel: GetBookingViewModel,
     navController: NavController,
-    onLoginRequired: () -> Unit,
     saveBookingViewModel: SaveBookingViewModel,
     viewModel1: ExtrasViewModel,
     onReservationSelected: (ReservationOption) -> Unit,
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
     amountToShow: BigDecimal,
     context: Context,
-    sessionManager: SessionManager, // ✅ Inject SessionManager to check login status
+    selectedDate: LocalDate,
+    isUserLoggedIn: Boolean // ✅ Check login state
 ) {
     val currencySymbol = selectedBooking.currencySymbol ?: "€"
     val formattedAmount = String.format("%.2f", amountToShow)
@@ -464,46 +475,47 @@ fun handleCardClick(
     val selectedTimeSlot = "${planning.fromStr} - ${planning.toStr}"
 
     val updatedBooking = selectedBooking.copy(plannings = listOf(planning))
-
+    val encodedDate = Uri.encode(selectedDate.toString())
     bookingViewModel.updateBookings(listOf(updatedBooking))
-    Log.d("BookingViewModel", "updateBookings called with selected booking")
 
-    if (!sessionManager.isLoggedIn()) { // ✅ Check token-based login status
-        // Redirect to LoginActivity and pass the destination
-        val intent = Intent(context, LoginActivity::class.java).apply {
-            putExtra(
-                "destination_route",
-                "payment_section1/${Uri.encode(establishmentName)}/${Uri.encode(selectedTimeSlot)}/${Uri.encode(price)}/${Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))}"
-            )
-        }
-        context.startActivity(intent)
-    } else {
-        // Proceed with booking
-        val mappedBookingsJson = Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))
+    val mappedBookingsJson = Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))
+    val reservationOption = ReservationOption(
+        name = establishmentName,
+        time = selectedTimeSlot,
+        price = amountToShow.toString(),
+        mappedBookings = mappedBookingsJson
+    )
 
-        val reservationOption = ReservationOption(
-            name = establishmentName,
-            time = selectedTimeSlot,
-            price = amountToShow.toString(),
-            mappedBookings = mappedBookingsJson
-        )
+    val destinationUrl = "payment_section1/${Uri.encode(reservationOption.name)}/" +
+            "${Uri.encode(reservationOption.time)}/" +
+            "${Uri.encode(reservationOption.price)}/" +
+            "$mappedBookingsJson/$encodedDate"
 
-        Log.d("HandleCardClick", "ReservationOption: $reservationOption")
+    if (!isUserLoggedIn) {
+        Log.d("handleCardClick", "User is NOT logged in. Navigating to login screen.")
+
+        // Save reservation details before navigating to login
         onReservationSelected(reservationOption)
 
-        try {
-            val sanitizedPrice = price.trim().replace(",", "")
-            BigDecimal(sanitizedPrice)
-        } catch (e: NumberFormatException) {
-            Toast.makeText(context, "Invalid price format. Please try again.", Toast.LENGTH_LONG).show()
-            return
-        }
-
+        // Navigate to login screen and pass the intended destination
         navController.navigate(
-            "payment_section1/${Uri.encode(reservationOption.name)}/${Uri.encode(reservationOption.time)}/${Uri.encode(reservationOption.price)}/$mappedBookingsJson"
-        )
+            "login_screen?destination=${Uri.encode(destinationUrl)}"
+        ) {
+            popUpTo("main_screen") { inclusive = false }
+        }
+    } else {
+        Log.d("handleCardClick", "User is logged in. Navigating directly to payment section.")
+
+        // Navigate to `payment_section1` directly
+        navController.navigate(destinationUrl) {
+            popUpTo("main_screen") { inclusive = false } // Ensure login screen is not in the back stack
+        }
     }
 }
+
+
+
+
 
 
 

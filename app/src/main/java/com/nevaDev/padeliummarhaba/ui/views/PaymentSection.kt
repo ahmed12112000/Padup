@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
@@ -52,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import java.time.LocalDate
 import androidx.compose.material.*
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.Payment
@@ -61,6 +63,8 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -73,6 +77,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ConfirmBookingViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.ErrorCreditViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.FindTermsViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
@@ -89,6 +94,7 @@ import com.padelium.domain.dto.PaymentRequest
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.data.dto.GetPaymentRequestDTO
 import com.padelium.domain.dto.ConfirmBookingRequest
+import com.padelium.domain.dto.CreditErrorRequest
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetPaymentRequest
 import com.padelium.domain.dto.GetProfileResponse
@@ -123,31 +129,50 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
         val searchDate = dto.searchDate?.let {
             LocalDate.parse(it, DateTimeFormatter.ofPattern("yyyy-MM-dd"))
         } ?: LocalDate.now() // Use current date if searchDate is null
-
+        Log.e("DateConversion", "Processing searchDate: $searchDate")
         val firstPlanning = dto.plannings?.firstOrNull()
 
         val startFormatted = firstPlanning?.fromStr?.let { timeStr ->
-            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure proper "HH:mm" format
-            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
-            LocalDateTime.of(searchDate, time).format(formatterOutput)
+            try {
+                val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                LocalDateTime.of(searchDate, time).format(formatterOutput) // Use searchDate
+            } catch (e: Exception) {
+                Log.e("DateConversion", "Error parsing startFormatted", e)
+                "2024-12-20 09:30" // Fallback value
+            }
         } ?: "2024-12-20 09:30"
-
         val endFormatted = firstPlanning?.toStr?.let { timeStr ->
-            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
-            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
-            LocalDateTime.of(searchDate, time).format(formatterOutput)
+            try {
+                val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                LocalDateTime.of(searchDate, time).format(formatterOutput) // Use searchDate
+            } catch (e: Exception) {
+                Log.e("DateConversion", "Error parsing endFormatted", e)
+                "2024-12-20 09:30" // Fallback value
+            }
         } ?: "2024-12-20 09:30"
 
         val fromFormatted = firstPlanning?.fromStr?.let { timeStr ->
-            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
-            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
-            LocalDateTime.of(searchDate, time).format(formatterWithMillis)
+            try {
+                val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                LocalDateTime.of(searchDate, time).format(formatterWithMillis) // Use searchDate
+            } catch (e: Exception) {
+                Log.e("DateConversion", "Error parsing fromFormatted", e)
+                "2024-12-20T09:30:00.000Z" // Fallback value
+            }
         } ?: "2024-12-20T09:30:00.000Z"
 
         val toFormatted = firstPlanning?.toStr?.let { timeStr ->
-            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
-            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
-            LocalDateTime.of(searchDate, time).format(formatterWithMillis)
+            try {
+                val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                LocalDateTime.of(searchDate, time).format(formatterWithMillis) // Use searchDate
+            } catch (e: Exception) {
+                Log.e("DateConversion", "Error parsing toFormatted", e)
+                "2024-12-20T09:30:00.000Z" // Fallback value
+            }
         } ?: "2024-12-20T09:30:00.000Z"
 
 
@@ -229,12 +254,12 @@ fun  PaymentSection1(
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
     viewModel3: GetProfileViewModel = hiltViewModel(),
-    navigateToLogin: (String) -> Unit,
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     val profileData by viewModel3.profileData.observeAsState(DataResult.Loading)
+    Log.e("BBBBBBBBBBBBBDateeeeeeee", "Failed to save booking: ${selectedDate}")
 
     // var selectedParts by remember { mutableStateOf("1") }
     var amountSelected by remember { mutableStateOf(Pair(0.0, "DT")) }
@@ -274,10 +299,16 @@ fun  PaymentSection1(
     val extrasCost = (if (includeBalls) 5 else 0) + (selectedRaquette * 2)
     onExtrasUpdate(extrasCost, selectedRaquette, includeBalls)
     val updatePhoneResult by updatePhoneViewModel.dataResult.observeAsState()
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
+    var showMessage by remember { mutableStateOf(false) }
 
     LaunchedEffect(updatePhoneResult) {
         if (updatePhoneResult is DataResult.Success) {
-            Toast.makeText(context, "Phone number updated successfully", Toast.LENGTH_LONG).show()
+            showMessage = true
+         //   Toast.makeText(context, "Phone number updated successfully ✅", Toast.LENGTH_LONG).show()
+            delay(3000)
+            showMessage = false
         }
     }
 
@@ -348,6 +379,22 @@ fun  PaymentSection1(
 
         Spacer(modifier = Modifier.height(16.dp)) // Add some space between the cards
 
+        if (showMessage) {
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Success Icon",
+                    tint = Color(0xFF28A745),
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "Numéro changé avec succès",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        }
         // Card for the phone number input
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -410,6 +457,8 @@ fun  PaymentSection1(
                                     "text/plain".toMediaTypeOrNull(), phoneNumber
                                 )
                                 updatePhoneViewModel.UpdatePhone(phoneBody)
+                                keyboardController?.hide()
+                                focusManager.clearFocus()
                             },
                             shape = RoundedCornerShape(13.dp),
                             border =  BorderStroke(1.dp, Color(0xFF0054D8)),
@@ -548,10 +597,10 @@ fun  PaymentSection1(
                 val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
                 val sharedExtras by findTermsViewModel.sharedExtras.observeAsState(initial = mutableListOf())
                 val privateExtras by findTermsViewModel.privateExtras.observeAsState(initial = mutableListOf())
-                Log.d("PaymentSection1", "Shared Extras: $sharedExtras")
-                Log.d("PaymentSection1", "Private Extras: $privateExtras")
+                val formatterOutput: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+                val formatterWithMillis: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
 
-                Log.d("IMAAAAAAAAD", "Private Extras: $totalExtrasCost")
+
 
                 Button(
                     onClick = {
@@ -571,47 +620,87 @@ fun  PaymentSection1(
                                 val selectedBooking = mappedBookings.firstOrNull()
 
                                 if (selectedBooking != null) {
+                                    val searchDate = selectedDate // Ensure searchDate is used correctly
+                                    Log.e("DateConversion", "Processing searchDate: $searchDate")
+
+                                    val firstPlanning = selectedBooking.plannings?.firstOrNull()
+
+                                    val startFormatted = firstPlanning?.fromStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterOutput)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing startFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterOutput) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterOutput)
+
+                                    val endFormatted = firstPlanning?.toStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterOutput)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing endFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterOutput) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterOutput)
+
+                                    val fromFormatted = firstPlanning?.fromStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterWithMillis)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing fromFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
+
+                                    val toFormatted = firstPlanning?.toStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterWithMillis)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing toFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
+
+                                    Log.d("OLFA", "Formatted Values: start=$startFormatted, end=$endFormatted, from=$fromFormatted, to=$toFormatted")
 
                                     val totalAmountSelected = adjustedAmount + totalExtrasCost
-                                    Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
 
                                     if (totalAmountSelected <= 0) {
-
                                         isLoading = false
                                         return@collectLatest
                                     }
 
-
                                     val playerIds = selectedPlayers.toList()
                                     Log.d("DEBUG", "Converted Players List: $playerIds")
 
-                                    Log.d(
-                                        "mouchABD",
-                                        "Extracted userIds: ${selectedPlayers.joinToString { "ID=${it}" }}"
-                                    )
-
-
-                                    val updatedMappedBookings =
-                                        mappedBookings.mapIndexed { index, booking ->
-                                            if (index == 0) {
-                                                booking.copy(
-                                                    numberOfPart = currentSelectedParts,
-                                                    userIds = playerIds
-                                                )
-                                            } else {
-                                                booking
-                                            }
+                                    val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
+                                        if (index == 0) {
+                                            booking.copy(
+                                                numberOfPart = currentSelectedParts,
+                                                userIds = playerIds,
+                                                searchDate = searchDate.toString(),
+                                                start = startFormatted,
+                                                end = endFormatted,
+                                                from = fromFormatted,
+                                                to = toFormatted
+                                            )
+                                        } else {
+                                            booking
                                         }
-                                    Log.d("mouchABD", "Extracted userIds: $selectedPlayers")
+                                    }
 
-                                    val totalAmountBigDecimal =
-                                        BigDecimal.valueOf(totalAmountSelected)
-                                    val currency =
-                                        selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
+                                    val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected)
+                                    val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
                                     onTotalAmountCalculated(totalAmountSelected, currency)
 
-
-                               //     paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
                                     saveBookingViewModel.SaveBooking(updatedMappedBookings)
 
                                     saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
@@ -755,6 +844,8 @@ fun  PaymentSection1(
                     }
                 }
                 var amount by remember { mutableStateOf(BigDecimal.ZERO) }
+                var showPopup by remember { mutableStateOf(false) } // State to control popup visibility
+                var bookingId by remember { mutableStateOf<String?>(null) }
 
                 Button(
                     onClick = {
@@ -766,9 +857,52 @@ fun  PaymentSection1(
                                 val selectedBooking = mappedBookings.firstOrNull()
 
                                 if (selectedBooking != null) {
+                                    val searchDate = selectedDate
                                     val totalAmountSelected = adjustedAmount + totalExtrasCost
-                                    Log.d("OLFA", "Total Amount Selected: $totalAmountSelected")
+                                    val firstPlanning = selectedBooking.plannings?.firstOrNull()
+                                    val startFormatted = firstPlanning?.fromStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterOutput)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing startFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterOutput) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterOutput)
 
+                                    val endFormatted = firstPlanning?.toStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterOutput)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing endFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterOutput) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterOutput)
+
+                                    val fromFormatted = firstPlanning?.fromStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterWithMillis)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing fromFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
+
+                                    val toFormatted = firstPlanning?.toStr?.let { timeStr ->
+                                        try {
+                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                                            val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
+                                            LocalDateTime.of(searchDate, time).format(formatterWithMillis)
+                                        } catch (e: Exception) {
+                                            Log.e("DateConversion", "Error parsing toFormatted", e)
+                                            searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
+                                        }
+                                    } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
                                     if (totalAmountSelected <= 0) {
                                         isLoading = false
                                         return@collectLatest
@@ -799,12 +933,19 @@ fun  PaymentSection1(
                                                         booking.copy(
                                                             numberOfPart = currentSelectedParts,
                                                             userIds = playerIds,
-                                                            payFromAvoir = payFromAvoirResponse
+                                                            payFromAvoir = payFromAvoirResponse,
+                                                            searchDate = searchDate.toString(),
+                                                            start = startFormatted,
+                                                            end = endFormatted,
+                                                            from = fromFormatted,
+                                                            to = toFormatted
                                                         )
                                                     } else {
                                                         booking
                                                     }
                                                 }
+
+
 
                                                 balanceViewModel.fetchAndBalance()
                                                 saveBookingViewModel.SaveBooking(updatedMappedBookings)
@@ -823,65 +964,26 @@ fun  PaymentSection1(
                                                             val bookingList = result.data as? List<SaveBookingResponse>
                                                             if (!bookingList.isNullOrEmpty()) {
                                                                 val firstBooking = bookingList[0]
-                                                                val bookingId = firstBooking.id.toString()
+
+                                                                // ✅ Set the booking ID before proceeding
+                                                                bookingId = firstBooking.id.toString()
+                                                                Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
 
                                                                 val paymentRequest = PaymentRequest(
                                                                     amount = totalAmountSelected.toString(),
                                                                     currency = selectedBooking.currencySymbol ?: "EUR",
-                                                                    orderId = bookingId
+                                                                    orderId = bookingId!! // Pass bookingId here
                                                                 )
 
                                                                 paymentViewModel.Payment(paymentRequest)
 
                                                                 // Observe payment result to ensure success before confirming booking
-                                                                paymentViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
-                                                                    when (paymentResult) {
-                                                                        is DataResult.Success -> {
-                                                                            Log.d("PAYMENT", "Payment successful, confirming booking...")
 
-                                                                            val confirmBookingRequest = ConfirmBookingRequest(
-                                                                                amount = totalAmountBigDecimal,
-                                                                                numberOfPart = currentSelectedParts,
-                                                                                payFromAvoir = payFromAvoirResponse,
-                                                                                privateExtrasIds = mappedBookings.first().privateExtrasIds ?: emptyList(),
-                                                                                bookingIds = bookingList.mapNotNull { it.id },
-                                                                                buyerId = mappedBookings.first().buyerId ?: "",
-                                                                                couponIds = mappedBookings.first().couponIds ?: emptyMap(),
-                                                                                sharedExtrasIds = mappedBookings.first().sharedExtrasIds ?: emptyList(),
-                                                                                status = true,
-                                                                                token = "",
-                                                                                transactionId = "",
-                                                                                userIds = mappedBookings.first().userIds
-                                                                            )
-
-                                                                            confirmBookingViewModel.GetPayment(confirmBookingRequest)
 
                                                                             // Observe confirmBookingViewModel result
-                                                                            confirmBookingViewModel.dataResult.observe(lifecycleOwner) { confirmResult ->
-                                                                                when (confirmResult) {
-                                                                                    is DataResult.Success -> {
-                                                                                        Log.d("BOOKING", "Booking confirmation successful")
-                                                                                        navController.navigate("PaymentSuccessScreen")
-                                                                                    }
-                                                                                    is DataResult.Failure -> {
-                                                                                        Log.e("BOOKING", "Booking confirmation failed: ${confirmResult.errorMessage}")
-                                                                                    }
-                                                                                    is DataResult.Loading -> {
-                                                                                        Log.d("BOOKING", "Confirming booking...")
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
 
-                                                                        is DataResult.Failure -> {
-                                                                            Log.e("PAYMENT", "Payment failed: ${paymentResult.errorMessage}")
-                                                                        }
 
-                                                                        is DataResult.Loading -> {
-                                                                            Log.d("PAYMENT", "Processing payment...")
-                                                                        }
-                                                                    }
-                                                                }
+
                                                             }
                                                         }
 
@@ -900,6 +1002,7 @@ fun  PaymentSection1(
                                         }
                                     }
                                 }
+                                showPopup = true
                             }
                         }
 
@@ -918,7 +1021,7 @@ fun  PaymentSection1(
                             imageVector = Icons.Default.Money,
                             contentDescription = "Credits Payment",
                             tint = Color.White,
-                            modifier = Modifier.size(20.dp).offset(x=-7.dp)
+                            modifier = Modifier.size(20.dp).offset(x = -7.dp)
                         )
                         Spacer(modifier = Modifier.width(3.dp))
                         Text(
@@ -929,6 +1032,34 @@ fun  PaymentSection1(
                         )
                     }
                 }
+                if (showPopup) {
+                    PopupCredit(
+                        onPayClick = {
+                            // Handle pay click logic here
+                            showPopup = false // Close the popup after payment
+                        },
+                        onCancelClick = { showPopup = false }, // Close the popup
+                        viewModel = hiltViewModel(), // Pass the GetProfileViewModel
+                        navController = navController, // Pass the NavController
+                        errorCreditViewModel = hiltViewModel(), // Pass the ErrorCreditViewModel
+                        onTotalAmountCalculated = { amount, currency ->
+                            Log.d("TotalAmount", "Total Amount Calculated: $amount $currency")
+                        },
+                        adjustedAmount = adjustedAmount, // Pass adjustedAmount
+                        totalExtrasCost = totalExtrasCost, // Pass totalExtrasCost
+                        showPopup = showPopup, // Pass the visibility state
+                        onDismiss = { showPopup = false }, // Handle dismissal
+                        mappedBookingsJson = mappedBookingsJson, // Pass mapped bookings data
+                        viewModel9 = viewModel9, // Pass shared view model
+                        findTermsViewModel = hiltViewModel(), // Pass FindTermsViewModel
+                        selectedDate = selectedDate, // Pass selected date
+                        selectedReservation = selectedReservation, // Pass selected reservation
+                        saveBookingViewModel = hiltViewModel() ,// Pass SaveBookingViewModel
+                        bookingId = bookingId,  // Pass the extracted bookingId
+
+                    )
+                }
+
             }
 
         }
@@ -944,7 +1075,6 @@ class SharedViewModel : ViewModel() {
         _selectedParts.value = parts
     }
 }
-
 
 @SuppressLint("StateFlowValueCalledInComposition")
 @Composable
@@ -968,92 +1098,138 @@ fun WebViewScreen(
     val userIdsList = userIds.split(",").mapNotNull { it.toLongOrNull() }
     val sharedListIds = sharedList.split(",").mapNotNull { it.toLongOrNull() }
     val privateListIds = privateList.split(",").mapNotNull { it.toLongOrNull() }
+    val isWebViewExpanded = remember { mutableStateOf(true) }
+    val lastLoadedUrl = remember { mutableStateOf(formUrl) }
+    val bookingIdsState = remember { mutableStateOf("") } // Mutable state for booking IDs
+    val errorCreditViewModel: ErrorCreditViewModel = hiltViewModel()
 
     Log.d("WebViewScreen", "Selected Parts: $numberOfPart")
     Log.d("WebViewScreen", "Extracted userIds: $userIdsList")
 
-    AndroidView(factory = {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp)
+            .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+    ) {
+        AndroidView(factory = {
+            WebView(context).apply {
+                settings.javaScriptEnabled = true
+                settings.domStorageEnabled = true
 
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    url?.let {
-                        if (it.contains("paymentSuccess")) {
-                            Log.e("paymentSuccess", "Payment successful URL: $it")
-                            navController.navigate("PaymentSuccessScreen")
-                            return true
-                        }
-                    }
-                    return super.shouldOverrideUrlLoading(view, url)
-                }
-
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
-                    val url = request.url.toString()
-                    Log.d("WebViewScreen", "Loading URL: $url")
-
-                    val originalUri = Uri.parse(formUrl)
-                    val numberOfPartValue = originalUri.getQueryParameter("numberOfPart") ?: numberOfPart.toString()
-
-                    val newUri = Uri.parse(url).buildUpon()
-                        .appendQueryParameter("numberOfPart", numberOfPartValue)
-                        .build()
-                    Log.d("WebViewScreen", "New URL: ${newUri}")
-
-                    val orderId = extractOrderId(url)
-                    val bookingIds = extractBookingIds(url)
-                    val numberOfPartValueNew = extractNumberOfPart(newUri.toString())
-
-                    if (orderId.isNotEmpty()) {
-                        val request = GetPaymentRequest(
-                            bookingIds = bookingIds,
-                            couponIds = extractCouponIds(newUri.toString()),
-                            numberOfPart = numberOfPartValueNew,
-                            orderId = orderId,
-                            privateExtrasIds = privateListIds,
-                            sharedExtrasIds = sharedListIds,
-                            userIds = userIdsList
-                        )
-
-                        Log.d("WebViewScreen", "Sending GetPayment request: $request")
-                        coroutineScope.launch {
-                            try {
-                                getPaymentViewModel.GetPayment2(request)
-                                getManagerViewModel.GetManager(bookingIds)
-                                getEmailViewModel.GetEmail(bookingIds)
+                webViewClient = object : WebViewClient() {
+                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                        url?.let {
+                            if (it.contains("paymentSuccess")) {
+                                Log.e("paymentSuccess", "Payment successful URL: $it")
                                 navController.navigate("PaymentSuccessScreen")
-                            } catch (e: Exception) {
-                                Log.e("WebViewScreen", "Error processing payment: $e")
+                                return true
                             }
                         }
-                    } else {
-                        Log.e("WebViewScreen", "Order ID not found in URL")
+                        return super.shouldOverrideUrlLoading(view, url)
                     }
 
-                    view?.loadUrl(newUri.toString())
-                    return true
+                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
+                        val url = request.url.toString()
+                        lastLoadedUrl.value = url
+                        Log.d("WebViewScreen", "Loading URL: $url")
+
+                        val orderId = extractOrderId(url)
+                        val bookingIds = extractBookingIds(url)
+                        bookingIdsState.value = bookingIds.joinToString(",") // Convert List<Long> to String
+                        val numberOfPartValueNew = extractNumberOfPart(url)
+                        Log.d("WebViewScreen", "Extracted Booking IDs: $bookingIds")  // Log extracted IDs
+
+                        if (orderId.isNotEmpty()) {
+                            val request = GetPaymentRequest(
+                                bookingIds = bookingIds,
+                                couponIds = extractCouponIds(url),
+                                numberOfPart = numberOfPartValueNew,
+                                orderId = orderId,
+                                privateExtrasIds = privateListIds,
+                                sharedExtrasIds = sharedListIds,
+                                userIds = userIdsList
+                            )
+
+                            Log.d("WebViewScreen", "Sending GetPayment request: $request")
+                            coroutineScope.launch {
+                                try {
+                                    getPaymentViewModel.GetPayment2(request)
+                                    getManagerViewModel.GetManager(bookingIds)
+                                    getEmailViewModel.GetEmail(bookingIds)
+                                    navController.navigate("PaymentSuccessScreen")
+                                } catch (e: Exception) {
+                                    Log.e("WebViewScreen", "Error processing payment: $e")
+                                }
+                            }
+                        } else {
+                            Log.e("WebViewScreen", "Order ID not found in URL")
+                        }
+
+                        view?.loadUrl(url)
+                        return true
+                    }
+
+                    override fun onPageFinished(view: WebView?, url: String?) {
+                        super.onPageFinished(view, url)
+                        Log.d("WebView", "Page finished loading: $url")
+                    }
                 }
 
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    Log.d("WebView", "Page finished loading: $url")
-                }
+                loadUrl(formUrl)
             }
+        }, modifier = Modifier.fillMaxSize()
+        )
 
-            val uri = Uri.parse(formUrl)
-            val updatedUrl = if (uri.getQueryParameter("numberOfPart").isNullOrEmpty()) {
-                "$formUrl&numberOfPart=$numberOfPart"
-            } else {
-                val newUri = uri.buildUpon()
-                    .appendQueryParameter("numberOfPart", numberOfPart.toString())
-                    .build()
-                newUri.toString()
-            }
-            Log.d("WebViewScreen", "Final URL passed to WebView: $updatedUrl")
-            loadUrl(updatedUrl)
+        IconButton(
+            onClick = {
+                val bookingIdsString = bookingIdsState.value
+                if (bookingIdsString.isNotEmpty()) {
+                    val bookingIdsList = bookingIdsString.split(",").mapNotNull { it.toLongOrNull() } // Convert back to List<Long>
+                    val creditErrorRequest = CreditErrorRequest(
+                        amount = BigDecimal.ZERO,
+                        bookingIds = bookingIdsList,
+                        buyerId = 0L,
+                        payFromAvoir = false,
+                        status = true,
+                        token = "",
+                        transactionId = 0L
+                    )
+                    coroutineScope.launch {
+                        Log.d("WebViewScreen", "Launching coroutine for ErrorCredit")
+                        errorCreditViewModel.ErrorCredit(creditErrorRequest)
+                        Log.d("WebViewScreen", "ErrorCredit API called")
+                    }
+                } else {
+                    Log.e("WebViewScreen", "Booking IDs are empty, not calling ErrorCredit")
+                }
+                isWebViewExpanded.value = false
+                navController.navigate("main_screen")
+            },
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp)
+                .background(Color.White, shape = CircleShape)
+        ) {
+            Icon(imageVector = Icons.Default.Close, contentDescription = "Close WebView", tint = Color.Black)
         }
-    })
+    }
+
+    // Observe the dataResult from the errorCreditViewModel
+    val errorDataResult by errorCreditViewModel.dataResult.observeAsState()
+    errorDataResult?.let { result ->
+        when (result) {
+            is DataResult.Loading -> {
+                Log.d("WebViewScreen", "Processing error credit request...")
+            }
+            is DataResult.Success -> {
+                Log.d("WebViewScreen", "Error credit processed successfully.")
+            }
+            is DataResult.Failure -> {
+                Log.e("WebViewScreen", "Error processing credit: ${result.exception}")
+            }
+        }
+    }
 
     dataResult?.let { result ->
         when (result) {
@@ -1064,19 +1240,35 @@ fun WebViewScreen(
                 navController.navigate("PaymentSuccessScreen")
             }
             is DataResult.Failure -> {
-
                 Log.e("WebViewScreen", "Error fetching payment details", result.exception)
             }
         }
     }
 }
 
+fun extractBookingIds(url: String): List<Long> {
+    val uri = Uri.parse(url)
 
+    // Try extracting from query parameters
+    val ids = uri.getQueryParameter("bookingIds")
+    if (!ids.isNullOrEmpty()) {
+        Log.d("extractBookingIds", "Extracting from query params: $ids")
+        return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
+    }
 
+    // Try extracting from URL path
+    val pathSegments = uri.pathSegments
+    Log.d("extractBookingIds", "Path segments: $pathSegments")
 
+    val fallbackId = pathSegments.find { it.toLongOrNull() != null }?.toLongOrNull()
+    if (fallbackId != null) {
+        Log.d("extractBookingIds", "Extracted from path: $fallbackId")
+        return listOf(fallbackId)
+    }
 
-
-
+    Log.e("extractBookingIds", "No booking IDs found")
+    return emptyList()
+}
 
 
 
@@ -1095,21 +1287,6 @@ fun extractNumberOfPart(url: String): Int {
     return numberOfPartRaw?.toIntOrNull() ?: 1
 }
 
-
-fun extractBookingIds(url: String): List<Long> {
-    val uri = Uri.parse(url)
-    val ids = uri.getQueryParameter("bookingIds")
-    if (ids != null) {
-        Log.d("extractBookingIds", "Raw bookingIds parameter: $ids")
-        return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
-    }
-
-    // Fallback: Extract ID from path
-    val pathSegments = uri.pathSegments
-    Log.d("extractBookingIds", "Path segments: $pathSegments")
-    val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
-    return if (fallbackId != null) listOf(fallbackId) else emptyList()
-}
 
 
 

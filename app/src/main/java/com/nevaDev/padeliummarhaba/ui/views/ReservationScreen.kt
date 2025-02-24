@@ -52,7 +52,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
 import com.nevaDev.padeliummarhaba.viewmodels.GetInitViewModel
@@ -68,6 +67,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.DayOfWeek
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -86,7 +86,6 @@ fun ReservationScreen(
     viewModel3: SearchListViewModel = hiltViewModel(),
     viewModel4: InitBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
-    sharedViewModel: SharedViewModel
 ) {
     var fetchJob by remember { mutableStateOf<Job?>(null) }
 
@@ -99,9 +98,10 @@ fun ReservationScreen(
     val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
 
     var hasCompletedFetch by remember { mutableStateOf(false) } // Flag to prevent repeated fetches
-    var hasFetchedInitBooking by remember { mutableStateOf(false) } // Flag for InitBooking
+    var hasFetchedInitBooking by remember { mutableStateOf(false) } // Flag for InitBooking   hasCalledInitBooking
     var hasFetchedGetBooking by remember { mutableStateOf(false) }
     var hasFetchedSearchList by remember { mutableStateOf(false) }
+    var hasCalledInitBooking by remember { mutableStateOf(false) }
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
 
@@ -127,20 +127,20 @@ fun ReservationScreen(
         when (result) {
             is DataResultBooking.Loading -> isLoading = true
             is DataResultBooking.Success -> {
-                if (!hasFetchedInitBooking) {
+                if (!hasFetchedInitBooking) { // ✅ Ensure it's only called once
                     reservationKey.value = result.data.key
                     isLoading = false
                     onFetchSuccess()
                     reservationKey.value?.let { key ->
-                        // Step 1: Call searchList and observe its result
-                        viewModel3.searchList(key)
-                        Log.d("Tagggg", "FETCH KEY 2")
+                        if (!hasFetchedSearchList) { // ✅ Ensure searchList is only called once
+                            viewModel3.searchList(key)
+                            hasFetchedSearchList = true
+                            Log.d("Tagggg", "FETCH KEY 2")
+                        }
                     }
                 }
             }
-            is DataResultBooking.Failure -> {
-                isLoading = false
-            }
+            is DataResultBooking.Failure -> isLoading = false
         }
     }
 
@@ -149,55 +149,52 @@ fun ReservationScreen(
         when (searchResult) {
             is DataResultBooking.Success -> {
                 reservationKey.value?.let { key ->
-                    if (!hasFetchedInitBooking) {
+                    if (!hasFetchedInitBooking) { // ✅ Ensure GetInit is only called once
                         viewModel2.GetInit(key)
                         Log.d("Tagggg", "FETCH TERRAIN 3********")
-                        hasFetchedInitBooking = true // Mark as completed
+                        hasFetchedInitBooking = true
                     }
                 }
             }
-            is DataResultBooking.Failure -> {
-                // Handle failure if needed
-            }
+            is DataResultBooking.Failure -> { /* Handle failure */ }
             else -> {}
         }
     }
 
     // Step 3: Observe GetInit results
+    // Step 3: Observe GetInit results
     viewModel2.dataResultBooking.observe(lifecycleOwner) { searchResult ->
         when (searchResult) {
             is DataResultBooking.Success -> {
-                if (!hasFetchedSearchList) {
-                    reservationKey.value?.let { key ->
-
+                reservationKey.value?.let { key ->
+                    if (!hasCalledInitBooking) { // ✅ Ensure InitBooking is only called once
                         val initBookingRequest = InitBookingRequest(key = key)
                         viewModel4.InitBooking(initBookingRequest)
                         Log.d("Tagggg", "FETCH DATA 4********")
+                        hasCalledInitBooking = true // ✅ Use separate flag
                     }
                 }
             }
-            is DataResultBooking.Failure -> {
-                // Handle failure if needed
-            }
+            is DataResultBooking.Failure -> { /* Handle failure */ }
             else -> {}
         }
     }
+
+
 
     // Step 4: Observe InitBooking results
     viewModel4.dataResult1.observe(lifecycleOwner) { initResult ->
         when (initResult) {
             is DataResult.Success -> {
-                if (!hasCompletedFetch) {
+                if (!hasCompletedFetch) { // ✅ Ensure getBooking is only called once
                     reservationKey.value?.let { key ->
                         getBookingViewModel.getBooking(key, selectedDate.value)
                         Log.d("Tagggg", "FETCH FULL DATA 5********")
-                        hasCompletedFetch = true // Mark as completed
+                        hasCompletedFetch = true
                     }
                 }
             }
-            is DataResult.Failure -> {
-                // Handle failure if needed
-            }
+            is DataResult.Failure -> { /* Handle failure */ }
             else -> {}
         }
     }
@@ -227,6 +224,8 @@ fun ReservationScreen(
 
         }
     }
+
+
 
 
 
@@ -282,7 +281,6 @@ fun ReservationScreen(
             selectedDate = selectedDate.value ,
             selectedTimeSlot = selectedTimeSlot.value,
             paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-            sharedViewModel = sharedViewModel,
 
         )
     }
@@ -462,7 +460,6 @@ fun ReservationSummary(
 
 
 
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DaySelectorWithArrows(
@@ -475,19 +472,11 @@ fun DaySelectorWithArrows(
 
     val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
     val finalSelectedDate = selectedDate ?: currentDate
-    val startDate = currentDate // Start from today
-    val daysInWeek = List(21) { startDate.plusDays(it.toLong()) }
-
+    val startOfWeek = finalSelectedDate.with(DayOfWeek.MONDAY) // Always start from Monday
+    val daysInWeek = List(7) { startOfWeek.plusDays(it.toLong()) }
 
     val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
     val listState = rememberLazyListState()
-
-    LaunchedEffect(finalSelectedDate) {
-        val selectedIndex = daysInWeek.indexOf(finalSelectedDate)
-        if (selectedIndex != -1) {
-            listState.animateScrollToItem(selectedIndex)
-        }
-    }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Month-Year Header
@@ -511,16 +500,15 @@ fun DaySelectorWithArrows(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = {
-                val newDate = finalSelectedDate.minusDays(1)
+                val newDate = finalSelectedDate.minusWeeks(1) // Go to previous week
                 onDateSelected(newDate)
             }) {
-                Icon(Icons.Default.ArrowBack, contentDescription = "Previous day", tint = Color.Gray)
+                Icon(Icons.Default.ArrowBack, contentDescription = "Previous week", tint = Color.Gray)
             }
 
             Row(
-                modifier = Modifier.clickable {
-                    onDateSelected(currentDate) // Set to current date explicitly
-                }
+                modifier = Modifier
+                    .clickable { onDateSelected(currentDate) }
                     .border(1.dp, Color.Gray, shape = RoundedCornerShape(8.dp))
                     .padding(vertical = 4.dp, horizontal = 12.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -542,29 +530,23 @@ fun DaySelectorWithArrows(
             }
 
             IconButton(onClick = {
-                val newDate = finalSelectedDate.plusDays(1)
+                val newDate = finalSelectedDate.plusWeeks(1) // Go to next week
                 onDateSelected(newDate)
             }) {
-                Icon(Icons.Default.ArrowForward, contentDescription = "Next day", tint = Color.Gray)
+                Icon(Icons.Default.ArrowForward, contentDescription = "Next week", tint = Color.Gray)
             }
         }
-        val scrollState = rememberScrollState()
 
-
-        // Days of the Week
+        // Days of the Week with Increased Spacing
         LazyRow(
             state = listState,
-            modifier = Modifier
-                .fillMaxWidth(),
-               // .padding(vertical = 8.dp, horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp) // Slightly less spacing
         ) {
             items(daysInWeek) { day ->
                 Column(
                     modifier = Modifier
-                        .clickable {
-                            onDateSelected(day)
-                        }
+                        .clickable { onDateSelected(day) }
                         .background(
                             color = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White,
                             shape = RoundedCornerShape(8.dp)
@@ -574,8 +556,8 @@ fun DaySelectorWithArrows(
                             color = Color.Gray,
                             shape = RoundedCornerShape(8.dp)
                         )
-                        .padding(vertical = 4.dp, horizontal = 4.dp)
-                        .width(40.dp), // Fixed width for each day
+                        .padding(vertical = 6.dp, horizontal = 6.dp) // Reduced padding
+                        .width(35.dp), // Reduced width
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
@@ -583,28 +565,28 @@ fun DaySelectorWithArrows(
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                        fontSize = 10.sp
+                        fontSize = 10.sp // Reduced font size
                     )
                     Text(
                         text = dateFormatter.format(day),
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
                         color = if (day == finalSelectedDate) Color.White else Color.Black,
-                        fontSize = 14.sp
+                        fontSize = 14.sp // Reduced font size
                     )
                     Text(
                         text = monthFormatter.format(day).uppercase(),
                         fontWeight = FontWeight.Normal,
                         textAlign = TextAlign.Center,
                         color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                        fontSize = 10.sp
+                        fontSize = 10.sp // Reduced font size
                     )
                 }
             }
-
         }
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewDaySelectorWithArrows() {

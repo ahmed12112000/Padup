@@ -82,25 +82,26 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
+
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        val sharedPreferences = getSharedPreferences("csrf_prefs", MODE_PRIVATE)
-        val sessionManager = SessionManager(this)
 
         setContent {
             PadeliumMarhabaTheme {
                 var showSplashScreen by remember { mutableStateOf(true) }
                 val navController = rememberNavController()
                 val viewModel: GetProfileViewModel = hiltViewModel()
-                val sharedViewModel: SharedViewModel = hiltViewModel()
                 val context = LocalContext.current
                 val sessionManager = remember { SessionManager(context) }
-                val isUserLoggedIn = sessionManager.isLoggedIn()
+                val sharedPreferences = remember { context.getSharedPreferences("csrf_prefs", MODE_PRIVATE) }
+
+                val isUserLoggedIn by remember { mutableStateOf(sessionManager.isLoggedIn()) }
+
+                // Delay splash screen
                 LaunchedEffect(Unit) {
-                    delay(300)
+                    delay(900)
                     showSplashScreen = false
                 }
 
@@ -109,67 +110,21 @@ class MainActivity : ComponentActivity() {
                 } else {
                     val onLogout: () -> Unit = {
                         sharedPreferences.edit().clear().apply()
-                        sessionManager.logout() // ✅ Clear token on logout
-                        sharedViewModel.setLoggedIn(false)
-
-                    }
-
-                    LaunchedEffect(isUserLoggedIn) {
-                        if (isUserLoggedIn) {
-                            delay(200) // Small delay to ensure state is updated
-                            sessionManager.updateLastActiveTime()
-                            navController.navigate("main_screen") {
-                                popUpTo("login_screen") { inclusive = true }
-                                launchSingleTop = true
-                            }
-                        }
-                    }
-
-                    val loginResultLauncher = rememberLauncherForActivityResult(
-                        contract = ActivityResultContracts.StartActivityForResult()
-                    ) { result ->
-                        if (result.resultCode == Activity.RESULT_OK) {
-                            val destinationRoute = result.data?.getStringExtra("navigate_back_to")
-                            if (destinationRoute != null) {
-                                sessionManager.updateLastActiveTime()
-                                navController.navigate(destinationRoute) {
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
-                    }
-                    val destinationRoute = intent.getStringExtra("destination_route")
-                    destinationRoute?.let {
-                        // Navigate to the route if it's provided
-                        navController.navigate(it) {
-                            launchSingleTop = true
+                        sessionManager.logout()
+                        navController.navigate("login") {
+                            popUpTo("home") { inclusive = true }
                         }
                     }
 
 
-                    val currentBackStackEntry by navController.currentBackStackEntryAsState()
-                    val currentRoute = currentBackStackEntry?.destination?.route
 
-                    val navigateToLogin: (String) -> Unit = { destinationRoute ->
-                        if (!sessionManager.isLoggedIn()) { // ✅ Ensure login only if not logged in
-                            val intent = Intent(context, LoginActivity::class.java).apply {
-                                putExtra("destination_route", destinationRoute)
-                            }
-                            loginResultLauncher.launch(intent)
-                        } else {
-                            navController.navigate(destinationRoute)
-                        }
-                    }
+                        MainApp(
+                            context = context,
+                            sharedPreferences = sharedPreferences,
+                            viewModel = viewModel,
+                            navController = navController,
+                        )
 
-
-                    MainApp(
-                        context = context,
-                        sharedPreferences = sharedPreferences,
-                        viewModel = viewModel,
-                        navigateToLogin = navigateToLogin,
-                        navController = navController,
-                    )
                 }
             }
         }
@@ -178,12 +133,12 @@ class MainActivity : ComponentActivity() {
 
 
 
+
 @Composable
 fun MainApp(
     context: Context,
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
-    navigateToLogin: (String) -> Unit,
     navController: NavHostController,
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -206,7 +161,6 @@ fun MainApp(
                 AnimatedBottomBar(
                     navController = navController,
                     getReservationViewModel = getReservationViewModel,
-                    navigateToLogin = navigateToLogin
                 )
             }
         },
@@ -222,7 +176,6 @@ fun MainApp(
                     drawerState = drawerState,
                     scope = scope,
                     onSignupSuccess = { sessionManager.updateLastActiveTime() },
-                    navigateToLogin = navigateToLogin
                 )
             }
         }
@@ -265,7 +218,7 @@ fun TopBar(
                         .fillMaxSize(0.6f)
                         .clip(CircleShape)
                         .clickable {
-                            navController.navigate("main_screen")
+                            navController.navigate("popup_credit")
                         }
                         .align(Alignment.CenterEnd)
 
@@ -460,7 +413,6 @@ fun AnimatedBottomBar(
     navController: NavController,
     getReservationViewModel: GetReservationViewModel,
     modifier: Modifier = Modifier,
-    navigateToLogin: (String) -> Unit,
 ) {
     val selectedItem by rememberUpdatedState(navController.currentBackStackEntry?.destination?.route)
     val reservationsData by getReservationViewModel.ReservationsData.observeAsState(DataResult.Loading)
@@ -496,8 +448,6 @@ fun AnimatedBottomBar(
                     label = item.label,
                     isSelected = selectedItem == item.route,
                     context = LocalContext.current,
-                    navigateToLogin = navigateToLogin ,
-                    isUserLoggedIn = isUserLoggedIn,
                 )
             }
         }
@@ -512,8 +462,6 @@ class AuthViewModel(context: Context) : ViewModel() {
         false
     )
 }
-
-
 @Composable
 fun CustomBottomNavItem(
     navController: NavController,
@@ -522,11 +470,9 @@ fun CustomBottomNavItem(
     label: String,
     isSelected: Boolean,
     context: Context,
-    navigateToLogin: (String) -> Unit,
-    isUserLoggedIn: Boolean, // ✅ Receive updated state dynamically
-
 ) {
-    val sessionManager = remember { SessionManager(context) }
+    val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Use Singleton
+    val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
     val animatedOffsetY by animateDpAsState(
         targetValue = if (isSelected) (-12).dp else 0.dp,
@@ -545,27 +491,22 @@ fun CustomBottomNavItem(
         targetValue = if (isSelected) Color(0xFF0054D8) else Color.White,
         animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
     )
+
     val textColor = if (isSelected) Color(0xFFD7F057) else Color.White
-    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen","main_screen","reservation_options")
+    val restrictedRoutes = listOf("Profile_screen","CreditPayment", "summary_screen")
 
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
-                Log.d("CustomBottomNavItem", "Clicked on $route, isUserLoggedIn: $isUserLoggedIn")
-
                 if (route in restrictedRoutes && !isUserLoggedIn) {
-                    Log.d("CustomBottomNavItem", "Redirecting to login for route: $route")
-                    navigateToLogin("login_screen?redirect=$route") // ✅ Pass the intended route
-                } else if (isUserLoggedIn) {
-                    Log.d("CustomBottomNavItem", "User already logged in, navigating to $route")
-                    navController.navigate(route) {
-                        launchSingleTop = true
-                        restoreState = true
-                        popUpTo("login_screen") { inclusive = false }
-
+                    // Pass the route as a query parameter
+                    navController.navigate("login_screen?destination=$route") {
+                        popUpTo("main_screen") { inclusive = false }
                     }
+                } else {
+                    navController.navigate(route)
                 }
             }
             .padding(10.dp)

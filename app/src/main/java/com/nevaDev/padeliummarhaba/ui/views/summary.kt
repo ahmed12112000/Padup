@@ -32,7 +32,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileByIdViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetStatusesViewModel
@@ -59,7 +58,6 @@ fun SummaryScreen(
     viewModel1: GetProfileByIdViewModel = hiltViewModel(),
     viewModel2: GetStatusesViewModel = hiltViewModel(),
     navController: NavController,
-    navigateToLogin: (String) -> Unit,
     ) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }

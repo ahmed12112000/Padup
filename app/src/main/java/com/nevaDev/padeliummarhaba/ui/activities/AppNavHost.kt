@@ -3,6 +3,7 @@ package com.nevaDev.padeliummarhaba.ui.activities
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.DrawerState
@@ -11,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -58,7 +60,6 @@ fun AppNavHost(
     sharedPreferences: SharedPreferences,
     drawerState: DrawerState,
     scope: CoroutineScope,
-    navigateToLogin: (String) -> Unit,
     ) {
     val currentRoute = navController.currentBackStackEntryAsState().value?.destination?.route
 
@@ -76,13 +77,54 @@ fun AppNavHost(
             startDestination  = "main_screen"
         ) {
             composable("Profile_screen") {
-                val sharedViewModel: SharedViewModel = hiltViewModel()
 
                 ProfileScreen(
                     navController = navController,
-                    navigateToLogin = navigateToLogin
                 )
             }
+
+            composable("popup_credit") { backStackEntry ->
+                var showPopup by remember { mutableStateOf(true) } // Manage popup visibility state
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val time = backStackEntry.arguments?.getString("time").orEmpty()
+                val price = backStackEntry.arguments?.getString("price").orEmpty()
+                // Retrieve necessary arguments (ensure they're passed properly when navigating)
+                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookingsJson") ?: ""
+                val selectedDate = LocalDate.parse(backStackEntry.arguments?.getString("selectedDate") ?: LocalDate.now().toString())
+                val bookingId = backStackEntry.arguments?.getString("bookingId")
+
+                if (showPopup) {
+                    PopupCredit(
+                        onPayClick = {
+                            showPopup = false
+                            navController.navigate("main_screen")
+                        },
+                        onCancelClick = {
+                            showPopup = false
+                            navController.popBackStack()
+                        },
+                        viewModel = hiltViewModel(), // GetProfileViewModel
+                        navController = navController,
+                        errorCreditViewModel = hiltViewModel(), // ErrorCreditViewModel
+                        onTotalAmountCalculated = { amount, currency ->
+                            Log.d("TotalAmount", "Total Amount Calculated: $amount $currency")
+                        },
+                        adjustedAmount = 0.0,
+                        totalExtrasCost = 0.0,
+                        showPopup = showPopup, // Pass visibility state
+                        onDismiss = { showPopup = false }, // Handle dismiss event
+                        mappedBookingsJson = mappedBookingsJson, // Pass mapped bookings data
+                        viewModel9 = hiltViewModel(), // SharedViewModel
+                        findTermsViewModel = hiltViewModel(), // FindTermsViewModel
+                        selectedDate = selectedDate, // Pass selected date
+                        selectedReservation = ReservationOption(name, time, price, mappedBookingsJson),
+                        saveBookingViewModel = hiltViewModel(),
+                        bookingId= bookingId
+                    )
+                }
+            }
+
+
             composable("signup_screen") {
                 SignUpScreen(
                     navController = navController,
@@ -90,16 +132,35 @@ fun AppNavHost(
                     viewModel = hiltViewModel()
                 )
             }
-            composable("login_screen") { backStackEntry ->
+/*
+            composable(
+                route = "login_screen?destination={destination}&name={name}&time={time}&price={price}&mappedBookings={mappedBookings}&selectedDate={selectedDate}",
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{price}/{mappedBookings}/{selectedDate}"
+                    }
+                ),
+                arguments = listOf(
+                    navArgument("destination") { type = NavType.StringType; nullable = true },
+                    navArgument("name") { type = NavType.StringType; nullable = true },
+                    navArgument("time") { type = NavType.StringType; nullable = true },
+                    navArgument("price") { type = NavType.StringType; nullable = true },
+                    navArgument("mappedBookings") { type = NavType.StringType; nullable = true },
+                    navArgument("selectedDate") { type = NavType.StringType; nullable = true }
+                )
+            ) { backStackEntry ->
+                val destination = backStackEntry.arguments?.getString("destination")?: "main_screen"
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val time = backStackEntry.arguments?.getString("time").orEmpty()
+                val price = backStackEntry.arguments?.getString("price").orEmpty()
+                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
+                val selectedDate = backStackEntry.arguments?.getString("selectedDate").orEmpty()
                 val viewModel: UserViewModel = hiltViewModel()
                 val getProfileViewModel: GetProfileViewModel = hiltViewModel()
-                val sharedViewModel: SharedViewModel = hiltViewModel()
-                val destinationRoute = backStackEntry.arguments?.getString("destination_route") ?: "main_screen"
 
                 LoginScreen(
                     onLoginSuccess = {
-                        onLoginSuccess()
-                        navController.navigate(destinationRoute) {
+                        navController.navigate(destination) {
                             popUpTo("login_screen") { inclusive = true }
                         }
                     },
@@ -107,10 +168,51 @@ fun AppNavHost(
                     getProfileViewModel = getProfileViewModel,
                     navController = navController,
                     loginRequest = LoginRequest("", ""),
-                    destinationRoute = destinationRoute,
-
                 )
             }
+
+ */
+
+
+            composable(
+                route = "login_screen?destination={destination}",
+                deepLinks = listOf(
+                    navDeepLink {
+                        uriPattern = "android-app://androidx.navigation/login_screen?destination={payment_section1}/{name}/{time}/{price}/{mappedBookings}/{selectedDate}"
+                    }
+                ),
+                arguments = listOf(
+                    navArgument("destination") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = "main_screen"
+                    }
+                )
+            ) { backStackEntry ->
+                val destination = backStackEntry.arguments?.getString("destination") ?: "main_screen"
+
+                val viewModel: UserViewModel = hiltViewModel()
+                val getProfileViewModel: GetProfileViewModel = hiltViewModel()
+                val sharedViewModel: SharedViewModel = hiltViewModel()
+
+                LoginScreen(
+                    onLoginSuccess = {
+                        navController.navigate(destination) {
+                            popUpTo("login_screen") { inclusive = true }
+                        }
+                    },
+                    viewModel = viewModel,
+                    getProfileViewModel = getProfileViewModel,
+                    navController = navController,
+                    loginRequest = LoginRequest("", ""),
+                )
+            }
+
+
+
+
+
+
 
             composable("reservation_options/{selectedDate}/{selectedTimeSlot}") { backStackEntry ->
                 val selectedDate = backStackEntry.arguments?.getString("selectedDate")?.let { LocalDate.parse(it) }
@@ -129,7 +231,6 @@ fun AppNavHost(
                     viewModel2 = hiltViewModel(),
                     bookingViewModel = hiltViewModel(),
                     paymentPayAvoirViewModel = hiltViewModel(),
-                    sharedViewModel = sharedViewModel,
 
                 )
             }
@@ -293,17 +394,16 @@ fun AppNavHost(
                     viewModel = viewModel,
                     getBookingViewModel = getBookingViewModel,
                     paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-                    sharedViewModel = sharedViewModel,
 
                 )
             }
 
 
             composable(
-                "payment_section1/{name}/{time}/{price}/{mappedBookings}",
+                "payment_section1/{name}/{time}/{price}/{mappedBookings}/{selectedDate}",
                 deepLinks = listOf(
                     navDeepLink {
-                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{price}/{mappedBookings}"
+                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{price}/{mappedBookings}/{selectedDate}"
                     }
                 ),
                 arguments = listOf(
@@ -312,6 +412,7 @@ fun AppNavHost(
                     //  navArgument("date") { type = NavType.StringType },
                     navArgument("price") { type = NavType.StringType },
                     navArgument("mappedBookings") { type = NavType.StringType },
+                    navArgument("selectedDate") { type = NavType.StringType } // Add selectedDate argument
 
                     )
             ) { backStackEntry ->
@@ -327,9 +428,16 @@ fun AppNavHost(
                 val type = object : TypeToken<List<GetBookingResponse>>() {}.type
                 val mappedBookings: List<GetBookingResponse> = Gson().fromJson(mappedBookingsJson, type)
                 val selectedParts = backStackEntry.arguments?.getInt("selectedParts") ?: 1
+                val selectedDateString = backStackEntry.arguments?.getString("selectedDate").orEmpty() // Get selectedDate
 
+                val selectedDate: LocalDate = try {
+                    LocalDate.parse(selectedDateString) // Adjust the format if necessary
+                } catch (e: Exception) {
+                    // Handle the exception (e.g., log it, show a message, etc.)
+                    LocalDate.now() // Fallback to current date or handle as needed
+                }
                 PaymentSection1(
-                    selectedDate = LocalDate.now(),
+                    selectedDate = selectedDate,
                     selectedReservation = ReservationOption(name, time, price, mappedBookingsJson),
                     onExtrasUpdate = { _, _, _ -> },
                     navController = navController,
@@ -340,7 +448,6 @@ fun AppNavHost(
                     onTotalAmountCalculated = { totalAmount, currency ->
                     },
                     viewModel9 = hiltViewModel(),
-                    navigateToLogin = navigateToLogin
                     )
             }
 
@@ -362,7 +469,6 @@ fun AppNavHost(
 
                 CreditPayment(
                     navController = navController,
-                    navigateToLogin = navigateToLogin
                 )
             }
 
@@ -371,7 +477,6 @@ fun AppNavHost(
 
                 SummaryScreen(
                     navController = navController,
-                    navigateToLogin = navigateToLogin
                 )
             }
 

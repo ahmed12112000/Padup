@@ -9,6 +9,7 @@ import com.padelium.domain.usecases.BalanceUseCase
 import com.padelium.domain.usecases.GetProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 
 
@@ -33,9 +34,22 @@ class BalanceViewModel @Inject constructor(
 
                 // Check if the profile was fetched successfully
                 val userId = profileResponse.id
-                // Now call Balance with the fetched id
-                balanceUseCase.Balance(userId).let {
-                    dataResult.value = it
+
+                // Fetch balance and update LiveData
+                when (val result = balanceUseCase.Balance(userId)) {
+                    is DataResult.Success -> {
+                        val balance = result.data as? BigDecimal ?: BigDecimal.ZERO
+                        Log.e("BalanceViewModel", "Fetched Balance: $balance")
+                        dataResult.value = DataResult.Success(balance) // Ensure data type consistency
+                    }
+                    is DataResult.Failure -> {
+                        Log.e("BalanceViewModel", "Error fetching balance: ${result.errorMessage}")
+                        dataResult.value = DataResult.Failure(result.exception, result.errorCode, result.errorMessage)
+                    }
+                    else -> {
+                        Log.e("BalanceViewModel", "Unexpected result")
+                        dataResult.value = DataResult.Failure(null, null, "Unexpected result")
+                    }
                 }
             } catch (ex: Exception) {
                 dataResult.value = DataResult.Failure(ex, null, ex.localizedMessage ?: "An error occurred")
@@ -43,6 +57,7 @@ class BalanceViewModel @Inject constructor(
         }
     }
 }
+
 
 
 

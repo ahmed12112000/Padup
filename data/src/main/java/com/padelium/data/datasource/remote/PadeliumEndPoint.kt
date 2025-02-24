@@ -1,6 +1,7 @@
 package com.padelium.data.datasource.remote
 
 import com.padelium.data.dto.ConfirmBookingRequestDTO
+import com.padelium.data.dto.CreditErrorRequestDTO
 import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.data.dto.ExtrasResponseDTO
 import com.padelium.data.dto.FetchKeyRequestDTO
@@ -192,7 +193,7 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
     @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("api/user-avoirs/balance/userId")
-    suspend fun Balance(@Body Id: Long): Response<BalanceResponse>
+    suspend fun Balance(@Body Id: Long): Response<BigDecimal>
 
     @Headers("Accept: application/json", "Content-Type: application/json")
     @POST("api/payment/user/avoir")
@@ -212,7 +213,7 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
     @Headers("Content-Type: application/json")
     @POST("api/establishments/search/confirm/booking")
-    suspend fun ConfirmBooking (@Body confirmBookingRequest: ConfirmBookingRequestDTO): Response<ConfirmBookingResponse>
+    suspend fun ConfirmBooking (@Body confirmBookingRequest: ConfirmBookingRequestDTO): Response<Boolean>
 
     @Headers("Content-Type: application/json")
     @POST("api/payment/get/user/avoir")
@@ -225,6 +226,10 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     @Headers("Content-Type: application/json","Content-Type: text/plain")
     @POST("api/account/withPhone")
     suspend fun UpdatePhone (@Body Phone:RequestBody): Response<Unit>
+
+    @Headers("Content-Type: application/json")
+    @POST("api/establishments/search/error/payement/booking")
+    suspend fun ErrorCredit (@Body creditErrorRequestDTO: CreditErrorRequestDTO): Response<Void>
 }
 
 // git remote add gitlab https://gitlab.com/nevadev/padelium-marhaba-android-app.git                api/account/withPhone

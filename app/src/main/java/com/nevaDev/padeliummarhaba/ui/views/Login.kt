@@ -34,9 +34,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.ui.activities.MainActivity
-import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.padelium.domain.dto.LoginRequest
@@ -53,7 +53,6 @@ fun LoginScreen(
     getProfileViewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
     loginRequest: LoginRequest,
-    destinationRoute: String,
 
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -69,7 +68,13 @@ fun LoginScreen(
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
     val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Initialize session manager
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
 
+    val destinationRoute = navController.currentBackStackEntry
+        ?.arguments
+        ?.getString("destination") ?: "main_screen"
+
+    Log.d("hammmmmmmmmmmmmmmmmma", "Navigating to $destinationRoute")
 
     viewModel.dataResult1.observe(lifecycleOwner) { result ->
         isLoading = false
@@ -79,19 +84,23 @@ fun LoginScreen(
                 result.data?.let { token ->
                     sessionManager.saveAuthToken(token.toString()) // Save token in session
                     getProfileViewModel.fetchProfileData()
-                    onLoginSuccess() // Trigger the login success callback
+                    Log.d("SessionToken", "Saved token: ${sessionManager.getAuthToken()}")
+                    onLoginSuccess()
 
-                    // Navigate to the destination route
+                    // ✅ Navigate to the intended destination instead of "main_screen"
                     navController.navigate(destinationRoute) {
                         popUpTo("login_screen") { inclusive = true }
                     }
+
                 }
             }
             is Resulta.Failure -> {
                 errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
             }
+            else -> Unit
         }
     }
+
 
     // Observe user role after login
     getProfileViewModel.hasUserRole.observe(lifecycleOwner) { hasRole ->
@@ -283,14 +292,16 @@ fun LoginScreen(
                     coroutineScope.launch {
                         isLoading = true
                         val updatedRequest = loginRequest.copy(username = email, password = password)
-                        val response = viewModel.loginUser (updatedRequest)
+                        val response = viewModel.loginUser(updatedRequest)
 
                         if (response is Resulta.Success) {
                             sessionManager.saveAuthToken(response.data.toString()) // Store token
                             errorMessage = null
-                            onLoginSuccess() // Trigger the login success callback
+                            onLoginSuccess()
 
-                            // Navigate to the destination route
+                            Log.d("LoginScreen", "Navigating to $destinationRoute after login")
+
+                            // Navigate dynamically to the intended route
                             navController.navigate(destinationRoute) {
                                 popUpTo("login_screen") { inclusive = true }
                             }

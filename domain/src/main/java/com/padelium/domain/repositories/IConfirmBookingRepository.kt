@@ -6,6 +6,6 @@ import retrofit2.Response
 
 
 interface IConfirmBookingRepository {
-    suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequest): Response<ConfirmBookingResponse>
+    suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequest): Response<Boolean>
 
 }

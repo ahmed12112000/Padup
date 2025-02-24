@@ -14,7 +14,7 @@ class ConfirmBookingRepositoryImp @Inject constructor(
     private val mapper: ConfirmBookingMapper,
 
     ) : IConfirmBookingRepository {
-    override suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequest): Response<ConfirmBookingResponse> {
+    override suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequest): Response<Boolean> {
         return api.ConfirmBooking(mapper.ConfirmBookingRequestToConfirmBookingRequestDTO(confirmBookingRequest))
     }
 

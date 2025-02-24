@@ -51,7 +51,6 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.CreditPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
 import com.nevadev.padeliummarhaba.R
@@ -67,7 +66,6 @@ fun CreditPayment(
     navController: NavController,
     viewModel: GetPacksViewModel = hiltViewModel(),
     viewModel2: CreditPayViewModel = hiltViewModel(),
-    navigateToLogin: (String) -> Unit,
 
 ) {
     val packsData by viewModel.packsData.observeAsState(DataResult.Loading)

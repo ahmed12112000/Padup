@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import com.padelium.data.dto.ConfirmBookingRequestDTO
+import com.padelium.data.dto.CreditErrorRequestDTO
 import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.data.dto.ExtrasResponseDTO
 import com.padelium.data.dto.FetchKeyRequestDTO
@@ -177,7 +178,7 @@ class PadeliumApi @Inject constructor(
         return endPoint.PaymentPayAvoir(amount)
     }
 
-    suspend fun Balance (Id: Long): Response<BalanceResponse> {
+    suspend fun Balance (Id: Long): Response<BigDecimal> {
         return endPoint.Balance(Id)
     }
 
@@ -219,7 +220,7 @@ class PadeliumApi @Inject constructor(
     }
 
 
-    suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequestDTO): Response<ConfirmBookingResponse> {
+    suspend fun ConfirmBooking (confirmBookingRequest: ConfirmBookingRequestDTO): Response<Boolean> {
         return endPoint.ConfirmBooking(confirmBookingRequest)
     }
 
@@ -234,6 +235,10 @@ class PadeliumApi @Inject constructor(
 
     suspend fun UpdatePhone (Phone:RequestBody): Response<Unit> {
         return endPoint.UpdatePhone(Phone)
+    }
+
+    suspend fun ErrorCredit (creditErrorRequestDTO: CreditErrorRequestDTO): Response<Void> {
+        return endPoint.ErrorCredit(creditErrorRequestDTO)
     }
 
 //    hamma2574@gmail.com     HibA98821607      IFindTermsRepository

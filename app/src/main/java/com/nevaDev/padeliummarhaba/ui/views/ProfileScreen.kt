@@ -57,7 +57,6 @@ fun ProfileScreen(
     viewModel2: ProfileViewModel = hiltViewModel(),
     viewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
-    navigateToLogin: (String) -> Unit,
     ) {
     var activated by remember { mutableStateOf(false) }
     var authorities by remember { mutableStateOf("") }
