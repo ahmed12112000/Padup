@@ -755,25 +755,16 @@ fun  PaymentSection1(
                                                                     paymentResponse?.formUrl
 
                                                                 if (!formUrl.isNullOrEmpty()) {
-                                                                    val encodedUrl =
-                                                                        Uri.encode(formUrl)
-                                                                    val userIdsString =
-                                                                        selectedPlayers.joinToString(
-                                                                            ","
-                                                                        ) // Convert the list to a comma-separated string
-                                                                    val encodedUserIds =
-                                                                        Uri.encode(userIdsString)
-                                                                    val SharedListString =
-                                                                        sharedExtras.joinToString(",")
-                                                                    val encodedSharedList =
-                                                                        Uri.encode(SharedListString) //  privateExtras
-                                                                    val PrivateListString =
-                                                                        privateExtras.joinToString(",")
-                                                                    val encodedPrivateList =
-                                                                        Uri.encode(PrivateListString)
-
+                                                                    val encodedUrl = Uri.encode(formUrl)
+                                                                    val userIdsString = selectedPlayers.joinToString(",")
+                                                                    val encodedUserIds = Uri.encode(userIdsString)
+                                                                    val SharedListString = sharedExtras.joinToString(",")
+                                                                    val encodedSharedList = Uri.encode(SharedListString)
+                                                                    val PrivateListString = privateExtras.joinToString(",")
+                                                                    val encodedPrivateList = Uri.encode(PrivateListString)
+                                                                    val encodedBookingId = Uri.encode(bookingId)
                                                                     val navigationRoute =
-                                                                        "WebViewScreen?paymentUrl=$encodedUrl&numberOfPart=$currentSelectedParts&userIds=$encodedUserIds&sharedList=$encodedSharedList&privateList=$encodedPrivateList"
+                                                                        "WebViewScreen?paymentUrl=$encodedUrl&numberOfPart=$currentSelectedParts&userIds=$encodedUserIds&sharedList=$encodedSharedList&privateList=$encodedPrivateList&bookingId=$encodedBookingId"
                                                                     Log.d(
                                                                         "NavigationDebug",
                                                                         "Navigating to: $navigationRoute"
@@ -1089,6 +1080,7 @@ fun WebViewScreen(
     userIds: String,
     sharedList: String,
     privateList: String,
+    bookingIds: String
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1102,9 +1094,11 @@ fun WebViewScreen(
     val lastLoadedUrl = remember { mutableStateOf(formUrl) }
     val bookingIdsState = remember { mutableStateOf("") } // Mutable state for booking IDs
     val errorCreditViewModel: ErrorCreditViewModel = hiltViewModel()
+    val bookingIdsList = bookingIds.split(",").mapNotNull { it.toLongOrNull() }
 
     Log.d("WebViewScreen", "Selected Parts: $numberOfPart")
     Log.d("WebViewScreen", "Extracted userIds: $userIdsList")
+    Log.e("Faaaaaaaaaaaaaaaaaaaaaaaaa", "Selected Parts: $bookingIdsList")
 
     Box(
         modifier = Modifier
@@ -1131,19 +1125,24 @@ fun WebViewScreen(
 
                     override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
                         val url = request.url.toString()
-                        lastLoadedUrl.value = url
                         Log.d("WebViewScreen", "Loading URL: $url")
+
+                        val originalUri = Uri.parse(formUrl)
+                        val numberOfPartValue = originalUri.getQueryParameter("numberOfPart") ?: numberOfPart.toString()
+
+                        val newUri = Uri.parse(url).buildUpon()
+                            .appendQueryParameter("numberOfPart", numberOfPartValue)
+                            .build()
+                        Log.d("WebViewScreen", "New URL: ${newUri}")
 
                         val orderId = extractOrderId(url)
                         val bookingIds = extractBookingIds(url)
-                        bookingIdsState.value = bookingIds.joinToString(",") // Convert List<Long> to String
-                        val numberOfPartValueNew = extractNumberOfPart(url)
-                        Log.d("WebViewScreen", "Extracted Booking IDs: $bookingIds")  // Log extracted IDs
+                        val numberOfPartValueNew = extractNumberOfPart(newUri.toString())
 
                         if (orderId.isNotEmpty()) {
                             val request = GetPaymentRequest(
                                 bookingIds = bookingIds,
-                                couponIds = extractCouponIds(url),
+                                couponIds = extractCouponIds(newUri.toString()),
                                 numberOfPart = numberOfPartValueNew,
                                 orderId = orderId,
                                 privateExtrasIds = privateListIds,
@@ -1166,7 +1165,7 @@ fun WebViewScreen(
                             Log.e("WebViewScreen", "Order ID not found in URL")
                         }
 
-                        view?.loadUrl(url)
+                        view?.loadUrl(newUri.toString())
                         return true
                     }
 
@@ -1176,32 +1175,34 @@ fun WebViewScreen(
                     }
                 }
 
-                loadUrl(formUrl)
+                val uri = Uri.parse(formUrl)
+                val updatedUrl = if (uri.getQueryParameter("numberOfPart").isNullOrEmpty()) {
+                    "$formUrl&numberOfPart=$numberOfPart"
+                } else {
+                    val newUri = uri.buildUpon()
+                        .appendQueryParameter("numberOfPart", numberOfPart.toString())
+                        .build()
+                    newUri.toString()
+                }
+                Log.d("WebViewScreen", "Final URL passed to WebView: $updatedUrl")
+                loadUrl(updatedUrl)
             }
         }, modifier = Modifier.fillMaxSize()
         )
 
         IconButton(
             onClick = {
-                val bookingIdsString = bookingIdsState.value
-                if (bookingIdsString.isNotEmpty()) {
-                    val bookingIdsList = bookingIdsString.split(",").mapNotNull { it.toLongOrNull() } // Convert back to List<Long>
-                    val creditErrorRequest = CreditErrorRequest(
-                        amount = BigDecimal.ZERO,
-                        bookingIds = bookingIdsList,
-                        buyerId = 0L,
-                        payFromAvoir = false,
-                        status = true,
-                        token = "",
-                        transactionId = 0L
-                    )
-                    coroutineScope.launch {
-                        Log.d("WebViewScreen", "Launching coroutine for ErrorCredit")
-                        errorCreditViewModel.ErrorCredit(creditErrorRequest)
-                        Log.d("WebViewScreen", "ErrorCredit API called")
-                    }
-                } else {
-                    Log.e("WebViewScreen", "Booking IDs are empty, not calling ErrorCredit")
+                val creditErrorRequest = CreditErrorRequest(
+                    amount = BigDecimal.ZERO,
+                    bookingIds = bookingIdsList,
+                    buyerId = 0L,
+                    payFromAvoir = false,
+                    status = true,
+                    token = "",
+                    transactionId = 0L
+                )
+                coroutineScope.launch {
+                    errorCreditViewModel.ErrorCredit(creditErrorRequest)
                 }
                 isWebViewExpanded.value = false
                 navController.navigate("main_screen")
@@ -1246,28 +1247,20 @@ fun WebViewScreen(
     }
 }
 
+
 fun extractBookingIds(url: String): List<Long> {
     val uri = Uri.parse(url)
-
-    // Try extracting from query parameters
     val ids = uri.getQueryParameter("bookingIds")
-    if (!ids.isNullOrEmpty()) {
-        Log.d("extractBookingIds", "Extracting from query params: $ids")
+    if (ids != null) {
+        Log.d("extractBookingIds", "Raw bookingIds parameter: $ids")
         return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
     }
 
-    // Try extracting from URL path
+    // Fallback: Extract ID from path
     val pathSegments = uri.pathSegments
     Log.d("extractBookingIds", "Path segments: $pathSegments")
-
-    val fallbackId = pathSegments.find { it.toLongOrNull() != null }?.toLongOrNull()
-    if (fallbackId != null) {
-        Log.d("extractBookingIds", "Extracted from path: $fallbackId")
-        return listOf(fallbackId)
-    }
-
-    Log.e("extractBookingIds", "No booking IDs found")
-    return emptyList()
+    val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
+    return if (fallbackId != null) listOf(fallbackId) else emptyList()
 }
 
 

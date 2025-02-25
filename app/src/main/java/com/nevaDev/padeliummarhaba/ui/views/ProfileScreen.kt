@@ -241,11 +241,11 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.Center
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
 
@@ -271,11 +271,11 @@ fun ProfileScreen(
                     viewModel2.Profile(accountJson, profileImageUri)
                 },
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color.White,
-                    contentColor = Color(0xFF0066CC)
+                    backgroundColor = Color(0xFF0066CC),
+                    contentColor = Color.White
                 ),
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth(0.9f)
                     .padding(horizontal = 8.dp)
             ) {
                 Text(
@@ -292,9 +292,36 @@ fun ProfileScreen(
                 viewModel.fetchProfileData()
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    sessionManager.logout() // Clears session and token
+                    navController.navigate("main_screen") {
+                        popUpTo("profile") { inclusive = true } // Clears back stack
+                    }
 
 
-            Spacer(modifier = Modifier.width(8.dp))
+                },
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color(0xFF0066CC),
+                    contentColor = Color.White
+                ),
+                modifier = Modifier
+                    .fillMaxWidth(0.6f)
+                    //.padding(horizontal = 16.dp)
+            ) {
+                Text(
+                    text = "Se déconnecter",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center
+                )
+            }
+
         }
     }
 }

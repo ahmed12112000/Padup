@@ -294,13 +294,14 @@ fun AppNavHost(
 
 
             composable(
-                route = "WebViewScreen?paymentUrl={paymentUrl}&numberOfPart={numberOfPart}&userIds={userIds}&sharedList={sharedList}&privateList={privateList}",
+                route = "WebViewScreen?paymentUrl={paymentUrl}&numberOfPart={numberOfPart}&userIds={userIds}&sharedList={sharedList}&privateList={privateList}&bookingId={bookingId}",
                 arguments = listOf(
                     navArgument("paymentUrl") { type = NavType.StringType },
                     navArgument("numberOfPart") { type = NavType.IntType; defaultValue = 1 },
                     navArgument("userIds") { type = NavType.StringType; defaultValue = "" },
                     navArgument("sharedList") { type = NavType.StringType; defaultValue = "" },
-                    navArgument("privateList") { type = NavType.StringType; defaultValue = "" }
+                    navArgument("privateList") { type = NavType.StringType; defaultValue = "" },
+                    navArgument("bookingId") { type = NavType.StringType; defaultValue = "" },
 
                 )
             ) { backStackEntry ->
@@ -312,6 +313,7 @@ fun AppNavHost(
                 val encodedUserIds = backStackEntry.arguments?.getString("userIds").orEmpty()
                 val encodedSharedList = backStackEntry.arguments?.getString("sharedList").orEmpty()
                 val encodedPrivateList = backStackEntry.arguments?.getString("privateList").orEmpty()
+                val encodedbookingId = backStackEntry.arguments?.getString("bookingId").orEmpty()
 
                 WebViewScreen(
                     formUrl = paymentUrl,
@@ -322,7 +324,8 @@ fun AppNavHost(
                     numberOfPart = numberOfPart,
                     userIds = encodedUserIds,
                     sharedList = encodedSharedList,
-                    privateList = encodedPrivateList
+                    privateList = encodedPrivateList,
+                    bookingIds = encodedbookingId
                 )
             }
 

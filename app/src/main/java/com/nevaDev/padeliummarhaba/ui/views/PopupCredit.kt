@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -220,9 +221,9 @@ fun PopupCredit(
 
     Dialog(
         onDismissRequest = {
-           if (creditErrorRequest != null) {
-               errorCreditViewModel.ErrorCredit(creditErrorRequest)
-           }
+            if (creditErrorRequest != null) {
+                errorCreditViewModel.ErrorCredit(creditErrorRequest)
+            }
             onDismiss()
         },
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -231,24 +232,23 @@ fun PopupCredit(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.BottomCenter // Align popup from bottom
         ) {
             Card(
                 modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .wrapContentHeight()
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.65f) // Take half the screen
                     .padding(16.dp)
                     .animateContentSize(),
-                shape = RoundedCornerShape(12.dp),
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp), // Rounded top corners
                 elevation = 8.dp
             ) {
                 Column(
                     modifier = Modifier
                         .padding(16.dp)
-                        .fillMaxWidth(),
+                        .fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // **Close Icon (Top-Right Corner)**
                     Box(
                         modifier = Modifier.fillMaxWidth(),
                         contentAlignment = Alignment.TopEnd
@@ -458,9 +458,10 @@ fun PopupCredit(
                             .fillMaxWidth()
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        enabled = totalAmountSelected <= balance.toDouble()
                     ) {
-                        Text(text = "Payer:  $totalAmountSelected Crédits", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                        Text(text = "Payer:  $totalAmountSelected Crédits", fontSize = 18.sp, fontWeight = FontWeight.Bold,color = Color.White)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -473,7 +474,12 @@ fun PopupCredit(
                         },
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(text = "Annuler et retourner à la page de recherche", color = Color.Red)
+                        Text(
+                            text = "Annuler et retourner à la page de recherche",
+                            color = Color(0xFF0054D8),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 12.sp,
+                        )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
 
@@ -492,8 +498,9 @@ fun PopupCredit(
                             Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
                             Text(
                                 text = "Le paiement par compte Padelium est géré par la société DevoPro",
-                                fontSize = 12.sp,
-                                color = Color.Gray
+                                fontSize = 10.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
 
@@ -511,8 +518,9 @@ fun PopupCredit(
                             Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
                             Text(
                                 text = "Ce mode de paiement n'engendre pas de frais supplémentaires",
-                                fontSize = 12.sp,
-                                color = Color.Gray
+                                fontSize = 10.sp,
+                                color = Color.Gray,
+                                fontWeight = FontWeight.Bold,
                             )
                         }
                     }

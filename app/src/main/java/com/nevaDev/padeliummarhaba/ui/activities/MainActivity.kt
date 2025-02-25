@@ -1,21 +1,18 @@
 package com.nevaDev.padeliummarhaba.ui.activities
 
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
 import android.content.SharedPreferences
 import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -45,7 +42,6 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.*
-import androidx.compose.material.BottomNavigation
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CreditCard
 import androidx.compose.material.icons.filled.Person
@@ -70,17 +66,22 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.padelium.domain.dataresult.DataResult
-import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.navigation.compose.currentBackStackEntryAsState
-import com.nevaDev.padeliummarhaba.ui.views.LoginScreen
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import androidx.compose.foundation.Canvas
+import androidx.compose.material.*
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.DrawerValue
+import androidx.compose.ui.graphics.Path
+import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.unit.Dp
 
 
 @AndroidEntryPoint
@@ -408,6 +409,9 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 
 
 
+
+
+
 @Composable
 fun AnimatedBottomBar(
     navController: NavController,
@@ -419,40 +423,56 @@ fun AnimatedBottomBar(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
+    val selectedItemOffset = remember { mutableStateOf(0.dp) }
+
+    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen", "reservation_options")
 
 
-    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen","reservation_options")
 
+
+    // Bottom Navigation with Animated Items
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(90.dp)
+            .offset(y = 10.dp)
+            .background(
+                color = Color(0xFF0054D8), // Set the blue background color
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp) // Apply rounded corners to the top
+            ),
+        horizontalArrangement = Arrangement.SpaceAround,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        listOf(
+            NavItem("main_screen", Icons.Filled.Home, "Accueil"),
+            NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
+            NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits"),
+            NavItem("Profile_screen", Icons.Filled.Person, "Profil")
+        ).forEach { item ->
+            if (selectedItem == item.route) {
+                selectedItemOffset.value = (-30).dp // Set the offset for the selected item
+            }
+
+            CustomBottomNavItem(
+                navController = navController,
+                route = item.route,
+                icon = item.icon,
+                label = item.label,
+                isSelected = selectedItem == item.route,
+                context = context,
+                backgroundOffset = if (selectedItem == item.route) (-20).dp else 0.dp // Pass the offset
+            )
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp))
-            .background(Color(0xFF0054D8))
-    ) {
-        BottomNavigation(
-            backgroundColor = Color(0xFF0054D8),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(80.dp)
-        ) {
-            listOf(
-                NavItem("main_screen", Icons.Filled.Home, "Accueil"),
-                NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
-                NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits"),
-                NavItem("Profile_screen", Icons.Filled.Person, "Profil")
-            ).forEach { item ->
-                CustomBottomNavItem(
-                    navController = navController,
-                    route = item.route,
-                    icon = item.icon,
-                    label = item.label,
-                    isSelected = selectedItem == item.route,
-                    context = LocalContext.current,
-                )
-            }
-        }
-    }
+            .height(90.dp)
+            .offset(y = selectedItemOffset.value) // Apply the offset to the background
+        //  .background(Color(0xFF0054D8))
+    )
 }
+
 
 class AuthViewModel(context: Context) : ViewModel() {
     private val sessionManager = SessionManager(context)
@@ -470,12 +490,23 @@ fun CustomBottomNavItem(
     label: String,
     isSelected: Boolean,
     context: Context,
+    backgroundOffset: Dp // New parameter for background offset
 ) {
-    val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Use Singleton
+    val sessionManager = remember { SessionManager.getInstance(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
+    // Animation for icon size and background size
+    val animatedScale by animateFloatAsState(
+        targetValue = if (isSelected) 1.2f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        )
+    )
+
+    // Animation for vertical offset
     val animatedOffsetY by animateDpAsState(
-        targetValue = if (isSelected) (-12).dp else 0.dp,
+        targetValue = if (isSelected) (-20).dp else 0.dp, // Increased offset
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessLow
@@ -487,13 +518,18 @@ fun CustomBottomNavItem(
         animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
     )
 
-    val contentColor by animateColorAsState(
+    // Change icon and label color when selected
+    val iconColor by animateColorAsState(
         targetValue = if (isSelected) Color(0xFF0054D8) else Color.White,
         animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
     )
 
-    val textColor = if (isSelected) Color(0xFFD7F057) else Color.White
-    val restrictedRoutes = listOf("Profile_screen","CreditPayment", "summary_screen")
+    val textColor by animateColorAsState(
+        targetValue = if (isSelected) Color(0xFFD7F057) else Color.White,
+        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
+    )
+
+    val restrictedRoutes = listOf("Profile_screen", "CreditPayment", "summary_screen")
 
     Box(
         contentAlignment = Alignment.Center,
@@ -501,7 +537,6 @@ fun CustomBottomNavItem(
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
                 if (route in restrictedRoutes && !isUserLoggedIn) {
-                    // Pass the route as a query parameter
                     navController.navigate("login_screen?destination=$route") {
                         popUpTo("main_screen") { inclusive = false }
                     }
@@ -510,34 +545,48 @@ fun CustomBottomNavItem(
                 }
             }
             .padding(10.dp)
-
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
             modifier = Modifier
-                .height(60.dp)
-                .offset(y = animatedOffsetY)
+                .height(80.dp)
+                .offset(y = animatedOffsetY) // Apply vertical offset
+                .scale(animatedScale) // Scale the entire column
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = contentColor,
+            // Icon in a circular background
+            Box(
                 modifier = Modifier
-                    .size(27.dp)
+                    .size(50.dp) // Set a fixed size for the background
                     .clip(CircleShape)
                     .background(backgroundColor)
-            )
-            Spacer(modifier = Modifier.height(4.dp))
+                    .scale(animatedScale) // Scale the background as well
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = iconColor, // Apply the icon color change when selected
+                    modifier = Modifier
+                        .size(27.dp)
+                        .align(Alignment.Center) // Center the icon in the box
+                )
+            }
+
+        //    Spacer(modifier = Modifier.height(12.dp)) // Increased space between the icon and the label
+
+            // Ensure the label is below the icon
             Text(
                 text = label,
-                color = textColor,
+                color = textColor, // Apply the text color change when selected
                 fontSize = 10.sp,
-                fontWeight = FontWeight.Normal
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.align(Alignment.CenterHorizontally) // Ensure label is centered below the icon
             )
         }
     }
 }
+
+
 
 
 data class NavItem(val route: String, val icon: ImageVector, val label: String)
