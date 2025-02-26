@@ -73,7 +73,7 @@ class GetBookingMapper @Inject constructor() {
                 orderId = response.orderId ?: 0L,
                 plannings = response.plannings ?: emptyList(),
                 users = response.users ?: emptyList(),
-                isClient = response.isClient ?: true,
+                client = true ,
                 secondReduction = response.secondReduction ?: 0,
                 aamount = response.aamount ?: BigDecimal.ZERO,
                 EstablishmentPictureDTO = response.EstablishmentPictureDTO ?: emptyList(),

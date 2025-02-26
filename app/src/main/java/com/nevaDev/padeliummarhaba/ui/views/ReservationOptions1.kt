@@ -94,12 +94,14 @@ fun TimeSlotSelector(
     onTimeSlotSelected: (String) -> Unit,
     selectedTimeSlot: String?
 ) {
-    val uniqueTimeSlots = timeSlots.distinctBy { it.time }
+    val uniqueTimeSlots = timeSlots
+        .distinctBy { it.time }
+        .sortedBy { it.time }
+
     val firstTimeSlot = uniqueTimeSlots.firstOrNull()?.time?.format(DateTimeFormatter.ofPattern("H:mm"))
 
     val selectedTime = remember { mutableStateOf(selectedTimeSlot ?: firstTimeSlot) }
 
-    // Ensure the first time slot is selected by default
     LaunchedEffect(firstTimeSlot) {
         firstTimeSlot?.let {
             onTimeSlotSelected(it)
@@ -153,6 +155,7 @@ fun TimeSlotSelector(
 
 
 
+
 @Composable
 fun ReservationOptions(
     onReservationSelected: (ReservationOption) -> Unit,
@@ -189,7 +192,7 @@ fun ReservationOptions(
         is DataResultBooking.Loading -> LoadingState()
         is DataResultBooking.Success -> SuccessState(
             establishmentsList = result.data,
-            filteredTimeSlots = filteredTimeSlots.distinctBy { it.time }, // Ensure uniqueness
+            filteredTimeSlots = filteredTimeSlots.distinctBy { it.time },
             isUserLoggedIn = isUserLoggedIn,
             navController = navController,
             bookingViewModel = bookingViewModel,
@@ -207,7 +210,6 @@ fun ReservationOptions(
     }
 
     if (showLoginPopup) {
-        // Handle login popup logic
     }
 
     errorMessage?.let {
@@ -242,7 +244,6 @@ fun SuccessState(
         .fillMaxSize()
         .offset(y=280.dp)
     ) {
-        // Display TimeSlotSelector with deduplicated filteredTimeSlots
         TimeSlotSelector(
             timeSlots = filteredTimeSlots,
             onTimeSlotSelected = onTimeSlotSelected,
@@ -285,10 +286,9 @@ private fun EstablishmentCard(
     selectedDate: LocalDate
 ) {
     val context = LocalContext.current
-    val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Use Singleton
+    val sessionManager = remember { SessionManager.getInstance(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
-    // Filter plannings by the selected time slot
     val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
         planning.fromStr == selectedTimeSlot
     }
@@ -305,9 +305,8 @@ private fun EstablishmentCard(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp) // Reduced padding
+                .padding(vertical = 4.dp)
                 .clickable {
-                    // Pass the login state to handleCardClick
                         handleCardClick(
                             selectedBooking = getBookingResponseDTO,
                             planning = planning,
@@ -323,37 +322,13 @@ private fun EstablishmentCard(
                             isUserLoggedIn = isUserLoggedIn
                         )
                 },
-            shape = RoundedCornerShape(10.dp), // Slightly smaller radius
+            shape = RoundedCornerShape(10.dp),
             border = BorderStroke(1.dp, Color.Gray),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
             EstablishmentCardContent(getBookingResponseDTO, planning)
         }
     }
-
-
-
-    /*
-    if (showLoginPopup) {
-        Dialog(onDismissRequest = { showLoginPopup = false }) {
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = Color.White,
-                modifier = Modifier.padding(16.dp)
-            ) {
-                LoginScreen(
-                    onLoginSuccess = {
-                        showLoginPopup = false // Hide the popup on successful login
-                        bookingViewModel.updateLoginState(true) // Update the login state
-                    },
-                    navController = navController,
-                    loginRequest = LoginRequest(username = "", password = "") // Initialize with empty values or your logic
-                )
-            }
-        }
-    }
-
-     */
 }
 
 
@@ -363,36 +338,36 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(6.dp), // Reduced padding for more compact layout
+            .padding(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
             painter = painterResource(id = R.drawable.logopadelium),
             contentDescription = "Establishment Icon",
             modifier = Modifier
-                .size(48.dp) // Smaller icon size
+                .size(48.dp)
                 .background(Color(0xFF0054D8), shape = CircleShape)
-                .padding(4.dp), // Reduced padding
+                .padding(4.dp),
             tint = Color.Unspecified
         )
 
-        Spacer(modifier = Modifier.width(12.dp)) // Reduced space between icon and text
+        Spacer(modifier = Modifier.width(12.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = getBookingResponseDTO.establishmentDTO?.name ?: "Unknown",
                 fontWeight = FontWeight.Bold,
-                fontSize = 14.sp, // Smaller font size
+                fontSize = 14.sp,
                 color = Color.Black
             )
             Text(
                 text = "${planning.fromStr} - ${planning.toStr}",
-                fontSize = 12.sp, // Smaller font size
+                fontSize = 12.sp,
                 color = Color.Gray
             )
             Text(
                 text = "90 min",
-                fontSize = 12.sp, // Smaller font size
+                fontSize = 12.sp,
                 color = Color.Gray
             )
         }
@@ -409,7 +384,7 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
                     Text(
                         text = "${String.format("%.2f", amountToShow)} DT",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp, // Smaller font size
+                        fontSize = 14.sp,
                         color = Color(0xFF0054D8),
                         textAlign = TextAlign.Center
                     )
@@ -430,15 +405,15 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
                 Text(
                     text = "${String.format("%.2f", planning.reductionPrice)} DT",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp, // Smaller font size
-                    color = Color.Red, // Discounted price in Red
+                    fontSize = 14.sp,
+                    color = Color.Red,
                     textAlign = TextAlign.Center
                 )
             } else {
                 Text(
                     text = "${String.format("%.2f", amountToShow)} DT",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 14.sp, // Smaller font size
+                    fontSize = 14.sp,
                     color = Color(0xFF0054D8),
                     textAlign = TextAlign.Center
                 )
@@ -465,7 +440,7 @@ fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     amountToShow: BigDecimal,
     context: Context,
     selectedDate: LocalDate,
-    isUserLoggedIn: Boolean // ✅ Check login state
+    isUserLoggedIn: Boolean
 ) {
     val currencySymbol = selectedBooking.currencySymbol ?: "€"
     val formattedAmount = String.format("%.2f", amountToShow)
@@ -494,10 +469,8 @@ fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     if (!isUserLoggedIn) {
         Log.d("handleCardClick", "User is NOT logged in. Navigating to login screen.")
 
-        // Save reservation details before navigating to login
         onReservationSelected(reservationOption)
 
-        // Navigate to login screen and pass the intended destination
         navController.navigate(
             "login_screen?destination=${Uri.encode(destinationUrl)}"
         ) {
@@ -506,9 +479,8 @@ fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     } else {
         Log.d("handleCardClick", "User is logged in. Navigating directly to payment section.")
 
-        // Navigate to `payment_section1` directly
         navController.navigate(destinationUrl) {
-            popUpTo("main_screen") { inclusive = false } // Ensure login screen is not in the back stack
+            popUpTo("main_screen") { inclusive = false }
         }
     }
 }

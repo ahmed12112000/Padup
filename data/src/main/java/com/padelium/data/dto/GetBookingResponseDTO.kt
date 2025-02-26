@@ -86,7 +86,7 @@ data class GetBookingResponseDTO(
 
     @SerializedName("userIds") val userIds: List<Long?>,
 
-    @SerializedName("isClient") val isClient: Boolean = true,
+    @SerializedName("client") val client: Boolean = true,
     @SerializedName("secondReduction") val secondReduction: Int?,
     @SerializedName("aamount") val aamount: BigDecimal?,
     @SerializedName("EstablishmentPictureDTO") val EstablishmentPictureDTO: List<EstablishmentPictureDTO>

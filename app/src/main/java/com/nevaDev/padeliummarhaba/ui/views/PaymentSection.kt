@@ -181,7 +181,7 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             amount = dto.amount ?: BigDecimal.ZERO,
             amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
             bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptyList(),
-            isClient = dto.isClient ?: true,
+            client = true ,
             closeTime = dto.closeTime?.toString() ?: Instant.now().toString(),
 
             couponCode = dto.couponCode ?: "",
@@ -253,12 +253,10 @@ fun  PaymentSection1(
     viewModel9: SharedViewModel,
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
-    viewModel3: GetProfileViewModel = hiltViewModel(),
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
-    val profileData by viewModel3.profileData.observeAsState(DataResult.Loading)
     Log.e("BBBBBBBBBBBBBDateeeeeeee", "Failed to save booking: ${selectedDate}")
 
     // var selectedParts by remember { mutableStateOf("1") }
@@ -326,30 +324,7 @@ fun  PaymentSection1(
     }
 
 
-    // Map the DTOs to domain objects
-    val dataResult by viewModel.dataResult.observeAsState()
-    LaunchedEffect(Unit) {
-        viewModel3.fetchProfileData()
-    }
-    when (val result = profileData) {
-        is DataResult.Success -> {
-            // Extract profile data into variables
-            val profile = result.data as? GetProfileResponse
-            if (profile != null && !firstName.isNotEmpty()) {
-                firstName = profile.firstName
-                lastName = profile.lastName
-                phoneNumber = profile.phone
-            } else {
-                androidx.compose.material.Text(text = "")
-            }
-        }
-        is DataResult.Loading -> {
-            // androidx.compose.material.Text(text = "Loading profile data...")
-        }
-        is DataResult.Failure -> {
-            // androidx.compose.material.Text(text = "Error: ${result.errorMessage}")
-        }
-    }
+
 
 
 
@@ -605,7 +580,7 @@ fun  PaymentSection1(
                 Button(
                     onClick = {
 
-                        isLoading = true
+                        if (isLoading) return@Button // Prevent clicking while processing
                         Log.d(
                             "OLFA",
                             "Selected Players before extracting IDs: ${selectedPlayers.joinToString { "ID=${it}" }}"
@@ -745,14 +720,10 @@ fun  PaymentSection1(
                                                             }
 
                                                             is DataResult.Success -> {
-                                                                Log.d(
-                                                                    "Payment",
-                                                                    "Payment processed successfully!"
-                                                                )
-                                                                val paymentResponse =
-                                                                    paymentResult.data as? PaymentResponse
-                                                                val formUrl =
-                                                                    paymentResponse?.formUrl
+                                                                isLoading = false
+
+                                                                val paymentResponse = paymentResult.data as? PaymentResponse
+                                                                val formUrl = paymentResponse?.formUrl
 
                                                                 if (!formUrl.isNullOrEmpty()) {
                                                                     val encodedUrl = Uri.encode(formUrl)
@@ -765,31 +736,24 @@ fun  PaymentSection1(
                                                                     val encodedBookingId = Uri.encode(bookingId)
                                                                     val navigationRoute =
                                                                         "WebViewScreen?paymentUrl=$encodedUrl&numberOfPart=$currentSelectedParts&userIds=$encodedUserIds&sharedList=$encodedSharedList&privateList=$encodedPrivateList&bookingId=$encodedBookingId"
-                                                                    Log.d(
-                                                                        "NavigationDebug",
-                                                                        "Navigating to: $navigationRoute"
-                                                                    )
 
                                                                     // Navigate to WebViewScreen with the form URL
                                                                     navController.navigate(
                                                                         navigationRoute
                                                                     )
                                                                 } else {
-                                                                    Log.e(
-                                                                        "Payment",
-                                                                        "No form URL found in the response."
-                                                                    )
+                                                                    isLoading = false
 
                                                                 }
                                                             }
 
                                                             is DataResult.Failure -> {
-
+                                                                isLoading = false
                                                             }
                                                         }
                                                     }
                                                 } else {
-
+                                                    isLoading = false
                                                 }
                                             }
 
@@ -837,14 +801,24 @@ fun  PaymentSection1(
                 var amount by remember { mutableStateOf(BigDecimal.ZERO) }
                 var showPopup by remember { mutableStateOf(false) } // State to control popup visibility
                 var bookingId by remember { mutableStateOf<String?>(null) }
-
+                var hasFetchedSelectedParts by remember { mutableStateOf(false) }
+                var hasFetchedBooking by remember { mutableStateOf(false) }
+                var hasFetchedPaymentPayAvoir by remember { mutableStateOf(false) }
                 Button(
                     onClick = {
+                        if (isLoading) return@Button // Prevent clicking while processing
+
                         val selectedBooking = mappedBookings.firstOrNull()
-                        viewModel9.updateSelectedParts(selectedParts)
+                        if (!hasFetchedSelectedParts) {
+                            viewModel9.updateSelectedParts(selectedParts)
+                            hasFetchedSelectedParts = true
+                        }
 
                         coroutineScope.launch {
                             viewModel9.selectedParts.collectLatest { currentSelectedParts ->
+                                if (hasFetchedBooking) return@collectLatest // Prevent multiple booking calls
+
+
                                 val selectedBooking = mappedBookings.firstOrNull()
 
                                 if (selectedBooking != null) {
@@ -904,13 +878,18 @@ fun  PaymentSection1(
                                     val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
                                     onTotalAmountCalculated(totalAmountBigDecimal.toInt().toDouble(), currency)
 
+
                                     // Trigger PaymentPayAvoir with rounded amount
                                     paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
+
+                                    if (!hasFetchedPaymentPayAvoir) {
+                                        paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
+                                        hasFetchedPaymentPayAvoir = true
+                                    }
 
                                     paymentPayAvoirViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
                                         when (paymentResult) {
                                             is DataResult.Loading -> {
-                                                isLoading = true
                                                 Log.d("PAYMENT", "Processing PaymentPayAvoir...")
                                             }
 
@@ -938,13 +917,15 @@ fun  PaymentSection1(
 
 
 
-                                                balanceViewModel.fetchAndBalance()
-                                                saveBookingViewModel.SaveBooking(updatedMappedBookings)
 
+                                                balanceViewModel.fetchAndBalance()
+                                                if (!hasFetchedBooking) {
+                                                    saveBookingViewModel.SaveBooking(updatedMappedBookings)
+                                                    hasFetchedBooking = true
+                                                }
                                                 saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
                                                     when (result) {
                                                         is DataResult.Loading -> {
-                                                            isLoading = true
                                                             Log.d("SaveBooking", "Saving booking...")
                                                         }
 
@@ -956,7 +937,6 @@ fun  PaymentSection1(
                                                             if (!bookingList.isNullOrEmpty()) {
                                                                 val firstBooking = bookingList[0]
 
-                                                                // ✅ Set the booking ID before proceeding
                                                                 bookingId = firstBooking.id.toString()
                                                                 Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
 
@@ -966,15 +946,7 @@ fun  PaymentSection1(
                                                                     orderId = bookingId!! // Pass bookingId here
                                                                 )
 
-                                                                paymentViewModel.Payment(paymentRequest)
-
-                                                                // Observe payment result to ensure success before confirming booking
-
-
-                                                                            // Observe confirmBookingViewModel result
-
-
-
+                                                            //   paymentViewModel.Payment(paymentRequest)
                                                             }
                                                         }
 
@@ -985,7 +957,7 @@ fun  PaymentSection1(
                                                     }
                                                 }
                                             }
-
+// on click only
                                             is DataResult.Failure -> {
                                                 isLoading = false
                                                 Log.e("PAYMENT", "PaymentPayAvoir failed: ${paymentResult.errorMessage}")
@@ -998,6 +970,7 @@ fun  PaymentSection1(
                         }
 
                     },
+                    enabled = !isLoading,
                     modifier = Modifier
                         .height(48.dp).offset(x=-7.dp)
                         .weight(1.3f), // Ensure both buttons take equal space

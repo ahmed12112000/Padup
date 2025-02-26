@@ -205,14 +205,17 @@ fun ReservationScreen(
 
     // Function to fetch time slots based on selected date
     fun filterSlotsByDate(newDate: LocalDate) {
+        // Immediately clear the old time slots
+        selectedTimeSlot.value = null // or any other state that indicates no slots are available
+
         fetchJob?.cancel() // Cancel previous job
 
-        fetchJob = CoroutineScope(Dispatchers.Main).launch { // ✅ Use CoroutineScope
-            delay(1000) // Debounce API calls
+        fetchJob = CoroutineScope(Dispatchers.Main).launch {
+            // Remove the delay to make it more responsive
             reservationKey.value?.let { key ->
                 getBookingViewModel.getBooking(key, newDate)
             } ?: run {
-                errorMessage = ""
+                errorMessage = "No reservation key available."
             }
         }
     }
@@ -537,49 +540,50 @@ fun DaySelectorWithArrows(
             }
         }
 
-        // Days of the Week with Increased Spacing
+        // Days of the Week
         LazyRow(
             state = listState,
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(12.dp) // Slightly less spacing
         ) {
             items(daysInWeek) { day ->
+                val isClickable = day >= currentDate // Disable past days
+                val textColor = if (!isClickable) Color.LightGray else if (day == finalSelectedDate) Color.White else Color.Black
+                val backgroundColor = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White
+                val borderColor = if (day == finalSelectedDate) Color.Transparent else Color.Gray
+
                 Column(
                     modifier = Modifier
-                        .clickable { onDateSelected(day) }
-                        .background(
-                            color = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White,
-                            shape = RoundedCornerShape(8.dp)
+                        .then(
+                            if (isClickable) Modifier.clickable { onDateSelected(day) }
+                            else Modifier // No clickable for past days
                         )
-                        .border(
-                            width = if (day == finalSelectedDate) 0.dp else 1.dp,
-                            color = Color.Gray,
-                            shape = RoundedCornerShape(8.dp)
-                        )
-                        .padding(vertical = 6.dp, horizontal = 6.dp) // Reduced padding
-                        .width(35.dp), // Reduced width
+                        .background(color = backgroundColor, shape = RoundedCornerShape(8.dp))
+                        .border(1.dp, borderColor, shape = RoundedCornerShape(8.dp))
+                        .padding(vertical = 6.dp, horizontal = 6.dp)
+                        .width(35.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = dayFormatter.format(day).uppercase(),
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                        fontSize = 10.sp // Reduced font size
+                        color = textColor,
+                        fontSize = 10.sp
                     )
                     Text(
                         text = dateFormatter.format(day),
                         fontWeight = FontWeight.Bold,
                         textAlign = TextAlign.Center,
-                        color = if (day == finalSelectedDate) Color.White else Color.Black,
-                        fontSize = 14.sp // Reduced font size
+                        color = textColor,
+                        fontSize = 14.sp
                     )
                     Text(
                         text = monthFormatter.format(day).uppercase(),
                         fontWeight = FontWeight.Normal,
                         textAlign = TextAlign.Center,
-                        color = if (day == finalSelectedDate) Color.White else Color.Gray,
-                        fontSize = 10.sp // Reduced font size
+                        color = textColor,
+                        fontSize = 10.sp
                     )
                 }
             }

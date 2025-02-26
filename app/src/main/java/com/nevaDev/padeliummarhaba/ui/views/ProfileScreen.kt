@@ -240,19 +240,23 @@ fun ProfileScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+        ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp),
+                .align(Alignment.TopCenter), // Keeps the rest of the content at the top
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
 
-
             Button(
                 onClick = {
-                    val base64Image = profileImageUri?.let { getBase64FromUri(context, it) } ?: image
+                    val base64Image =
+                        profileImageUri?.let { getBase64FromUri(context, it) } ?: image
 
                     val accountData = mapOf(
                         "activated" to activated,
@@ -292,8 +296,8 @@ fun ProfileScreen(
                 viewModel.fetchProfileData()
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
+            Spacer(modifier = Modifier.height(40.dp))
+        }
             Button(
                 onClick = {
                     sessionManager.logout() // Clears session and token
@@ -304,12 +308,14 @@ fun ProfileScreen(
 
                 },
                 colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color(0xFF0066CC),
-                    contentColor = Color.White
+                    backgroundColor = Color.White,
+                    contentColor = Color.Black
                 ),
                 modifier = Modifier
-                    .fillMaxWidth(0.6f)
-                    //.padding(horizontal = 16.dp)
+                    .fillMaxWidth()
+                    .offset(y=200.dp)
+                    .align(Alignment.BottomCenter) // Pushes the button to the bottom
+                    .padding(bottom = 16.dp) // Adds space at the bottom
             ) {
                 Text(
                     text = "Se déconnecter",
@@ -321,8 +327,8 @@ fun ProfileScreen(
                     textAlign = TextAlign.Center
                 )
             }
-
         }
+
     }
 }
 fun getBase64FromUri(context: Context, uri: Uri): String? {

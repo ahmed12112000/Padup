@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
 
                 // Delay splash screen
                 LaunchedEffect(Unit) {
-                    delay(900)
+                    delay(3000)
                     showSplashScreen = false
                 }
 

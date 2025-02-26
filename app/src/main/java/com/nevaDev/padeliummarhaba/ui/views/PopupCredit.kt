@@ -299,13 +299,11 @@ fun PopupCredit(
                     Spacer(modifier = Modifier.height(16.dp))
                     val coroutineScope = rememberCoroutineScope()
                     val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
-                    val sharedExtras by findTermsViewModel.sharedExtras.observeAsState(initial = mutableListOf())
-                    val privateExtras by findTermsViewModel.privateExtras.observeAsState(initial = mutableListOf())
-                    val formatterOutput: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
-                    val formatterWithMillis: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+
                     Button(
                         onClick = {
-                            val selectedBooking = mappedBookings.firstOrNull()
+                            if (isLoading) return@Button
+
                             viewModel9.updateSelectedParts(selectedParts)
 
                             coroutineScope.launch {
@@ -313,9 +311,9 @@ fun PopupCredit(
                                     val selectedBooking = mappedBookings.firstOrNull()
 
                                     if (selectedBooking != null) {
-                                        val searchDate = selectedDate
+
+
                                         val totalAmountSelected = adjustedAmount + totalExtrasCost
-                                        val firstPlanning = selectedBooking.plannings?.firstOrNull()
 
                                         if (totalAmountSelected <= 0) {
                                             isLoading = false
@@ -323,113 +321,102 @@ fun PopupCredit(
                                         }
 
                                         val playerIds = selectedPlayers.toList()
-                                        val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected).setScale(0, RoundingMode.DOWN)
-                                        val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
-                                        onTotalAmountCalculated(totalAmountBigDecimal.toInt().toDouble(), currency)
+                                        val totalAmountBigDecimal =
+                                            BigDecimal.valueOf(totalAmountSelected)
+                                                .setScale(0, RoundingMode.DOWN)
+                                        val currency =
+                                            selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
+                                        onTotalAmountCalculated(
+                                            totalAmountBigDecimal.toInt().toDouble(), currency
+                                        )
 
                                         // Trigger PaymentPayAvoir with rounded amount
-                                        paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
+                                        paymentPayAvoirViewModel.PaymentPayAvoir(
+                                            totalAmountBigDecimal
+                                        )
 
                                         paymentPayAvoirViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
                                             when (paymentResult) {
                                                 is DataResult.Loading -> {
-                                                    isLoading = true
-                                                    Log.d("PAYMENT", "Processing PaymentPayAvoir...")
+                                                    Log.d(
+                                                        "PAYMENT",
+                                                        "Processing PaymentPayAvoir..."
+                                                    )
                                                 }
 
                                                 is DataResult.Success -> {
                                                     isLoading = false
                                                     val payFromAvoirResponse = true
-                                                    Log.d("PAYMENT", "PaymentPayAvoir successful: $payFromAvoirResponse")
-
-                                                    val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
-                                                        if (index == 0) {
-                                                            booking.copy(
-                                                                numberOfPart = currentSelectedParts,
-                                                                userIds = playerIds,
-                                                                payFromAvoir = payFromAvoirResponse
-                                                            )
-                                                        } else {
-                                                            booking
-                                                        }
-                                                    }
-
-
+                                                    Log.d(
+                                                        "PAYMENT",
+                                                        "PaymentPayAvoir successful: $payFromAvoirResponse"
+                                                    )
 
                                                     balanceViewModel.fetchAndBalance()
-                                                    saveBookingViewModel.SaveBooking(updatedMappedBookings)
 
-                                                    saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
-                                                        when (result) {
-                                                            is DataResult.Loading -> {
-                                                                isLoading = true
-                                                                Log.d("SaveBooking", "Saving booking...")
-                                                            }
+                                                    val paymentRequest = PaymentRequest(
+                                                        amount = totalAmountSelected.toString(),
+                                                        currency = selectedBooking.currencySymbol
+                                                            ?: "EUR",
+                                                        orderId = bookingId?.toLongOrNull()
+                                                            ?.toString() ?: ""
+                                                    )
 
+                                                    paymentViewModel.Payment(paymentRequest)
+
+                                                    // Observe payment result to ensure success before confirming booking
+                                                    paymentViewModel.dataResult.observe(
+                                                        lifecycleOwner
+                                                    ) { paymentResult ->
+                                                        when (paymentResult) {
                                                             is DataResult.Success -> {
                                                                 isLoading = false
-                                                                Log.d("SaveBooking", "Booking saved successfully!")
 
-                                                                val bookingList = result.data as? List<SaveBookingResponse>
-                                                                if (!bookingList.isNullOrEmpty()) {
-                                                                    val firstBooking = bookingList[0]
-                                                                    val bookingId = firstBooking.id.toString()
-
-                                                                    val paymentRequest = PaymentRequest(
-                                                                        amount = totalAmountSelected.toString(),
-                                                                        currency = selectedBooking.currencySymbol ?: "EUR",
-                                                                        orderId = bookingId
+                                                                val confirmBookingRequest =
+                                                                    ConfirmBookingRequest(
+                                                                        amount = totalAmountBigDecimal,
+                                                                        numberOfPart = currentSelectedParts,
+                                                                        payFromAvoir = payFromAvoirResponse,
+                                                                        privateExtrasIds = mappedBookings.first().privateExtrasIds
+                                                                            ?: emptyList(),
+                                                                        bookingIds = listOfNotNull(
+                                                                            bookingId?.toLongOrNull()
+                                                                        ),
+                                                                        buyerId = mappedBookings.first().buyerId
+                                                                            ?: "",
+                                                                        couponIds = mappedBookings.first().couponIds
+                                                                            ?: emptyMap(),
+                                                                        sharedExtrasIds = mappedBookings.first().sharedExtrasIds
+                                                                            ?: emptyList(),
+                                                                        status = true,
+                                                                        token = "",
+                                                                        transactionId = "",
+                                                                        userIds = mappedBookings.first().userIds
                                                                     )
 
-                                                                    paymentViewModel.Payment(paymentRequest)
+                                                                confirmBookingViewModel.GetPayment(
+                                                                    confirmBookingRequest
+                                                                )
 
-                                                                    // Observe payment result to ensure success before confirming booking
-                                                                    paymentViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
-                                                                        when (paymentResult) {
-                                                                            is DataResult.Success -> {
-                                                                                Log.d("PAYMENT", "Payment successful, confirming booking...")
+                                                                // Observe confirmBookingViewModel result
+                                                                confirmBookingViewModel.dataResult.observe(
+                                                                    lifecycleOwner
+                                                                ) { confirmResult ->
+                                                                    when (confirmResult) {
+                                                                        is DataResult.Success -> {
+                                                                            isLoading = false
+                                                                            navController.navigate("PaymentSuccessScreen")
+                                                                        }
 
-                                                                                val confirmBookingRequest = ConfirmBookingRequest(
-                                                                                    amount = totalAmountBigDecimal,
-                                                                                    numberOfPart = currentSelectedParts,
-                                                                                    payFromAvoir = payFromAvoirResponse,
-                                                                                    privateExtrasIds = mappedBookings.first().privateExtrasIds ?: emptyList(),
-                                                                                    bookingIds = bookingList.mapNotNull { it.id },
-                                                                                    buyerId = mappedBookings.first().buyerId ?: "",
-                                                                                    couponIds = mappedBookings.first().couponIds ?: emptyMap(),
-                                                                                    sharedExtrasIds = mappedBookings.first().sharedExtrasIds ?: emptyList(),
-                                                                                    status = true,
-                                                                                    token = "",
-                                                                                    transactionId = "",
-                                                                                    userIds = mappedBookings.first().userIds
-                                                                                )
+                                                                        is DataResult.Failure -> {
+                                                                            isLoading = false
+                                                                        }
 
-                                                                                confirmBookingViewModel.GetPayment(confirmBookingRequest)
-
-                                                                                // Observe confirmBookingViewModel result
-                                                                                confirmBookingViewModel.dataResult.observe(lifecycleOwner) { confirmResult ->
-                                                                                    when (confirmResult) {
-                                                                                        is DataResult.Success -> {
-                                                                                            Log.d("BOOKING", "Booking confirmation successful")
-                                                                                            navController.navigate("PaymentSuccessScreen")
-                                                                                        }
-                                                                                        is DataResult.Failure -> {
-                                                                                            Log.e("BOOKING", "Booking confirmation failed: ${confirmResult.errorMessage}")
-                                                                                        }
-                                                                                        is DataResult.Loading -> {
-                                                                                            Log.d("BOOKING", "Confirming booking...")
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-
-                                                                            is DataResult.Failure -> {
-                                                                                Log.e("PAYMENT", "Payment failed: ${paymentResult.errorMessage}")
-                                                                            }
-
-                                                                            is DataResult.Loading -> {
-                                                                                Log.d("PAYMENT", "Processing payment...")
-                                                                            }
+                                                                        is DataResult.Loading -> {
+                                                                            Log.d(
+                                                                                "BOOKING",
+                                                                                "Confirming booking..."
+                                                                            )
                                                                         }
                                                                     }
                                                                 }
@@ -437,7 +424,13 @@ fun PopupCredit(
 
                                                             is DataResult.Failure -> {
                                                                 isLoading = false
-                                                                Log.e("SaveBooking", "Failed to save booking: ${result.errorMessage}")
+                                                            }
+
+                                                            is DataResult.Loading -> {
+                                                                Log.d(
+                                                                    "PAYMENT",
+                                                                    "Processing payment..."
+                                                                )
                                                             }
                                                         }
                                                     }
@@ -445,15 +438,17 @@ fun PopupCredit(
 
                                                 is DataResult.Failure -> {
                                                     isLoading = false
-                                                    Log.e("PAYMENT", "PaymentPayAvoir failed: ${paymentResult.errorMessage}")
+                                                    Log.e(
+                                                        "PAYMENT",
+                                                        "PaymentPayAvoir failed: ${paymentResult.errorMessage}"
+                                                    )
                                                 }
                                             }
                                         }
                                     }
                                 }
                             }
-
-                        },
+                                  },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
