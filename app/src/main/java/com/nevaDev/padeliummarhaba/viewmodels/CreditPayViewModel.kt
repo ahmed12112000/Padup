@@ -11,14 +11,16 @@ import com.padelium.domain.repositories.ICreditPayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-
 @HiltViewModel
-class CreditPayViewModel @Inject constructor(private val repository: ICreditPayRepository) : ViewModel() {
+class CreditPayViewModel @Inject constructor(
+    private val repository: ICreditPayRepository
+) : ViewModel() {
 
-    private val _CreditsData =
-        MutableLiveData<DataResultBooking<List<CreditPayResponse>>>()
+    private val _CreditsData = MutableLiveData<DataResultBooking<List<CreditPayResponse>>>()
     val CreditsData: LiveData<DataResultBooking<List<CreditPayResponse>>> get() = _CreditsData
+
+    // Add a MutableLiveData to handle navigation events
+    val navigationEvent = MutableLiveData<String>()
 
     fun GetCreditPay() {
         _CreditsData.postValue(DataResultBooking.Loading)
@@ -40,6 +42,7 @@ class CreditPayViewModel @Inject constructor(private val repository: ICreditPayR
                     )
                 }
             } catch (e: Exception) {
+                // Handle exception and post failure data
                 _CreditsData.postValue(
                     DataResultBooking.Failure(
                         exception = e,
@@ -49,7 +52,20 @@ class CreditPayViewModel @Inject constructor(private val repository: ICreditPayR
                 )
                 Log.e("CreditsData", "Error fetching Credits", e)
             }
+
+            // Check if the errorCode is not 200 and navigate to the error screen
+            when (val result = _CreditsData.value) {
+                is DataResultBooking.Failure -> {
+                    if (result.errorCode != 200) {
+                        navigationEvent.value = "server_error_screen"
+                    }
+                }
+                else -> {
+                    // No action required for other cases
+                }
+            }
         }
     }
 }
+
 

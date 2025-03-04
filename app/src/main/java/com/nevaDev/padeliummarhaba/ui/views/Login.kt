@@ -69,12 +69,15 @@ fun LoginScreen(
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
     val sessionManager = remember { SessionManager.getInstance(context) } // ✅ Initialize session manager
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val backStackEntry = navController.currentBackStackEntry
+    val destinationRoute = backStackEntry?.arguments?.getString("destination") ?: "main_screen"
+    val redirectUrl = backStackEntry?.arguments?.getString("redirectUrl") // ✅ Correctly fetch redirect URL
 
-    val destinationRoute = navController.currentBackStackEntry
-        ?.arguments
-        ?.getString("destination") ?: "main_screen"
 
-    Log.d("hammmmmmmmmmmmmmmmmma", "Navigating to $destinationRoute")
+    LaunchedEffect(destinationRoute) {
+        Log.d("ESSSSSSSSSSID", "Navigating to $destinationRoute")
+    }
+
 
     viewModel.dataResult1.observe(lifecycleOwner) { result ->
         isLoading = false
@@ -88,7 +91,7 @@ fun LoginScreen(
                     onLoginSuccess()
 
                     // ✅ Navigate to the intended destination instead of "main_screen"
-                    navController.navigate(destinationRoute) {
+                    navController.navigate(redirectUrl ?: destinationRoute) {
                         popUpTo("login_screen") { inclusive = true }
                     }
 
@@ -287,28 +290,34 @@ fun LoginScreen(
             val isPasswordValid = password.length >= 8
             val isButtonEnabled = isEmailValid && isPasswordValid && email.isNotBlank() && password.isNotBlank()
 
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        isLoading = true
-                        val updatedRequest = loginRequest.copy(username = email, password = password)
-                        val response = viewModel.loginUser(updatedRequest)
+            Button(onClick = {
+                coroutineScope.launch {
+                    isLoading = true
+                    val updatedRequest = loginRequest.copy(username = email, password = password)
+                    val response = viewModel.loginUser(updatedRequest)
 
-                        if (response is Resulta.Success) {
-                            sessionManager.saveAuthToken(response.data.toString()) // Store token
-                            errorMessage = null
-                            onLoginSuccess()
+                    if (response is Resulta.Success) {
+                        sessionManager.saveAuthToken(response.data.toString()) // Store token
+                        errorMessage = null
+                        onLoginSuccess()
 
-                            Log.d("LoginScreen", "Navigating to $destinationRoute after login")
+                        Log.d("LoginScreen", "Navigating to $redirectUrl after login")
 
-                            // Navigate dynamically to the intended route
-                            navController.navigate(destinationRoute) {
+                        // ✅ Navigate dynamically to redirectUrl if available, otherwise go to main_screen
+                        if (!redirectUrl.isNullOrEmpty()) {
+                            navController.navigate(redirectUrl) {
                                 popUpTo("login_screen") { inclusive = true }
                             }
-                        } else if (response is Resulta.Failure) {
-                            errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
+                        } else {
+                            navController.navigate("main_screen") {
+                                popUpTo("login_screen") { inclusive = true }
+                            }
                         }
+                    } else if (response is Resulta.Failure) {
+                        errorMessage = "Nom d'utilisateur ou Mot de passe invalide"
                     }
+                }
+
                 },
 
                 enabled = !isLoading && isButtonEnabled,

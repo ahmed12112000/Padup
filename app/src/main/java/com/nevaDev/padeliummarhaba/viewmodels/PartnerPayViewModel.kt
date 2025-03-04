@@ -34,7 +34,8 @@ class PartnerPayViewModel @Inject constructor(
     // Store response as LiveData
     private val _storedPartnerPayResponse = MutableLiveData<PartnerPayResponse?>()
     val storedPartnerPayResponse: LiveData<PartnerPayResponse?> get() = _storedPartnerPayResponse
-
+    private val _navigateToErrorScreen = MutableLiveData<Boolean>()
+    val navigateToErrorScreen: LiveData<Boolean> get() = _navigateToErrorScreen
 
     fun partnerPay(userId: Long) {
         Log.d("PartnerPayViewModel", "partnerPay called with User ID: $userId")
@@ -67,6 +68,11 @@ class PartnerPayViewModel @Inject constructor(
                         is DataResult.Failure -> {
                             Log.e("PartnerPayViewModel", "Error: ${result.errorMessage}")
                             dataResult.postValue(DataResult.Failure(result.exception, result.errorCode, result.errorMessage))
+
+                            // Check if error code is not 200 and navigate to error screen
+                            if (result.errorCode != 200) {
+                                _navigateToErrorScreen.postValue(true)
+                            }
                         }
                         is DataResult.Loading -> dataResult.postValue(DataResult.Loading)
                     }

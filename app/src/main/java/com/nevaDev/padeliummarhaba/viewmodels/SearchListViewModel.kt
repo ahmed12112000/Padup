@@ -17,15 +17,14 @@ import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
-
 @HiltViewModel
 class SearchListViewModel @Inject constructor(
     private val searchListUseCase: SearchListUseCase,
     private val searchListMapper: SearchListMapper,
-
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<List<SearchListResponseDTO>>>()
+    val navigateToErrorScreen = MutableLiveData<Boolean>() // LiveData for navigation signal
 
     fun searchList(key: String) {
         dataResultBooking.value = DataResultBooking.Loading
@@ -36,17 +35,24 @@ class SearchListViewModel @Inject constructor(
             dataResultBooking.value = when (result) {
                 is DataResultBooking.Success -> {
                     val searchListResponseDTO = searchListMapper.SearchListResponseToSearchListResponseDto(result.data)
-
                     DataResultBooking.Success(searchListResponseDTO)
                 }
 
                 is DataResultBooking.Failure -> {
+                    // Check errorCode and navigate if necessary
+                    result.errorCode?.let { errorCode ->
+                        if (errorCode != 200) {
+                            // Trigger the navigation signal
+                            navigateToErrorScreen.value = true
+                        }
+                    }
                     DataResultBooking.Failure(
-                        exception = null,
-                        errorCode = null,
+                        exception = result.exception,
+                        errorCode = result.errorCode,
                         errorMessage = ""
                     )
                 }
+
                 else -> {
                     DataResultBooking.Failure(
                         exception = null,

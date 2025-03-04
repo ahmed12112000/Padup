@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.nevaDev.padeliummarhaba.di.SessionManager
@@ -57,7 +58,9 @@ fun ProfileScreen(
     viewModel2: ProfileViewModel = hiltViewModel(),
     viewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
-    ) {
+    sessionManager: SessionManager = SessionManager.getInstance(LocalContext.current) // Ensure single instance
+
+) {
     var activated by remember { mutableStateOf(false) }
     var authorities by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
@@ -70,6 +73,12 @@ fun ProfileScreen(
     var phoneNumber by remember { mutableStateOf("") }
     val context = LocalContext.current
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
+    val isLoggedIn by sessionManager.isLoggedInFlow.collectAsStateWithLifecycle()
+    Log.e("ProfileScreen", "$isLoggedIn") // Debugging log
+    val currentLoginState = rememberUpdatedState(isLoggedIn)
+
+
+
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -300,11 +309,10 @@ fun ProfileScreen(
         }
             Button(
                 onClick = {
-                    sessionManager.logout() // Clears session and token
+                    sessionManager.logout()
                     navController.navigate("main_screen") {
-                        popUpTo("profile") { inclusive = true } // Clears back stack
+                        popUpTo("profile") { inclusive = true }
                     }
-
 
                 },
                 colors = ButtonDefaults.buttonColors(
@@ -328,6 +336,7 @@ fun ProfileScreen(
                 )
             }
         }
+
 
     }
 }

@@ -29,8 +29,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
-
-
 @HiltViewModel
 class KeyViewModel @Inject constructor(
     private val keyUseCase: KeyUseCase,
@@ -38,24 +36,35 @@ class KeyViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<FetchKeyResponseDTO>>()
+    val navigateToErrorScreen = MutableLiveData<Boolean>() // LiveData for navigation signal
 
-    fun getReservationKey(fetchKeyRequest: FetchKeyRequest,selectedDate: LocalDate) {
+    fun getReservationKey(fetchKeyRequest: FetchKeyRequest, selectedDate: LocalDate) {
         dataResultBooking.value = DataResultBooking.Loading
 
         viewModelScope.launch {
             val result = keyUseCase.getReservationKey(fetchKeyRequest)
+
             dataResultBooking.value = when (result) {
                 is DataResultBooking.Success -> {
                     val fetchKeyResponseDTO = keyMapper.fetchKeyResponseToFetchKeyResponseDTO(result.data)
                     DataResultBooking.Success(fetchKeyResponseDTO)
                 }
+
                 is DataResultBooking.Failure -> {
+                    // Check errorCode and navigate if necessary
+                    result.errorCode?.let { errorCode ->
+                        if (errorCode != 200) {
+                            // Trigger the navigation signal to navigate to the error screen
+                            navigateToErrorScreen.value = true
+                        }
+                    }
                     DataResultBooking.Failure(
-                        exception = null,
-                        errorCode = null,
+                        exception = result.exception,
+                        errorCode = result.errorCode,
                         errorMessage = ""
                     )
                 }
+
                 else -> {
                     DataResultBooking.Failure(
                         exception = null,

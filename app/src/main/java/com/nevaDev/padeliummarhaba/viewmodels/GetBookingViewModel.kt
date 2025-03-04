@@ -24,7 +24,6 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
-
 @HiltViewModel
 class GetBookingViewModel @Inject constructor(
     private val getBookingUseCase: GetBookingUseCase,
@@ -34,8 +33,6 @@ class GetBookingViewModel @Inject constructor(
     val dataResultBooking = MutableLiveData<DataResultBooking<List<GetBookingResponseDTO>>>()
 
     private val _timeSlots = MutableLiveData<List<TimeSlot>>()
-
-
     private val _filteredTimeSlots = MutableLiveData<List<TimeSlot>>()
     val filteredTimeSlots: LiveData<List<TimeSlot>> get() = _filteredTimeSlots
 
@@ -44,6 +41,8 @@ class GetBookingViewModel @Inject constructor(
 
     private val _selectedBookings = MutableLiveData<List<GetBookingResponseDTO>>(emptyList())
 
+    // New navigation event to trigger navigation in UI
+    val navigationEvent = MutableLiveData<String>()
 
     fun updateBookings(newBookings: List<GetBookingResponseDTO>) {
         _selectedBookings.value = newBookings
@@ -69,7 +68,6 @@ class GetBookingViewModel @Inject constructor(
                             }
                         }
 
-
                         _timeSlots.postValue(parsedTimeSlots)
 
                         if (parsedTimeSlots.isNotEmpty()) {
@@ -82,23 +80,32 @@ class GetBookingViewModel @Inject constructor(
                         DataResultBooking.Success(mappedData)
                     }
 
-                    is DataResultBooking.Failure -> DataResultBooking.Failure(
-                        exception = null,
-                        errorCode = null,
-                        errorMessage = ""
-                    )
+                    is DataResultBooking.Failure -> {
+                        // Handle failure based on error code
+                        if (result.errorCode != 200) {
+                            // Trigger the navigation event if errorCode is not 200
+                            navigationEvent.value = "server_error_screen"
+                        }
+                        DataResultBooking.Failure(exception = null, errorCode = result.errorCode,errorMessage = ""
+                        )
+                    }
 
-                    else -> DataResultBooking.Failure(null, null, "")
+                    else -> {
+                        // Handle other cases (if needed)
+                        DataResultBooking.Failure(exception = null, errorCode = null, errorMessage = "")
+                    }
                 }
             } catch (e: Exception) {
                 dataResultBooking.value = DataResultBooking.Failure(
-                    exception = null,
+                    exception = e,
                     errorCode = null,
                     errorMessage = ""
                 )
             }
         }
     }
+
+
     private fun isAvailable(timeSlot: TimeSlot): Boolean {
         val bookedSlots = _selectedBookings.value?.flatMap { booking ->
             booking.plannings.mapNotNull { planning ->

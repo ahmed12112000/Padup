@@ -14,6 +14,7 @@ import android.widget.Toast
 import androidx.compose.compiler.plugins.kotlin.ComposeCallableIds.remember
 import androidx.compose.compiler.plugins.kotlin.ComposeFqNames.remember
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
@@ -32,13 +34,17 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
 import androidx.compose.material.Text
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,20 +58,23 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.nevaDev.padeliummarhaba.viewmodels.CreditPayViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.ErrorCreditViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.UserAvoirViewModel
 import com.padelium.data.dto.CreditPayResponseDTO
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dataresult.DataResultBooking
+import com.padelium.domain.dto.CreditErrorRequest
 import com.padelium.domain.dto.CreditPayResponse
 import com.padelium.domain.dto.GetPacksResponse
 import com.padelium.domain.dto.GetPaymentRequest
 import com.padelium.domain.dto.PaymentGetAvoirRequest
 import com.padelium.domain.dto.UserAvoirRequest
 import com.padelium.domain.dto.UserAvoirResponse
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
-
+import java.time.LocalDate
 
 @Composable
 fun CreditCharge(
@@ -148,7 +157,16 @@ fun CreditCharge(
                         Text(text = "Loading...")
                     }
                     is DataResult.Failure -> {
-                        Text(text = "Error: ${result.errorMessage}")
+                        // Handle the failure case and navigate to the error screen if errorCode != 200
+                        result.errorCode?.let { errorCode ->
+                            if (errorCode != 200) {
+                                navController.navigate("server_error_screen")
+                            } else {
+                                Text(text = "Error: ${result.errorMessage}")
+                            }
+                        } ?: run {
+                            Text(text = "Error: ${result.errorMessage}")
+                        }
                     }
                 }
             }
@@ -277,12 +295,16 @@ fun WebViewScreen1(
     formUrl: String,
     paymentGetAvoirViewModel: PaymentGetAvoirViewModel,
     amount: BigDecimal,
-    Id: Long
+    Id: Long,
+
 ) {
     // Access the local context for WebView
     val context = LocalContext.current
     val amountList = amount.toPlainString().split(",").mapNotNull { it.toLongOrNull() }
     val IdValue = Id
+    val errorCreditViewModel: ErrorCreditViewModel = hiltViewModel()
+    val coroutineScope = rememberCoroutineScope()
+    val isWebViewExpanded = remember { mutableStateOf(true) }
 
     // Observe dataResult from the ViewModel
     val dataResult by paymentGetAvoirViewModel.dataResult.observeAsState()
@@ -290,6 +312,12 @@ fun WebViewScreen1(
     // Manage the loading state
     var isLoading by remember { mutableStateOf(true) }
 
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(8.dp)
+            .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+    ) {
     // AndroidView to embed the WebView
     AndroidView(factory = {
         WebView(context).apply {
@@ -340,7 +368,48 @@ fun WebViewScreen1(
             // Load the initial URL
             loadUrl(formUrl)
         }
-    })
+    }, modifier = Modifier.fillMaxSize()
+    )
+
+    IconButton(
+        onClick = {
+            val creditErrorRequest = CreditErrorRequest(
+                amount = BigDecimal.ZERO,
+                bookingIds = listOf(IdValue),
+                buyerId = 0L,
+                payFromAvoir = false,
+                status = true,
+                token = "",
+                transactionId = 0L
+            )
+
+            isWebViewExpanded.value = false
+               navController.navigate("CreditCharge")
+        },
+        modifier = Modifier
+            .align(Alignment.TopEnd)
+            .padding(8.dp)
+            .background(Color.White, shape = CircleShape)
+    ) {
+        Icon(imageVector = Icons.Default.Close, contentDescription = "Close WebView", tint = Color.Black)
+    }
+}
+
+// Observe the dataResult from the errorCreditViewModel
+val errorDataResult by errorCreditViewModel.dataResult.observeAsState()
+errorDataResult?.let { result ->
+    when (result) {
+        is DataResult.Loading -> {
+            Log.d("WebViewScreen", "Processing error credit request...")
+        }
+        is DataResult.Success -> {
+            Log.d("WebViewScreen", "Error credit processed successfully.")
+        }
+        is DataResult.Failure -> {
+            Log.e("WebViewScreen", "Error processing credit: ${result.exception}")
+        }
+    }
+}
 
     // Handle ViewModel dataResult states
     dataResult?.let { result ->

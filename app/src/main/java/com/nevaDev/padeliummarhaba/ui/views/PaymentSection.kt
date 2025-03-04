@@ -409,7 +409,7 @@ fun  PaymentSection1(
                                 modifier = Modifier.padding(8.dp)
                             )
                         },
-                        placeholder = { Text("Phone Number") }, // Optional placeholder
+                        placeholder = { Text("Phone Number") },
                         shape = RoundedCornerShape(13.dp),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             focusedBorderColor = Color.Gray,
@@ -914,7 +914,17 @@ fun  PaymentSection1(
                                                         booking
                                                     }
                                                 }
+/*
 
+                                    val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
+                                        if (index == 0) {
+                                            booking.copy(
+                                                searchDate = searchDate.toString(),
+                                                start = startFormatted,
+                                                end = endFormatted,
+                                                from = fromFormatted,
+                                                to = toFormatted
+ */
 
 
 
@@ -1053,7 +1063,8 @@ fun WebViewScreen(
     userIds: String,
     sharedList: String,
     privateList: String,
-    bookingIds: String
+    bookingIds: String,
+    onReservationClicked: (LocalDate) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -1068,7 +1079,8 @@ fun WebViewScreen(
     val bookingIdsState = remember { mutableStateOf("") } // Mutable state for booking IDs
     val errorCreditViewModel: ErrorCreditViewModel = hiltViewModel()
     val bookingIdsList = bookingIds.split(",").mapNotNull { it.toLongOrNull() }
-
+    var isButtonClicked by remember { mutableStateOf(false) }
+    var isLoading by remember { mutableStateOf(false) }
     Log.d("WebViewScreen", "Selected Parts: $numberOfPart")
     Log.d("WebViewScreen", "Extracted userIds: $userIdsList")
     Log.e("Faaaaaaaaaaaaaaaaaaaaaaaaa", "Selected Parts: $bookingIdsList")
@@ -1177,8 +1189,20 @@ fun WebViewScreen(
                 coroutineScope.launch {
                     errorCreditViewModel.ErrorCredit(creditErrorRequest)
                 }
+                val selectedDate = LocalDate.now()
+
+                if (!isButtonClicked) {
+                    isButtonClicked = true
+
+                    selectedDate?.let { date ->
+                        isLoading = true
+                        onReservationClicked(date)
+                    } ?: Log.e("MainScreen", "Selected date is null")
+                }
+                val selectedTimeSlot = extractSelectedTimeSlot(lastLoadedUrl.value) ?: ""
+
                 isWebViewExpanded.value = false
-                navController.navigate("main_screen")
+             //   navController.navigate("reservation_options/$selectedDate/$selectedTimeSlot")
             },
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -1218,6 +1242,13 @@ fun WebViewScreen(
             }
         }
     }
+}
+fun extractSelectedDate(url: String): String? {
+    return Uri.parse(url).getQueryParameter("selectedDate")
+}
+
+fun extractSelectedTimeSlot(url: String): String? {
+    return Uri.parse(url).getQueryParameter("selectedTimeSlot")
 }
 
 

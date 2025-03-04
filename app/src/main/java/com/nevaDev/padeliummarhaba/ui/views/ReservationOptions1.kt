@@ -319,7 +319,8 @@ private fun EstablishmentCard(
                             amountToShow = amountToShow,
                             context = context,
                             selectedDate = selectedDate,
-                            isUserLoggedIn = isUserLoggedIn
+                            isUserLoggedIn = isUserLoggedIn,
+                            sessionmanager = sessionManager
                         )
                 },
             shape = RoundedCornerShape(10.dp),
@@ -428,7 +429,8 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
 @Composable
 fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     setErrorMessage(errorMessage ?: "An unexpected error occurred.")
-}fun handleCardClick(
+}
+fun handleCardClick(
     selectedBooking: GetBookingResponseDTO,
     planning: PlanningDTO,
     bookingViewModel: GetBookingViewModel,
@@ -440,7 +442,8 @@ fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     amountToShow: BigDecimal,
     context: Context,
     selectedDate: LocalDate,
-    isUserLoggedIn: Boolean
+    isUserLoggedIn: Boolean,
+    sessionmanager: SessionManager
 ) {
     val currencySymbol = selectedBooking.currencySymbol ?: "€"
     val formattedAmount = String.format("%.2f", amountToShow)
@@ -465,19 +468,23 @@ fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
             "${Uri.encode(reservationOption.time)}/" +
             "${Uri.encode(reservationOption.price)}/" +
             "$mappedBookingsJson/$encodedDate"
+    val encodedDestination = Uri.encode(destinationUrl)
 
-    if (!isUserLoggedIn) {
+    if (!sessionmanager.isLoggedIn()) {
         Log.d("handleCardClick", "User is NOT logged in. Navigating to login screen.")
 
         onReservationSelected(reservationOption)
 
-        navController.navigate(
-            "login_screen?destination=${Uri.encode(destinationUrl)}"
-        ) {
+        val loginDestination = "login_screen?redirectUrl=${Uri.encode(destinationUrl)}"
+
+        navController.navigate(loginDestination) {
             popUpTo("main_screen") { inclusive = false }
         }
+        Log.d("OOOOOOOOOOOO", "Navigating to $destinationUrl")
+
     } else {
         Log.d("handleCardClick", "User is logged in. Navigating directly to payment section.")
+        Log.d("OOOOOOOOOOOO", "Navigatinggggg $destinationUrl")
 
         navController.navigate(destinationUrl) {
             popUpTo("main_screen") { inclusive = false }

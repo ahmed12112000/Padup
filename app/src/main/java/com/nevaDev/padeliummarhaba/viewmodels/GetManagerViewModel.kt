@@ -11,7 +11,6 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-
 @HiltViewModel
 class GetManagerViewModel @Inject constructor(
     private val getManagerUseCase: GetManagerUseCase
@@ -19,6 +18,9 @@ class GetManagerViewModel @Inject constructor(
 
     private val _dataResult = MutableLiveData<DataResult>()
     val dataResult: LiveData<DataResult> = _dataResult
+
+    // MutableLiveData to handle navigation events
+    val navigationEvent = MutableLiveData<String>()
 
     /**
      * Fetch manager data for the given booking IDs.
@@ -38,6 +40,10 @@ class GetManagerViewModel @Inject constructor(
                         "GetManagerViewModel",
                         "GetManager failed: Code = ${result.errorCode}, Message = ${result.errorMessage}"
                     )
+                    // Check for errorCode and navigate to the error screen if needed
+                    if (result.errorCode != 200) {
+                        navigationEvent.value = "server_error_screen"
+                    }
                 }
                 else -> {
                     Log.e("GetManagerViewModel", "GetManager encountered an unknown state")
@@ -46,4 +52,5 @@ class GetManagerViewModel @Inject constructor(
         }
     }
 }
+
 

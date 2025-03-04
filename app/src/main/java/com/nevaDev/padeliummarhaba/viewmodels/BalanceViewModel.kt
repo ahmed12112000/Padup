@@ -12,7 +12,6 @@ import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
 
-
 @HiltViewModel
 class BalanceViewModel @Inject constructor(
     private val balanceUseCase: BalanceUseCase,
@@ -20,6 +19,7 @@ class BalanceViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
+    val navigationEvent = MutableLiveData<String>() // Used for navigation event
 
     /**
      * Start processing balance after fetching the profile
@@ -44,7 +44,11 @@ class BalanceViewModel @Inject constructor(
                     }
                     is DataResult.Failure -> {
                         Log.e("BalanceViewModel", "Error fetching balance: ${result.errorMessage}")
-                        dataResult.value = DataResult.Failure(result.exception, result.errorCode, result.errorMessage)
+                        if (result.errorCode != 200) {
+                            navigationEvent.value = "server_error_screen" // Expose navigation event to UI
+                        } else {
+                            dataResult.value = DataResult.Failure(result.exception, result.errorCode, result.errorMessage)
+                        }
                     }
                     else -> {
                         Log.e("BalanceViewModel", "Unexpected result")

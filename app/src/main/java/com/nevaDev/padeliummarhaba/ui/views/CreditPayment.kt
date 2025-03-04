@@ -82,8 +82,9 @@ fun CreditPayment(
         }
 
         is DataResult.Failure -> {
-            val errorMessage = result.errorMessage
-            Text(text = "Error: $errorMessage")
+            if (result.errorCode != 200) {
+                navController.navigate("server_error_screen")
+            }
         }
     }
 

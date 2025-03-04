@@ -140,11 +140,18 @@ fun ReservationScreen(
                     }
                 }
             }
-            is DataResultBooking.Failure -> isLoading = false
+            is DataResultBooking.Failure -> {
+                isLoading = false
+                result.errorCode?.let { errorCode ->
+                    if (errorCode != 200) {
+                        navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
+                    }
+                }
+            }
         }
     }
 
-    // Step 2: Observe searchList results
+// Step 2: Observe searchList results
     viewModel3.dataResultBooking.observe(lifecycleOwner) { searchResult ->
         when (searchResult) {
             is DataResultBooking.Success -> {
@@ -156,13 +163,14 @@ fun ReservationScreen(
                     }
                 }
             }
-            is DataResultBooking.Failure -> { /* Handle failure */ }
+            is DataResultBooking.Failure -> {
+                navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
+            }
             else -> {}
         }
     }
 
-    // Step 3: Observe GetInit results
-    // Step 3: Observe GetInit results
+// Step 3: Observe GetInit results
     viewModel2.dataResultBooking.observe(lifecycleOwner) { searchResult ->
         when (searchResult) {
             is DataResultBooking.Success -> {
@@ -175,14 +183,18 @@ fun ReservationScreen(
                     }
                 }
             }
-            is DataResultBooking.Failure -> { /* Handle failure */ }
+            is DataResultBooking.Failure -> {
+                searchResult.errorCode?.let { errorCode ->
+                    if (errorCode != 200) {
+                        navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
+                    }
+                }
+            }
             else -> {}
         }
     }
 
-
-
-    // Step 4: Observe InitBooking results
+// Step 4: Observe InitBooking results
     viewModel4.dataResult1.observe(lifecycleOwner) { initResult ->
         when (initResult) {
             is DataResult.Success -> {
@@ -194,13 +206,16 @@ fun ReservationScreen(
                     }
                 }
             }
-            is DataResult.Failure -> { /* Handle failure */ }
+            is DataResult.Failure -> {
+                initResult.errorCode?.let { errorCode ->
+                    if (errorCode != 200) {
+                        navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
+                    }
+                }
+            }
             else -> {}
         }
     }
-
-
-
 
 
     // Function to fetch time slots based on selected date

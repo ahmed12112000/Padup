@@ -232,5 +232,5 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     suspend fun ErrorCredit (@Body creditErrorRequestDTO: CreditErrorRequestDTO): Response<Void>
 }
 
-// git remote add gitlab https://gitlab.com/nevadev/padelium-marhaba-android-app.git                api/account/withPhone
+// git remote add gitlab https://gitlab.com/nevadev/padelium-marhaba-android-app.git                api/booking-users-payments/by/booking
 //git push -u -f gitlab NewArchAuthentication

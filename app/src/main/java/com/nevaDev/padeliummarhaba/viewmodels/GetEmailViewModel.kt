@@ -9,14 +9,15 @@ import com.padelium.domain.usecases.GetEmailUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
-
-
 @HiltViewModel
 class GetEmailViewModel @Inject constructor(
     private val getEmailUseCase: GetEmailUseCase
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
+
+    // MutableLiveData to handle navigation events
+    val navigationEvent = MutableLiveData<String>()
 
     /**
      * Start processing payment
@@ -35,6 +36,11 @@ class GetEmailViewModel @Inject constructor(
                 is DataResult.Failure -> {
                     // Handle the failure case, log the error message
                     Log.e("GetEmail", "PaymentPayAvoir failed: ${result.errorMessage}")
+
+                    // Check for error code and navigate to the error screen if needed
+                    if (result.errorCode != 200) {
+                        navigationEvent.value = "server_error_screen"
+                    }
                 }
                 else -> {
                     Log.e("GetEmail", "PaymentPayAvoir unknown state")
@@ -43,5 +49,6 @@ class GetEmailViewModel @Inject constructor(
         }
     }
 }
+
 
 

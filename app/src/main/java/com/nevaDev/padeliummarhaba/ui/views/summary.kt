@@ -43,6 +43,7 @@ import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetReservationIDResponse
 import com.padelium.domain.dto.GetReservationResponse
 import com.padelium.domain.dto.GetStatusesResponse
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
@@ -50,15 +51,13 @@ import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 import java.util.Locale
 
-
-
 @Composable
 fun SummaryScreen(
     viewModel: GetReservationViewModel = hiltViewModel(),
     viewModel1: GetProfileByIdViewModel = hiltViewModel(),
     viewModel2: GetStatusesViewModel = hiltViewModel(),
     navController: NavController,
-    ) {
+) {
     var showFilterMenu by remember { mutableStateOf(false) }
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }
     val reservations1 = remember { mutableStateOf<List<GetStatusesResponse>>(emptyList()) }
@@ -74,7 +73,7 @@ fun SummaryScreen(
     val profilesData by viewModel1.profilesData.observeAsState()
     val reservationData1 by viewModel2.ReservationsData1.observeAsState()
 
-
+    val isLoading = reservationData == null || reservationData is DataResultBooking.Loading
 
     LaunchedEffect(reservationData) {
         if (reservationData is DataResultBooking.Success) {
@@ -104,7 +103,7 @@ fun SummaryScreen(
     LaunchedEffect(sheetState.isVisible) {
         if (sheetState.isVisible) {
             coroutineScope.launch {
-                sheetState.show() // Ensure the sheet properly displays
+                sheetState.show()
             }
         }
     }
@@ -116,7 +115,7 @@ fun SummaryScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .fillMaxHeight(0.87f) // Ensure height is properly set
+                            .fillMaxHeight(0.87f)
                     ) {
                         ReservationCard1(reservation, reservation1, bookingStatusCode = reservation.bookingStatusCode)
                     }
@@ -194,9 +193,9 @@ fun SummaryScreen(
                 OutlinedButton(onClick = {
                     reservations.value = reservations.value.reversed()
                     coroutineScope.launch {
-                        sheetState.hide() // Hide the bottom sheet
-                        selectedReservation = null // Reset selected reservation
-                        selectedReservation1 = null // Reset selected reservation 1
+                        sheetState.hide()
+                        selectedReservation = null
+                        selectedReservation1 = null
                     }
                 }) {
                     Icon(
@@ -211,27 +210,37 @@ fun SummaryScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            reservations.value.forEach { reservation ->
-                ReservationCard(
-                    reservation = reservation,
-                    onClick = {
-                        selectedReservation = reservation
-                        viewModel1.fetchProfileById(reservation.id)
-                        coroutineScope.launch {
-                            sheetState.show() // Show the bottom sheet when a reservation is selected
-                        }
-                    },
-                    viewModel1 = viewModel1,
-                    bookingStatusCode = reservation.bookingStatusCode,
-                    onShowDialog = { showDialog = true },
-                    navController = navController
-                )
-                Spacer(modifier = Modifier.height(8.dp))
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(top = 50.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                reservations.value.forEach { reservation ->
+                    ReservationCard(
+                        reservation = reservation,
+                        onClick = {
+                            selectedReservation = reservation
+                            viewModel1.fetchProfileById(reservation.id)
+                            coroutineScope.launch {
+                                sheetState.show()
+                            }
+                        },
+                        viewModel1 = viewModel1,
+                        bookingStatusCode = reservation.bookingStatusCode,
+                        onShowDialog = { showDialog = true },
+                        navController = navController
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
             }
         }
     }
 
-    // Show dialog if needed
     if (showDialog) {
         selectedReservation?.let { reservation ->
             selectedReservation1?.let { reservation1 ->
@@ -249,6 +258,7 @@ fun SummaryScreen(
     }
 }
 
+
 @Composable
 fun ReservationCard(
     reservation: GetReservationResponse,
@@ -263,6 +273,10 @@ fun ReservationCard(
     viewModel5: PartnerPayViewModel = hiltViewModel(),
 
     ) {
+    Log.d("TAG","on create")
+    // *************************************
+
+
     val privateExtrasState by viewModel3.extrasState2.observeAsState()
     val sharedList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
     val privateList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
@@ -270,6 +284,7 @@ fun ReservationCard(
     val formatter = DateTimeFormatter.ofPattern("dd-MM-yyyy", Locale.FRANCE)
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
     val coroutineScope = rememberCoroutineScope()
+    var isLoading by remember { mutableStateOf(false) }
 
     var selectedReservation1 by remember { mutableStateOf<GetReservationIDResponse?>(null) }
     val date = LocalDate.parse(bookingDate, formatter)
@@ -402,21 +417,37 @@ fun ReservationCard(
                 }
                 IconButton(
                     onClick = {
-                        viewModel1.fetchProfileById(reservation.id)
-                        onClick()
-                        coroutineScope.launch {
-                            sheetState.hide() // Hide the bottom sheet
-                            selectedReservation = null // Reset selected reservation
-                            selectedReservation1 = null // Reset selected reservation 1
+                        if (!isLoading) {
+                            isLoading = true // Start loading
+                            coroutineScope.launch {
+                                viewModel1.fetchProfileById(reservation.id)
+                                viewModel3.PrivateExtras()
+                                viewModel4.partnerPay(reservation.id)
+
+                                // Wait for all operations to finish
+                                delay(500) // Add a small delay if needed to simulate loading
+
+                                isLoading = false // Stop loading when logic completes
+                                onClick()
+                                sheetState.hide()
+                                selectedReservation = null
+                                selectedReservation1 = null
+                            }
                         }
                     },
-                    modifier = Modifier.size(24.dp) // Reduce icon size
+                    modifier = Modifier.size(24.dp),
+                    enabled = !isLoading // Disable button when loading
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Visibility,
-                        contentDescription = "View",
-                        modifier = Modifier.size(18.dp) // Smaller icon
-                    )
+                    if (isLoading) {
+                      //  CircularProgressIndicator(modifier = Modifier.size(18.dp))
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.Visibility,
+                            contentDescription = "View",
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
                 }
             }
         }

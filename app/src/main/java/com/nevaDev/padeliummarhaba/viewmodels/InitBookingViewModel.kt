@@ -19,15 +19,23 @@ import javax.inject.Inject
 @HiltViewModel
 class InitBookingViewModel @Inject constructor(
     private val initBookingUseCase: InitBookingUseCase,
-
 ) : ViewModel() {
 
     val dataResult1 = MutableLiveData<DataResult>()
+    val navigateToErrorScreen = MutableLiveData<Boolean>() // LiveData for navigation signal
 
     fun InitBooking(initBookingRequest: InitBookingRequest) {
         viewModelScope.launch {
             dataResult1.postValue(DataResult.Loading)
+
             val result = initBookingUseCase.InitBooking(initBookingRequest)
+
+            // Handle the result and check errorCode
+            if (result is DataResult.Failure && result.errorCode != 200) {
+                // Trigger navigation to error screen if errorCode is not 200
+                navigateToErrorScreen.postValue(true)
+            }
+
             dataResult1.postValue(result)
         }
     }

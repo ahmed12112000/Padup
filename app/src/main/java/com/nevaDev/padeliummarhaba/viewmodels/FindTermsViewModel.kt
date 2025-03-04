@@ -14,7 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.RequestBody
 import javax.inject.Inject
-
 @HiltViewModel
 class FindTermsViewModel @Inject constructor(
     private val findTermsUseCase: FindTermsUseCase
@@ -37,6 +36,9 @@ class FindTermsViewModel @Inject constructor(
 
     private val _privateExtras = MutableLiveData<List<Long>>(emptyList())
     val privateExtras: LiveData<List<Long>> = _privateExtras
+
+    // Add a MutableLiveData to handle navigation events
+    val navigationEvent = MutableLiveData<String>()
 
     // Function to update the shared extras list
     fun updateSharedExtras(newSharedExtras: List<Long>) {
@@ -72,9 +74,16 @@ class FindTermsViewModel @Inject constructor(
                     _players.value = DataResult.Success(limitedResults)
                     _playerFullNames.value = limitedResults.map { it.fullName }
                 } else {
+                    // Handle failure result
                     _players.value = result
+
+                    // Check for error code and navigate to error screen if needed
+                    if (result is DataResult.Failure && result.errorCode != 200) {
+                        navigationEvent.value = "server_error_screen"
+                    }
                 }
             } catch (e: Exception) {
+                // Handle exception
                 _players.value = DataResult.Failure(exception = e, errorCode = null, errorMessage = e.localizedMessage)
             }
         }
@@ -86,6 +95,7 @@ class FindTermsViewModel @Inject constructor(
     fun getPlayerByFullName(fullName: String): FindTermsResponse? {
         return allPlayersData.find { it.fullName.equals(fullName, ignoreCase = true) }
     }
+
 
 
 

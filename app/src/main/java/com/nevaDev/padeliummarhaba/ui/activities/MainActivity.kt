@@ -83,7 +83,6 @@ import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.Dp
 
-
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -98,7 +97,7 @@ class MainActivity : ComponentActivity() {
                 val sessionManager = remember { SessionManager(context) }
                 val sharedPreferences = remember { context.getSharedPreferences("csrf_prefs", MODE_PRIVATE) }
 
-                val isUserLoggedIn by remember { mutableStateOf(sessionManager.isLoggedIn()) }
+                val isLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
                 // Delay splash screen
                 LaunchedEffect(Unit) {
@@ -119,18 +118,19 @@ class MainActivity : ComponentActivity() {
 
 
 
-                        MainApp(
-                            context = context,
-                            sharedPreferences = sharedPreferences,
-                            viewModel = viewModel,
-                            navController = navController,
-                        )
+                    MainApp(
+                        context = context,
+                        sharedPreferences = sharedPreferences,
+                        viewModel = viewModel,
+                        navController = navController,
+                    )
 
                 }
             }
         }
     }
 }
+
 
 
 
@@ -182,7 +182,6 @@ fun MainApp(
         }
     )
 }
-
 
 
 
@@ -536,7 +535,7 @@ fun CustomBottomNavItem(
         modifier = Modifier
             .padding(horizontal = 10.dp, vertical = 4.dp)
             .clickable {
-                if (route in restrictedRoutes && !isUserLoggedIn) {
+                if (route in restrictedRoutes && !sessionManager.isLoggedIn()) {
                     navController.navigate("login_screen?destination=$route") {
                         popUpTo("main_screen") { inclusive = false }
                     }

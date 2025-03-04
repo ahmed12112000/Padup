@@ -20,6 +20,9 @@ class GetInitViewModel @Inject constructor(
 
     val dataResultBooking = MutableLiveData<DataResultBooking<GetInitResponseDTO>>()
 
+    // MutableLiveData to handle navigation events
+    val navigationEvent = MutableLiveData<String>()
+
     fun GetInit(key: String) {
         dataResultBooking.value = DataResultBooking.Loading
 
@@ -33,17 +36,22 @@ class GetInitViewModel @Inject constructor(
                     DataResultBooking.Success(getInitResponseDTO)
                 }
                 is DataResultBooking.Failure -> {
+                    // Check for error code and navigate to the error screen if needed
+                    if (result.errorCode != 200) {
+                        navigationEvent.value = "server_error_screen"
+                    }
                     DataResultBooking.Failure(
                         exception = null,
-                        errorCode = null,
-                        errorMessage = ""
+                        errorCode = result.errorCode,
+                        errorMessage = result.errorMessage
                     )
                 }
                 else -> {
+                    // Handle any unknown state
                     DataResultBooking.Failure(
                         exception = null,
                         errorCode = null,
-                        errorMessage = ""
+                        errorMessage = "Unknown error"
                     )
                 }
             }

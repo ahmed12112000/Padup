@@ -16,12 +16,30 @@ class ExtrasViewModel @Inject constructor(private val extrasUseCase: ExtrasUseCa
     private val _extrasState = MutableLiveData<DataResult>()
     val extrasState: LiveData<DataResult> get() = _extrasState
 
+    // Add a MutableLiveData to handle navigation events
+    val navigationEvent = MutableLiveData<String>()
+
     fun Extras() {
         viewModelScope.launch {
             _extrasState.postValue(DataResult.Loading) // Emit loading state
 
+            // Fetch data from the use case
             val result = extrasUseCase.Extras()
-            _extrasState.postValue(result) // Emit success or failure state
+
+            // Emit the result (either success or failure)
+            _extrasState.postValue(result)
+
+            // Check if the errorCode is not 200 and navigate to the error screen
+            when (result) {
+                is DataResult.Failure -> {
+                    if (result.errorCode != 200) {
+                        navigationEvent.value = "server_error_screen"
+                    }
+                }
+                else -> {
+                    // No action required for other cases
+                }
+            }
         }
     }
 }

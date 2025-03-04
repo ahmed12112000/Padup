@@ -81,8 +81,7 @@ class SessionManager(private val context: Context) {
     }
 
     fun logout() {
-        prefs.edit().clear().apply()
-        updateLoginState(false) // ✅ Ensure state is updated
+        clearAuthToken()
     }
 
     companion object {
