@@ -3,7 +3,10 @@ package com.nevaDev.padeliummarhaba.ui.activities
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.ConnectivityManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -74,6 +77,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.*
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerState
@@ -82,23 +86,39 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.Dp
+import com.nevaDev.padeliummarhaba.di.NetworkUtil
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private lateinit var networkUtil: NetworkUtil
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        networkUtil = NetworkUtil(this) // Start network monitoring
 
         setContent {
             PadeliumMarhabaTheme {
                 var showSplashScreen by remember { mutableStateOf(true) }
+                var isNetworkAvailable by remember { mutableStateOf(true) } // Track network status
                 val navController = rememberNavController()
                 val viewModel: GetProfileViewModel = hiltViewModel()
                 val context = LocalContext.current
                 val sessionManager = remember { SessionManager(context) }
-                val sharedPreferences = remember { context.getSharedPreferences("csrf_prefs", MODE_PRIVATE) }
+                val sharedPreferences =
+                    remember { context.getSharedPreferences("csrf_prefs", MODE_PRIVATE) }
 
                 val isLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
 
+                LaunchedEffect(Unit) {
+                    networkUtil.registerNetworkCallback { isConnected ->
+                        isNetworkAvailable = isConnected // Update network status
+                        if (!isNetworkAvailable) {
+                            // Show toast when disconnected
+                            Toast.makeText(context, "Internet disconnected", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
                 // Delay splash screen
                 LaunchedEffect(Unit) {
                     delay(3000)
@@ -116,22 +136,23 @@ class MainActivity : ComponentActivity() {
                         }
                     }
 
-
-
                     MainApp(
                         context = context,
                         sharedPreferences = sharedPreferences,
                         viewModel = viewModel,
                         navController = navController,
+                        isNetworkAvailable = isNetworkAvailable // Pass the network status
                     )
-
                 }
             }
         }
     }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        networkUtil.unregister()
+    }
 }
-
-
 
 
 
@@ -141,6 +162,7 @@ fun MainApp(
     sharedPreferences: SharedPreferences,
     viewModel: GetProfileViewModel,
     navController: NavHostController,
+    isNetworkAvailable: Boolean
 ) {
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -151,37 +173,52 @@ fun MainApp(
     val selectedItem = currentBackStackEntry?.destination?.route
     val shouldShowBottomBar = selectedItem !in listOf("splash_screen", "login_screen")
 
-    // Update last active time whenever user navigates
-    LaunchedEffect(selectedItem) {
-        sessionManager.updateLastActiveTime()
-    }
+    // Disable UI interactions if no internet
+    val interactionSource = remember { MutableInteractionSource() }
+    val disabledModifier = if (!isNetworkAvailable) Modifier.clickable(
+        interactionSource = interactionSource,
+        indication = null // Disable visual feedback
+    ) {} else Modifier
 
     Scaffold(
         bottomBar = {
-            if (shouldShowBottomBar) {
+            if (shouldShowBottomBar ) { // Hide bottom bar if offline
                 AnimatedBottomBar(
                     navController = navController,
-                    getReservationViewModel = getReservationViewModel,
+                    getReservationViewModel = getReservationViewModel
                 )
             }
         },
         content = { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
-                AppNavHost(
-                    navController = navController,
-                    isUserLoggedIn = sessionManager.isLoggedIn(),
-                    onLoginSuccess = { sessionManager.updateLastActiveTime() },
-                    onLogout = { sessionManager.logout() },
-                    context = context,
-                    sharedPreferences = sharedPreferences,
-                    drawerState = drawerState,
-                    scope = scope,
-                    onSignupSuccess = { sessionManager.updateLastActiveTime() },
-                )
+                if (isNetworkAvailable) {
+                    // Render AppNavHost normally
+                    AppNavHost(
+                        navController = navController,
+                        isUserLoggedIn = sessionManager.isLoggedIn(),
+                        onLoginSuccess = { },
+                        onLogout = { sessionManager.logout() },
+                        context = context,
+                        sharedPreferences = sharedPreferences,
+                        drawerState = drawerState,
+                        scope = scope,
+                        onSignupSuccess = { }
+                    )
+                } else {
+                    // Block interactions but keep the UI visible
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clickable(interactionSource = interactionSource, indication = null) {}
+                    )
+                }
             }
         }
     )
 }
+
+
+
 
 
 
@@ -254,10 +291,21 @@ fun MainScreen(
     modifier: Modifier = Modifier,
     onReservationClicked: (LocalDate) -> Unit,
     viewModel: KeyViewModel = hiltViewModel(),
-    ) {
+) {
     var selectedDate by remember { mutableStateOf<LocalDate?>(null) }
     var isButtonClicked by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
+
+    val context = LocalContext.current
+    val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
+
+    // Re-check internet connection periodically
+    LaunchedEffect(Unit) {
+        while (true) {
+            isConnected.value = checkInternetConnection(context)
+            delay(5000) // Check every 5 seconds
+        }
+    }
 
     if (isLoading) {
         CircularProgressIndicator()
@@ -268,7 +316,6 @@ fun MainScreen(
     Column(
         modifier = Modifier.fillMaxSize()
     ) {
-
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -276,45 +323,37 @@ fun MainScreen(
                 .clip(RoundedCornerShape(bottomStart = 20.dp, bottomEnd = 20.dp))
                 .background(Color(0xFF0054D8))
                 .height(150.dp)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color(0xFF0054D8))
-                    .padding(16.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Spacer(modifier = Modifier.height(8.dp))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
-                ) { }
-            }
-        }
+        ) {}
 
         Button(
             onClick = {
-                if (!isButtonClicked) {
-                    isButtonClicked = true
-                    selectedDate = LocalDate.now()
-
-                    selectedDate?.let { date ->
-                        isLoading = true
-                        onReservationClicked(date)
-                    } ?: Log.e("MainScreen", "Selected date is null")
+                if (isConnected.value) {
+                    if (!isButtonClicked) {
+                        isButtonClicked = true
+                        selectedDate = LocalDate.now()
+                        selectedDate?.let { date ->
+                            isLoading = true
+                            onReservationClicked(date)
+                        }
+                    }
+                } else {
+                    showToastForFiveSeconds(context, "Please verify your internet connection")
                 }
             },
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD7F057)),
+            colors = ButtonDefaults.buttonColors(
+                containerColor =  Color(0xFFD7F057)
+            ),
             modifier = Modifier
                 .fillMaxWidth(0.5f)
                 .offset(x = 100.dp, y = -35.dp)
                 .border(0.5.dp, Color(0xFFD7F057), RoundedCornerShape(12.dp))
                 .height(50.dp),
-            shape = RoundedCornerShape(12.dp)
+            shape = RoundedCornerShape(12.dp),
+       //     enabled = isConnected.value // Disable button if no internet
         ) {
             Text(
                 text = "Réserver",
-                color = Color(0xFF0054D8),
+                color = Color(0xFF0054D8) ,
                 fontSize = 23.sp,
                 fontWeight = FontWeight.Bold,
             )
@@ -355,6 +394,33 @@ fun MainScreen(
                 .height(335.dp)
         )
     }
+}
+// Function to check internet connection
+fun checkInternetConnection(context: Context): Boolean {
+    val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+    val activeNetwork = connectivityManager.activeNetworkInfo
+    return activeNetwork?.isConnectedOrConnecting == true
+}
+
+// Function to display a Toast for exactly 5 seconds
+fun showToastForFiveSeconds(context: Context, message: String) {
+    val handler = Handler(Looper.getMainLooper())
+    val toast = Toast.makeText(context, message, Toast.LENGTH_SHORT)
+
+    // Show the toast multiple times for a total of 5 seconds
+    val repeatCount = 3 // Approximate (each short toast ~1 second)
+    var count = 0
+
+    val runnable = object : Runnable {
+        override fun run() {
+            if (count < repeatCount) {
+                toast.show()
+                count++
+                handler.postDelayed(this, 1000) // Re-show the toast every second
+            }
+        }
+    }
+    handler.post(runnable)
 }
 
 
@@ -410,7 +476,6 @@ fun ImageCarousel(images: List<Int>, modifier: Modifier = Modifier) {
 
 
 
-
 @Composable
 fun AnimatedBottomBar(
     navController: NavController,
@@ -422,120 +487,107 @@ fun AnimatedBottomBar(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
+
+    // Fixed offsets for different devices
     val selectedItemOffset = remember { mutableStateOf(0.dp) }
 
-    val restrictedRoutes = listOf("Profile_screen", "payment_section1", "CreditPayment", "summary_screen", "reservation_options")
+    // List of items
+    val navItems = listOf(
+        NavItem("main_screen", Icons.Filled.Home, "Accueil"),
+        NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
+        NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits"),
+        NavItem("Profile_screen", Icons.Filled.Person, "Profil")
+    )
 
-
-
-
-    // Bottom Navigation with Animated Items
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(90.dp)
-            .offset(y = 10.dp)
-            .background(
-                color = Color(0xFF0054D8), // Set the blue background color
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp) // Apply rounded corners to the top
-            ),
-        horizontalArrangement = Arrangement.SpaceAround,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        listOf(
-            NavItem("main_screen", Icons.Filled.Home, "Accueil"),
-            NavItem("summary_screen", Icons.Filled.CalendarMonth, "Mes Réservations"),
-            NavItem("CreditPayment", Icons.Filled.CreditCard, "Mes crédits"),
-            NavItem("Profile_screen", Icons.Filled.Person, "Profil")
-        ).forEach { item ->
-            if (selectedItem == item.route) {
-                selectedItemOffset.value = (-30).dp // Set the offset for the selected item
-            }
-
-            CustomBottomNavItem(
-                navController = navController,
-                route = item.route,
-                icon = item.icon,
-                label = item.label,
-                isSelected = selectedItem == item.route,
-                context = context,
-                backgroundOffset = if (selectedItem == item.route) (-20).dp else 0.dp // Pass the offset
-            )
-        }
-    }
+    // Bottom Navigation Bar
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .height(90.dp)
-            .offset(y = selectedItemOffset.value) // Apply the offset to the background
-        //  .background(Color(0xFF0054D8))
-    )
+            .background(
+                color = Color(0xFF0054D8), // Blue background color
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp) // Rounded top corners
+            )
+            .padding(horizontal = 10.dp) // Prevent content from stretching too much
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(80.dp),
+            horizontalArrangement = Arrangement.SpaceAround,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            navItems.forEach { item ->
+                CustomBottomNavItem(
+                    navController = navController,
+                    route = item.route,
+                    icon = item.icon,
+                    label = item.label,
+                    isSelected = selectedItem == item.route
+                )
+            }
+        }
+    }
 }
 
-
-class AuthViewModel(context: Context) : ViewModel() {
-    private val sessionManager = SessionManager(context)
-    val isLoggedInFlow: StateFlow<Boolean> = sessionManager.isLoggedInFlow.stateIn(
-        viewModelScope,
-        SharingStarted.Lazily,
-        false
-    )
-}
 @Composable
 fun CustomBottomNavItem(
     navController: NavController,
     route: String,
     icon: ImageVector,
     label: String,
-    isSelected: Boolean,
-    context: Context,
-    backgroundOffset: Dp // New parameter for background offset
+    isSelected: Boolean
 ) {
+    val context = LocalContext.current
     val sessionManager = remember { SessionManager.getInstance(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
+    val isConnected = remember { mutableStateOf(checkInternetConnection(context)) }
 
-    // Animation for icon size and background size
+    // Re-check internet connection periodically
+    LaunchedEffect(Unit) {
+        while (true) {
+            isConnected.value = checkInternetConnection(context)
+            delay(5000) // Check every 5 seconds
+        }
+    }
+    val restrictedRoutes = listOf("Profile_screen", "CreditPayment", "summary_screen")
+
+    // Animation for scaling effect
     val animatedScale by animateFloatAsState(
-        targetValue = if (isSelected) 1.2f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
+        targetValue = if (isSelected) 1.15f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
     )
 
-    // Animation for vertical offset
+    // Animation for vertical movement
     val animatedOffsetY by animateDpAsState(
-        targetValue = if (isSelected) (-20).dp else 0.dp, // Increased offset
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
-        )
+        targetValue = if (isSelected) (-15).dp else 0.dp,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow)
     )
 
     val backgroundColor by animateColorAsState(
         targetValue = if (isSelected) Color(0xFFD7F057) else Color.Transparent,
-        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
+        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)
     )
 
-    // Change icon and label color when selected
     val iconColor by animateColorAsState(
         targetValue = if (isSelected) Color(0xFF0054D8) else Color.White,
-        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
+        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)
     )
 
     val textColor by animateColorAsState(
         targetValue = if (isSelected) Color(0xFFD7F057) else Color.White,
-        animationSpec = tween(durationMillis = 400, easing = LinearOutSlowInEasing)
+        animationSpec = tween(durationMillis = 300, easing = LinearOutSlowInEasing)
     )
 
-    val restrictedRoutes = listOf("Profile_screen", "CreditPayment", "summary_screen")
-
-    Box(
-        contentAlignment = Alignment.Center,
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .padding(horizontal = 10.dp, vertical = 4.dp)
+            .padding(horizontal = 8.dp, vertical = 4.dp) // Ensure space for the text
             .clickable {
-                if (route in restrictedRoutes && !sessionManager.isLoggedIn()) {
+                if (!isConnected.value) {
+                    showToastForFiveSeconds(context, "No internet connection")
+                } else if (route in restrictedRoutes && !sessionManager.isLoggedIn()) {
                     navController.navigate("login_screen?destination=$route") {
                         popUpTo("main_screen") { inclusive = false }
                     }
@@ -543,47 +595,40 @@ fun CustomBottomNavItem(
                     navController.navigate(route)
                 }
             }
-            .padding(10.dp)
+            .offset(y = animatedOffsetY)
+            .scale(animatedScale)
     ) {
-        Column(
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+        // Icon container
+        Box(
             modifier = Modifier
-                .height(80.dp)
-                .offset(y = animatedOffsetY) // Apply vertical offset
-                .scale(animatedScale) // Scale the entire column
+                .size(48.dp) // Ensure a standard size across all devices
+                .clip(CircleShape)
+                .background(backgroundColor)
+                .align(Alignment.CenterHorizontally)
         ) {
-            // Icon in a circular background
-            Box(
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconColor,
                 modifier = Modifier
-                    .size(50.dp) // Set a fixed size for the background
-                    .clip(CircleShape)
-                    .background(backgroundColor)
-                    .scale(animatedScale) // Scale the background as well
-            ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = label,
-                    tint = iconColor, // Apply the icon color change when selected
-                    modifier = Modifier
-                        .size(27.dp)
-                        .align(Alignment.Center) // Center the icon in the box
-                )
-            }
-
-        //    Spacer(modifier = Modifier.height(12.dp)) // Increased space between the icon and the label
-
-            // Ensure the label is below the icon
-            Text(
-                text = label,
-                color = textColor, // Apply the text color change when selected
-                fontSize = 10.sp,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.align(Alignment.CenterHorizontally) // Ensure label is centered below the icon
+                    .size(26.dp)
+                    .align(Alignment.Center)
             )
         }
+
+        // Label
+        Text(
+            text = label,
+            color = textColor,
+            fontSize = 12.sp, // Increase font size slightly for visibility
+            fontWeight = FontWeight.Medium,
+            modifier = Modifier
+                .padding(top = 6.dp) // Ensure spacing from the icon
+                .align(Alignment.CenterHorizontally)
+        )
     }
 }
+
 
 
 

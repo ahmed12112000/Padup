@@ -3,18 +3,11 @@ import android.util.Log
 import com.google.gson.Gson
 import com.google.gson.JsonElement
 import com.google.gson.reflect.TypeToken
-import com.padelium.data.dto.GetBookingDataResultDto
 import com.padelium.data.dto.GetBookingResponseDTO
-import com.padelium.domain.dto.GetBookingDataResult
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.EstablishmentDTO
 import java.math.BigDecimal
 import java.time.Instant
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
 class GetBookingMapper @Inject constructor() {

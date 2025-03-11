@@ -87,6 +87,7 @@ import android.widget.TextView
 import androidx.compose.runtime.collectAsState
 import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.di.SessionManager
+import com.padelium.domain.dto.PlanningDTOo
 
 @Composable
 fun TimeSlotSelector(

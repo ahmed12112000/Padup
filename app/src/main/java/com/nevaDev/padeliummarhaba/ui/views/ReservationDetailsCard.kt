@@ -218,7 +218,8 @@ fun ReservationDetailsCard(
                 // Text
                 Text(
                     text = "Je veux payer pour",
-                    fontSize = 20.sp,
+
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     modifier = Modifier.padding(end = 8.dp) // Add space between text and dropdown
                 )
@@ -266,7 +267,7 @@ fun ReservationDetailsCard(
 
                 Text(
                     text = if (selectedPartsValue == 1) "Part ?" else "Parts ?",
-                    fontSize = 20.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -577,7 +578,6 @@ fun ExtrasSection(
         viewModel3.SharedExtras()
         viewModel4.PrivateExtras()
     }
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -587,9 +587,11 @@ fun ExtrasSection(
     ) {
         Text(
             text = "  Je commande des extras ?",
-            fontSize = 20.sp,
+            fontSize = 18.sp,
+           // color = Color.Black,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f)
+
         )
         Switch(
             checked = additionalExtrasEnabled,
@@ -630,7 +632,7 @@ fun ExtrasSection(
                         text = "  Article(s) réserver à mon usage",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color.Black
+                       // color = Color.Black
                     )
                     privateExtrasList?.forEach { privateExtra ->
                         val isPrivateExtraAdded =
@@ -670,15 +672,15 @@ fun ExtrasSection(
                     Column {
                         Text(
                             text = "  Article(s) partagé(s) entre tous les joueurs",
-                            fontSize = 15.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                           // color = Color.Black
                         )
                         Text(
                             text = "  (Frais partagé)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                            color = Color.Black
+                           // color = Color.Black
                         )
                     }
                     sharedExtrasList?.forEach { sharedExtra ->

@@ -1,11 +1,13 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.runtime.*
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -56,6 +58,7 @@ import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.SignupRequest
+import kotlinx.coroutines.delay
 
 @Composable
 fun SignUpScreen(
@@ -77,22 +80,47 @@ fun SignUpScreen(
     val emailPattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    var showMessage by remember { mutableStateOf(false) }
 
     viewModel.dataResult.observe(lifecycleOwner) { result ->
         isLoading = false
-
         when (result) {
-            is DataResult.Loading -> {
-                Log.e("TAG", "Loading")
-            }
+            is DataResult.Loading -> Log.e("TAG", "Loading")
             is DataResult.Success -> {
                 Log.e("TAG", "Success")
-                onSignupSuccess() // Navigate on success
+
+                showMessage = true
+
+                navController.navigate("main_screen")
             }
             is DataResult.Failure -> {
                 isLoading = false
-                Log.e("TAG", "Failure - Error Code:${result.exception}, ${result.errorCode}, Message: ${result.errorMessage}")
+                Log.e("TAG", "Failure - Error Code:${result.errorCode}, Message: ${result.errorMessage}")
             }
+        }
+    }
+
+    if (showMessage) {
+        LaunchedEffect(Unit) {
+            delay(5000)
+            showMessage = false
+        }
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black.copy(alpha = 0.6f)), // Semi-transparent background
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Sign up successful",
+                color = Color.White,
+                fontSize = 18.sp,
+                modifier = Modifier
+                    .padding(16.dp)
+                    .background(Color.DarkGray, shape = RoundedCornerShape(8.dp))
+                    .padding(16.dp)
+            )
         }
     }
 
@@ -470,6 +498,7 @@ fun SignUpScreen(
             isLoading = true
             val signupRequest = SignupRequest(email, password,firstName,lastName)
             viewModel.signupUser(signupRequest)
+
         },
         enabled = !isLoading && isButtonEnabled,
         modifier = Modifier
@@ -620,12 +649,14 @@ fun SignUpScreen(
         .offset(x = 120.dp, y = 600.dp))
     {
         Text(text = stringResource(R.string.logininbutoon), color = Color.Gray)
+        Spacer(modifier = Modifier.width(6.dp))
+
         Text(
             text = stringResource(R.string.loginredirection),
-            fontWeight = FontWeight.Bold,
+            fontWeight = FontWeight.Normal,
             color = Color.Black,
+            textDecoration = Underline,
             modifier = Modifier.clickable {  navController.navigate("login_screen") },
-            textDecoration = Underline
         )
     }
 

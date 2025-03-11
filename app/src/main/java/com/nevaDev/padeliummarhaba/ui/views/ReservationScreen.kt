@@ -438,7 +438,7 @@ fun ReservationSummary(
     ) {
         Text(
             text = "Détails Réservation",
-            fontSize = 20.sp,
+            fontSize = 18.sp,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )

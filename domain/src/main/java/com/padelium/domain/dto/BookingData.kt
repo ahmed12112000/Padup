@@ -174,7 +174,34 @@ data class HappyHourss (
     val users: List<Long>,
     private val plannings: List<PlanningDTO> = mutableListOf()
 ): Serializable
+/*
+data class PlanningDTO(
+    val annulationDate: String = "" ,
+    val available: Boolean,
+    val availableBol: Boolean ,
+    val closeTime: Instant = Instant.now(),
+    val bookings: List<bookingDTO> = emptyList(),
+    val currencySymbol: String = "DT",
+    val dayWithBooking: Boolean = false,
+    val feeTransaction: BigDecimal = BigDecimal.ZERO,
+    val from:String,
+    val fromStr: String,
+    val isHappyHours: Boolean = false,
+    val openTime: Instant = Instant.now(),
+    val position: Int,
+    val price: BigDecimal = BigDecimal.ZERO,
+    val reductionPrice: BigDecimal = BigDecimal.ZERO,
+    val reductionPriceBol: Boolean = false,
+    val rfeeTransaction: BigDecimal = BigDecimal.ZERO,
+    val name: String,
+    val secondPrice: Boolean = false,
+    val to: String,
+    val toStr: String,
 
+) : Serializable
+
+
+ */
 data class PlanningDTO(
     val name: String,
     val fromStr: String,
@@ -183,7 +210,6 @@ data class PlanningDTO(
     val to: String,
     val available: Int,
     val reductionPrice: BigDecimal = BigDecimal.ZERO,
-
     /* val openTime: Instant = Instant.now(),
      val closeTime: Instant = Instant.now(),
      val bookings: List<bookingDTO> = emptyList(),

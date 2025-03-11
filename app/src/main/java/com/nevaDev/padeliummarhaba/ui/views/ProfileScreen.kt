@@ -10,6 +10,7 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -315,24 +316,27 @@ fun ProfileScreen(
                     }
 
                 },
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color.White,
-                    contentColor = Color.Black
-                ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .offset(y=200.dp)
-                    .align(Alignment.BottomCenter) // Pushes the button to the bottom
-                    .padding(bottom = 16.dp) // Adds space at the bottom
+                    .offset(y=120.dp)
+                    .border(1.dp, Color.Black, RoundedCornerShape(13.dp)),
+              //  shape = RoundedCornerShape(13.dp),
+                colors = ButtonDefaults.buttonColors(
+                    backgroundColor = Color.Transparent
+                ),
+                elevation = ButtonDefaults.elevation(0.dp)
+
+
             ) {
                 Text(
                     text = "Se déconnecter",
                     fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Normal,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    color = Color.Red
                 )
             }
         }

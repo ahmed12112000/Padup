@@ -10,6 +10,8 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -62,10 +64,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
 import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
@@ -193,7 +198,6 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             establishmentDTO = dto.establishmentDTO,
             establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),
 
-            // Explicitly convert 0L to null
             establishmentPacksId = if (dto.establishmentPacksId == 0L) null else dto.establishmentPacksId,
 
             EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
@@ -253,11 +257,15 @@ fun  PaymentSection1(
     viewModel9: SharedViewModel,
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
+    getProfileViewModel: GetProfileViewModel = hiltViewModel()
 ) {
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
     Log.e("BBBBBBBBBBBBBDateeeeeeee", "Failed to save booking: ${selectedDate}")
+    var isPhoneNumberEmpty by remember { mutableStateOf(phoneNumber.isEmpty()) }
+    var showPopup by remember { mutableStateOf(false) }
+    val isPhoneNumberValid = phoneNumber.isNotEmpty() && phoneNumber.length == 8 && phoneNumber.all { it.isDigit() }
 
     // var selectedParts by remember { mutableStateOf("1") }
     var amountSelected by remember { mutableStateOf(Pair(0.0, "DT")) }
@@ -322,8 +330,31 @@ fun  PaymentSection1(
             Gson().fromJson(it, Array<GetBookingResponseDTO>::class.java).toList()
         } ?: emptyList()
     }
+    LaunchedEffect(Unit) {
+        getProfileViewModel.fetchProfileData()
+    }
 
 
+    val profileData by getProfileViewModel.profileData.observeAsState(DataResult.Loading)
+    when (val result = profileData) {
+        is DataResult.Success -> {
+            val profile = result.data as? GetProfileResponse
+            if (profile != null && !firstName.isNotEmpty()) {
+                firstName = profile.firstName
+                lastName = profile.lastName
+                phoneNumber = profile.phone
+
+            } else {
+                androidx.compose.material.Text(text = "")
+            }
+        }
+        is DataResult.Loading -> {
+            //  Text(text = "Loading profile data...")
+        }
+        is DataResult.Failure -> {
+            //  Text(text = "Error: ${result.errorMessage}")
+        }
+    }
 
 
 
@@ -346,7 +377,7 @@ fun  PaymentSection1(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Requis pour votre réservation",
-                    fontSize = 19.sp,
+                    fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
@@ -386,22 +417,20 @@ fun  PaymentSection1(
                     OutlinedTextField(
                         value = phoneNumber,
                         onValueChange = {
-                            // Allow digits, the plus sign (+), and restrict the length to 8 characters
                             if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
-                                // Ensure that the plus sign only appears at the beginning
-                                if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains('+'))) {
+                                if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains(
+                                        '+'
+                                    ))) {
                                     phoneNumber = it
                                 }
                             }
                         },
                         modifier = Modifier
                             .offset(x = 3.dp)
-                            .width(180.dp)
-                            .height(55.dp)
+                            .width(160.dp)
+                            .height(60.dp)
                             .padding(vertical = 4.dp),
-
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Default.Phone,
@@ -409,16 +438,34 @@ fun  PaymentSection1(
                                 modifier = Modifier.padding(8.dp)
                             )
                         },
-                        placeholder = { Text("Phone Number") },
+                        placeholder = {
+                            Text(
+                            text = "* Obligatoire",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.body2
+                        ) },
                         shape = RoundedCornerShape(13.dp),
                         colors = TextFieldDefaults.outlinedTextFieldColors(
                             focusedBorderColor = Color.Gray,
                             unfocusedBorderColor = Color.Gray,
                             backgroundColor = Color.Transparent
-                        )
+                        ),
+                        enabled = phoneNumber.isNotEmpty()
                     )
 
                     Spacer(modifier = Modifier.width(10.dp))
+
+                    /*
+                    if (phoneNumber.isEmpty()) {
+                        Text(
+                            text = "* Obligatoire",
+                            color = Color.Red,
+                            style = MaterialTheme.typography.body2,
+                        )
+                    }
+
+                     */
+
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -428,18 +475,21 @@ fun  PaymentSection1(
 
                         Button(
                             onClick = {
-                                val phoneBody = RequestBody.create(
-                                    "text/plain".toMediaTypeOrNull(), phoneNumber
-                                )
-                                updatePhoneViewModel.UpdatePhone(phoneBody)
-                                keyboardController?.hide()
-                                focusManager.clearFocus()
+                                if (isPhoneNumberValid) {
+                                    // Make API call to update the phone number
+                                    val phoneBody = RequestBody.create(
+                                        "text/plain".toMediaTypeOrNull(), phoneNumber
+                                    )
+                                    updatePhoneViewModel.UpdatePhone(phoneBody)
+                                } else {
+                                    showPopup = true
+                                }
                             },
                             shape = RoundedCornerShape(13.dp),
-                            border =  BorderStroke(1.dp, Color(0xFF0054D8)),
+                            border = BorderStroke(1.dp, Color(0xFF0054D8)),
                             modifier = Modifier
-                                .fillMaxWidth(0.93f)
-                                .padding(1.dp),
+                                .fillMaxWidth(0.97f)
+                                .padding(10.dp),
                             colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
 
                             ) {
@@ -447,17 +497,95 @@ fun  PaymentSection1(
                                 text = "Modifier",
                                 color = Color(0xFF0054D8),
                                 fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp
+                                fontSize = 15.sp,
+                                modifier = Modifier
+                                  //  .fillMaxWidth()
                             )
                         }
 
                     }
-                }
-            }
+                    val screenHeight = LocalConfiguration.current.screenHeightDp.dp
+                    val popupHeight = screenHeight / 4
 
 
-        }
+                    if (showPopup) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.BottomCenter // Align the content to the bottom center
+                        ) {
+                            Dialog(onDismissRequest = { showPopup = false }) {
+                                Surface(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(20.dp) // Padding around the dialog
+                                        .align(Alignment.BottomCenter), // Align the dialog to the bottom center
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = Color.White,
+                                    elevation = 8.dp
+                                ) {
+                                    Column(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        // Phone number input field in the popup
+                                        OutlinedTextField(
+                                            value = phoneNumber,
+                                            onValueChange = { newValue -> phoneNumber = newValue },
+                                            label = { Text("Numéro de téléphone") },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            isError = phoneNumber.isEmpty(),
+                                            shape = RoundedCornerShape(10.dp),
+                                            colors = TextFieldDefaults.outlinedTextFieldColors(
+                                                focusedBorderColor = Color.Gray,
+                                                unfocusedBorderColor = Color.Gray,
+                                                focusedLabelColor = Color.Gray,
+                                            )
+                                        )
 
+                                        if (phoneNumber.isEmpty()) {
+                                            Text(
+                                                text = "* Obligatoire",
+                                                color = Color.Red,
+                                                style = MaterialTheme.typography.body2,
+                                            )
+                                        }
+
+                                        Spacer(modifier = Modifier.height(16.dp))
+
+                                        // Modifier button inside the popup
+                                        Button(
+                                            onClick = {
+                                                // Handle phone number modification
+                                                if (phoneNumber.isNotEmpty()) {
+                                                    val phoneBody = RequestBody.create(
+                                                        "text/plain".toMediaTypeOrNull(), phoneNumber
+                                                    )
+                                                    updatePhoneViewModel.UpdatePhone(phoneBody)
+                                                    showPopup = false
+                                                }
+                                            },
+                                            modifier = Modifier.fillMaxWidth(),
+                                            shape = RoundedCornerShape(13.dp),
+                                            colors = ButtonDefaults.buttonColors(
+                                                backgroundColor = Color(0xFF0054D8)
+                                            ),
+                                        ) {
+                                            Text(
+                                                text = "Modifier",
+                                                color = Color.White,
+                                                fontWeight = FontWeight.Bold,
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }}}
         /*
           modifier = Modifier
                             .fillMaxWidth()
@@ -644,7 +772,6 @@ fun  PaymentSection1(
                                         }
                                     } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
 
-                                    Log.d("OLFA", "Formatted Values: start=$startFormatted, end=$endFormatted, from=$fromFormatted, to=$toFormatted")
 
                                     val totalAmountSelected = adjustedAmount + totalExtrasCost
 
@@ -655,8 +782,8 @@ fun  PaymentSection1(
 
                                     val playerIds = selectedPlayers.toList()
                                     Log.d("DEBUG", "Converted Players List: $playerIds")
-
                                     val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
+
                                         if (index == 0) {
                                             booking.copy(
                                                 numberOfPart = currentSelectedParts,
@@ -665,12 +792,15 @@ fun  PaymentSection1(
                                                 start = startFormatted,
                                                 end = endFormatted,
                                                 from = fromFormatted,
-                                                to = toFormatted
+                                                to = toFormatted,
+                                                sharedExtrasIds = sharedExtras,
+                                                privateExtrasIds = privateExtras
                                             )
                                         } else {
                                             booking
                                         }
                                     }
+                                    Log.d("OLFA", "Formatted Values: start=$startFormatted, end=$updatedMappedBookings")
 
                                     val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected)
                                     val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
@@ -702,7 +832,7 @@ fun  PaymentSection1(
                                                     val paymentRequest = PaymentRequest(
                                                         amount = totalAmountSelected.toString(),
                                                         currency = selectedBooking.currencySymbol
-                                                            ?: "EUR",
+                                                            ?: "DT",
                                                         orderId = bookingId
                                                     )
 
@@ -771,7 +901,7 @@ fun  PaymentSection1(
                         }
                     },
 
-                    enabled = !isLoading,
+                    enabled = (phoneNumber.isEmpty() &&  updatePhoneResult is DataResult.Success && phoneNumber.length == 8 && phoneNumber.all { it.isDigit() } ) || (phoneNumber.isNotEmpty() && phoneNumber.length == 8 && phoneNumber.all { it.isDigit() }) ,
 
                     modifier = Modifier
                         .height(48.dp).offset(x = -28.dp)
@@ -799,15 +929,21 @@ fun  PaymentSection1(
                     }
                 }
                 var amount by remember { mutableStateOf(BigDecimal.ZERO) }
-                var showPopup by remember { mutableStateOf(false) } // State to control popup visibility
+                var showPopup by remember { mutableStateOf(false) }
                 var bookingId by remember { mutableStateOf<String?>(null) }
                 var hasFetchedSelectedParts by remember { mutableStateOf(false) }
                 var hasFetchedBooking by remember { mutableStateOf(false) }
                 var hasFetchedPaymentPayAvoir by remember { mutableStateOf(false) }
+                Log.d("AMMMMMMMMMMMMMMMMMMMMM", "showPopup:  $showPopup")
+                LaunchedEffect(showPopup) {
+                    if (!showPopup) {
+                        delay(300) // Allow state reset before next opening
+                    }
+                }
                 Button(
                     onClick = {
                         if (isLoading) return@Button // Prevent clicking while processing
-
+                        Log.d("BPPPPPPPPPPPPPPPPP", "showPopup:  $showPopup")
                         val selectedBooking = mappedBookings.firstOrNull()
                         if (!hasFetchedSelectedParts) {
                             viewModel9.updateSelectedParts(selectedParts)
@@ -908,25 +1044,15 @@ fun  PaymentSection1(
                                                             start = startFormatted,
                                                             end = endFormatted,
                                                             from = fromFormatted,
-                                                            to = toFormatted
+                                                            to = toFormatted,
+                                                            sharedExtrasIds = sharedExtras,
+                                                            privateExtrasIds = privateExtras
                                                         )
                                                     } else {
                                                         booking
                                                     }
                                                 }
-/*
-
-                                    val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
-                                        if (index == 0) {
-                                            booking.copy(
-                                                searchDate = searchDate.toString(),
-                                                start = startFormatted,
-                                                end = endFormatted,
-                                                from = fromFormatted,
-                                                to = toFormatted
- */
-
-
+                                                Log.d("AFFFFFFFFFFFFFAAAAAA", "Formatted Values: start=$startFormatted, end=$updatedMappedBookings")
 
                                                 balanceViewModel.fetchAndBalance()
                                                 if (!hasFetchedBooking) {
@@ -950,13 +1076,6 @@ fun  PaymentSection1(
                                                                 bookingId = firstBooking.id.toString()
                                                                 Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
 
-                                                                val paymentRequest = PaymentRequest(
-                                                                    amount = totalAmountSelected.toString(),
-                                                                    currency = selectedBooking.currencySymbol ?: "EUR",
-                                                                    orderId = bookingId!! // Pass bookingId here
-                                                                )
-
-                                                            //   paymentViewModel.Payment(paymentRequest)
                                                             }
                                                         }
 
@@ -975,12 +1094,12 @@ fun  PaymentSection1(
                                         }
                                     }
                                 }
-                                showPopup = true
+
                             }
                         }
-
+                        showPopup = true
                     },
-                    enabled = !isLoading,
+                    enabled = phoneNumber.length == 8 && phoneNumber.all { it.isDigit() },
                     modifier = Modifier
                         .height(48.dp).offset(x=-7.dp)
                         .weight(1.3f), // Ensure both buttons take equal space
@@ -1016,21 +1135,18 @@ fun  PaymentSection1(
                         viewModel = hiltViewModel(), // Pass the GetProfileViewModel
                         navController = navController, // Pass the NavController
                         errorCreditViewModel = hiltViewModel(), // Pass the ErrorCreditViewModel
-                        onTotalAmountCalculated = { amount, currency ->
-                            Log.d("TotalAmount", "Total Amount Calculated: $amount $currency")
-                        },
+                        onTotalAmountCalculated = { amount, currency -> },
                         adjustedAmount = adjustedAmount, // Pass adjustedAmount
                         totalExtrasCost = totalExtrasCost, // Pass totalExtrasCost
-                        showPopup = showPopup, // Pass the visibility state
+                        showPopup = showPopup, // Toggle state correctly
                         onDismiss = { showPopup = false }, // Handle dismissal
                         mappedBookingsJson = mappedBookingsJson, // Pass mapped bookings data
                         viewModel9 = viewModel9, // Pass shared view model
                         findTermsViewModel = hiltViewModel(), // Pass FindTermsViewModel
                         selectedDate = selectedDate, // Pass selected date
                         selectedReservation = selectedReservation, // Pass selected reservation
-                        saveBookingViewModel = hiltViewModel() ,// Pass SaveBookingViewModel
-                        bookingId = bookingId,  // Pass the extracted bookingId
-
+                        saveBookingViewModel = hiltViewModel(), // Pass SaveBookingViewModel
+                        bookingId = bookingId,
                     )
                 }
 

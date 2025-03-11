@@ -237,7 +237,7 @@ fun PopupCredit(
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.65f) // Take half the screen
+                    .fillMaxHeight(0.75f) // Take half the screen
                     .padding(16.dp)
                     .animateContentSize(),
                 shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp), // Rounded top corners
@@ -255,10 +255,12 @@ fun PopupCredit(
                     ) {
                         IconButton(
                             onClick = {
+                                onDismiss( )
+
                                 if (creditErrorRequest != null) {
                                     errorCreditViewModel.ErrorCredit(creditErrorRequest)
                                 }
-                                onDismiss()
+
                             }
                         ) {
                             Icon(
@@ -276,19 +278,18 @@ fun PopupCredit(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = "$firstName $lastName", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-
                         Text(
                             text = "Votre solde: $balance Crédits",
                             fontSize = 16.sp,
@@ -296,7 +297,7 @@ fun PopupCredit(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
                     val coroutineScope = rememberCoroutineScope()
                     val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
 
@@ -311,8 +312,6 @@ fun PopupCredit(
                                     val selectedBooking = mappedBookings.firstOrNull()
 
                                     if (selectedBooking != null) {
-
-
                                         val totalAmountSelected = adjustedAmount + totalExtrasCost
 
                                         if (totalAmountSelected <= 0) {
@@ -448,7 +447,7 @@ fun PopupCredit(
                                     }
                                 }
                             }
-                                  },
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(48.dp),
@@ -456,9 +455,9 @@ fun PopupCredit(
                         shape = RoundedCornerShape(8.dp),
                         enabled = totalAmountSelected <= balance.toDouble()
                     ) {
-                        Text(text = "Payer:  $totalAmountSelected Crédits", fontSize = 18.sp, fontWeight = FontWeight.Bold,color = Color.White)
+                        Text(text = "Payer:  $totalAmountSelected Crédits", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp)) // Increased spacer height
 
                     TextButton(
                         onClick = {
@@ -476,7 +475,7 @@ fun PopupCredit(
                             fontSize = 12.sp,
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(24.dp)) // Increased spacer height
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -519,7 +518,7 @@ fun PopupCredit(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -543,7 +542,7 @@ fun PopupCredit(
                         progress = animatedProgress,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 8.dp),
+                            .padding(top = 16.dp), // Adjusted padding for better visibility
                         color = animatedColor
                     )
                 }

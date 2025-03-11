@@ -13,9 +13,9 @@ import com.google.gson.annotations.JsonAdapter
 import com.google.gson.annotations.SerializedName
 import com.padelium.domain.dto.EstablishmentPacksDTO
 import com.padelium.domain.dto.EstablishmentPictureDTO
-import com.padelium.domain.dto.PlanningDTO
 import com.padelium.domain.dto.EstablishmentDTO
 import com.padelium.domain.dto.HappyHours
+import com.padelium.domain.dto.PlanningDTO
 import java.math.BigDecimal
 import java.lang.reflect.Type
 
