@@ -187,7 +187,7 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
             bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptyList(),
             client = true ,
-            closeTime = dto.closeTime?.toString() ?: Instant.now().toString(),
+            closeTime = null,
 
             couponCode = dto.couponCode ?: "",
             currencyId = dto.currencyId ?: 0L,
@@ -203,12 +203,13 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
             facadeUrl = dto.facadeUrl ?: "",
             from =fromFormatted,
-            HappyHours = dto.HappyHours ?: emptyList(),
+            happyHours = dto.happyHours ?: "",
             mgAmount = dto.mgAmount ?: BigDecimal.ZERO,
             moyFeed = dto.moyFeed ?: 0.0,
             numberOfPart =  dto.numberOfPart ?: 0,
             numberOfPlayer = dto.numberOfPlayer ?: 0,
-            openTime = dto.openTime?.toString() ?: Instant.now().toString(),
+
+            openTime = dto.openTime,
             payFromAvoir = dto.payFromAvoir ?: false,
             plannings = dto.plannings ?: emptyList(),
             ramountfeeTrans = dto.ramountfeeTrans ?: BigDecimal.ZERO,
@@ -227,14 +228,14 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             to =toFormatted,
             start = startFormatted,
             totalFeed = dto.totalFeed ?: 0,
-            users = dto.users ?: emptyList(),
+          //  users = dto.users ?: emptyList(),
             userIds = dto.userIds ,
             withSecondPrice = dto.withSecondPrice ?: false,
-            orderId = dto.orderId ?: 0L,
-            id = dto.id ?: 0L,
+           // orderId = dto.orderId ?: 0L,
+         //   id = dto.id ?: 0L,
             privateExtrasIds = dto.privateExtrasIds ?: emptyList(),
-            buyerId = dto.buyerId ?: "",
-            couponIds = dto.couponIds ?: emptyMap(),
+         //   buyerId = dto.buyerId ?: "",
+          //  couponIds = dto.couponIds ?: emptyMap(),
         )
     }
 }
@@ -779,6 +780,13 @@ fun  PaymentSection1(
                                         isLoading = false
                                         return@collectLatest
                                     }
+                                    val formattedAmount = selectedBooking.amount?.stripTrailingZeros()?.toPlainString()?.let {
+                                        if (it.contains(".")) it else it.toInt().toString()
+                                    } ?: "0"
+
+                                    val formattedAamount = selectedBooking.aamount?.stripTrailingZeros()?.toPlainString()?.let {
+                                        if (it.contains(".")) it else it.toInt().toString()
+                                    } ?: "0"
 
                                     val playerIds = selectedPlayers.toList()
                                     Log.d("DEBUG", "Converted Players List: $playerIds")
@@ -794,7 +802,10 @@ fun  PaymentSection1(
                                                 from = fromFormatted,
                                                 to = toFormatted,
                                                 sharedExtrasIds = sharedExtras,
-                                                privateExtrasIds = privateExtras
+                                                privateExtrasIds = privateExtras,
+                                                amount = BigDecimal(formattedAmount),
+                                                aamount = BigDecimal(formattedAamount)
+
                                             )
                                         } else {
                                             booking
@@ -1009,6 +1020,14 @@ fun  PaymentSection1(
                                         return@collectLatest
                                     }
 
+                                    val formattedAmount = selectedBooking.amount?.stripTrailingZeros()?.toPlainString()?.let {
+                                        if (it.contains(".")) it else it.toInt().toString()
+                                    } ?: "0"
+
+                                    val formattedAamount = selectedBooking.aamount?.stripTrailingZeros()?.toPlainString()?.let {
+                                        if (it.contains(".")) it else it.toInt().toString()
+                                    } ?: "0"
+
                                     val playerIds = selectedPlayers.toList()
                                     val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected).setScale(0, RoundingMode.DOWN)
                                     val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
@@ -1046,7 +1065,9 @@ fun  PaymentSection1(
                                                             from = fromFormatted,
                                                             to = toFormatted,
                                                             sharedExtrasIds = sharedExtras,
-                                                            privateExtrasIds = privateExtras
+                                                            privateExtrasIds = privateExtras,
+                                                            amount = BigDecimal(formattedAmount),
+                                                            aamount = BigDecimal(formattedAamount)
                                                         )
                                                     } else {
                                                         booking

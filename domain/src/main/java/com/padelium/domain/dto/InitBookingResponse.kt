@@ -26,7 +26,7 @@ data class InitBookingResponse(
     val bookingAnnulationDTOSet: List<bookingAnnulationDTOSet>,
     val secondAmount: BigDecimal,
     val secondAamount: BigDecimal,
-    val happyHours: List<HappyHours>,
+    val happyHours: String,
     val withSecondPrice: Boolean,
     val reductionAmount: BigDecimal,
     val reductionSecondAmount: BigDecimal,

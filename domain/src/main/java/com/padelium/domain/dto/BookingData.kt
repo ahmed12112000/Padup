@@ -77,7 +77,7 @@ data class EstablishmentDTO(
     val activityActive: Boolean,
     val activitySmallIcon: String?,
     val activityIcon: String?,
-    val isClient: Boolean = true,
+    //val isClient: Boolean = true,
     val establishmentId: Long?,
     val createdDate: String?,
     val amount: Double?,
@@ -321,7 +321,7 @@ data class bookingAnnulationDTO(
     val notRefundable:Boolean
 ) : Serializable
 
-data class HappyHours(
+data class happyHours(
     val id:Long,
     val from: String,
     val to: String,

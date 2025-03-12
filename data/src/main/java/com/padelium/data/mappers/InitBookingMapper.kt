@@ -42,7 +42,7 @@ class InitBookingMapper @Inject constructor() {
                 bookingAnnulationDTOSet = response.bookingAnnulationDTOSet ?: emptyList(),
                 secondAmount = response.secondAmount ?: BigDecimal.ZERO,
                 secondAamount = response.secondAamount ?: BigDecimal.ZERO,
-                happyHours = response.happyHours ?: emptyList(),
+                happyHours = response.happyHours ?: "" ,
                 withSecondPrice = response.withSecondPrice ?: false,
                 reductionAmount = response.reductionAmount ?: BigDecimal.ZERO,
                 reductionSecondAmount = response.reductionSecondAmount ?: BigDecimal.ZERO,

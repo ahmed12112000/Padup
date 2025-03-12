@@ -30,8 +30,9 @@ class GetBookingMapper @Inject constructor() {
                 decimalNumber = response.decimalNumber ?: 0,
                 currencySymbol = response.currencySymbol ?: "",
                 facadeUrl = response.facadeUrl ?: "",
-                openTime = response.openTime?.toString() ?: Instant.now().toString(),
-                closeTime = response.closeTime?.toString() ?: Instant.now().toString(),
+
+                openTime = response.openTime,
+                closeTime = null,
 
                 searchDate = response.searchDate ?: "",
                 from = response.from,
@@ -44,7 +45,7 @@ class GetBookingMapper @Inject constructor() {
                 bookingAnnulationDTOSet = response.bookingAnnulationDTOSet ?: emptyList(),
                 secondAmount = response.secondAmount ?: BigDecimal.ZERO,
                 secondAamount = response.secondAamount ?: BigDecimal.ZERO,
-                HappyHours = response.HappyHours ?: emptyList(),
+                happyHours = response.happyHours ?: "",
                 withSecondPrice = response.withSecondPrice ?: false,
                 reductionAmount = response.reductionAmount ?: BigDecimal.ZERO,
                 reductionSecondAmount = response.reductionSecondAmount ?: BigDecimal.ZERO,
@@ -63,9 +64,9 @@ class GetBookingMapper @Inject constructor() {
 
                 establishmentPacksId = if (response.establishmentPacksId == 0L) null else response.establishmentPacksId,
 
-                orderId = response.orderId ?: 0L,
+          //      orderId = response.orderId ?: 0L,
                 plannings = response.plannings ?: emptyList(),
-                users = response.users ?: emptyList(),
+              //  users = response.users ?: emptyList(),
                 client = true ,
                 secondReduction = response.secondReduction ?: 0,
                 aamount = response.aamount ?: BigDecimal.ZERO,
@@ -73,10 +74,10 @@ class GetBookingMapper @Inject constructor() {
                 numberOfPart =  response.numberOfPart ?: 0,
                 sharedExtrasIds = response.sharedExtrasIds ?: emptyList(),
                 userIds = response.userIds ?: emptyList(),
-                id = response.id ?: 0L,
+            //    id = response.id ?: 0L,
                 privateExtrasIds = response.privateExtrasIds ?: emptyList(),
-                buyerId = response.buyerId ?: "",
-                couponIds = response.couponIds ?: emptyMap(),
+             //   buyerId = response.buyerId ?: "",
+              //  couponIds = response.couponIds ?: emptyMap(),
 
                 )
         }

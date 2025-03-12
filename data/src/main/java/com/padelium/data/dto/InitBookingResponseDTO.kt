@@ -2,7 +2,7 @@ package com.padelium.data.dto
 
 import com.padelium.domain.dto.EstablishmentPacksDTO
 import com.padelium.domain.dto.EstablishmentPictureDTO
-import com.padelium.domain.dto.HappyHours
+import com.padelium.domain.dto.happyHours
 import com.padelium.domain.dto.PlanningDTO
 import com.padelium.domain.dto.PlanningDTOo
 import com.padelium.domain.dto.bookingAnnulationDTOSet
@@ -33,7 +33,7 @@ data class InitBookingResponseDTO(
     val bookingAnnulationDTOSet: List<bookingAnnulationDTOSet>,
     val secondAmount: BigDecimal,
     val secondAamount: BigDecimal,
-    val happyHours: List<HappyHours>,
+    val happyHours: String,
     val withSecondPrice: Boolean,
     val reductionAmount: BigDecimal,
     val reductionSecondAmount: BigDecimal,

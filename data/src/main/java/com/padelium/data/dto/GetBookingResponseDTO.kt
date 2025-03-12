@@ -14,7 +14,7 @@ import com.google.gson.annotations.SerializedName
 import com.padelium.domain.dto.EstablishmentPacksDTO
 import com.padelium.domain.dto.EstablishmentPictureDTO
 import com.padelium.domain.dto.EstablishmentDTO
-import com.padelium.domain.dto.HappyHours
+import com.padelium.domain.dto.happyHours
 import com.padelium.domain.dto.PlanningDTO
 import java.math.BigDecimal
 import java.lang.reflect.Type
@@ -41,13 +41,13 @@ data class GetBookingResponseDTO(
     @SerializedName("privateExtrasIds") val privateExtrasIds: List<Long?>,
     @SerializedName("reduction") val reduction: Int?,
     @SerializedName("sharedExtrasIds") val sharedExtrasIds: List<Long?>,
-    @SerializedName("orderId") val orderId: Long?,
-    @SerializedName("id") val id: Long?,
+ //   @SerializedName("orderId") val orderId: Long?,
+  //  @SerializedName("id") val id: Long?,
     @SerializedName("numberOfPart") val numberOfPart: Int,
     @SerializedName("establishmentDTO") val establishmentDTO: EstablishmentDTO,
     @SerializedName("description") val description: String?,
-    @SerializedName("buyerId") val buyerId: String?,
-    @SerializedName("couponIds") val couponIds: Map<Long, Long>?,
+  //  @SerializedName("buyerId") val buyerId: String?,
+  //  @SerializedName("couponIds") val couponIds: Map<Long, Long>?,
     @SerializedName("amount") val amount: BigDecimal?,
     @SerializedName("decimalNumber") val decimalNumber: Int?,
     @SerializedName("currencySymbol") val currencySymbol: String?,
@@ -65,7 +65,7 @@ data class GetBookingResponseDTO(
     @SerializedName("bookingAnnulationDTOSet") val bookingAnnulationDTOSet: List<Unit>,
     @SerializedName("secondAmount") val secondAmount: BigDecimal?,
     @SerializedName("secondAamount") val secondAamount: BigDecimal?,
-    @SerializedName("HappyHours") val HappyHours: List<HappyHours>,
+    @SerializedName("HappyHours") val happyHours: String?,
     @SerializedName("withSecondPrice") val withSecondPrice: Boolean?,
     @SerializedName("reductionAmount") val reductionAmount: BigDecimal?,
     @SerializedName("reductionSecondAmount") val reductionSecondAmount: BigDecimal?,
@@ -82,7 +82,7 @@ data class GetBookingResponseDTO(
     @SerializedName("establishmentPacksDTO") val establishmentPacksDTO: List<EstablishmentPacksDTO>,
     @SerializedName("establishmentPacksId") val establishmentPacksId: Long?,
     @SerializedName("plannings") val plannings: List<PlanningDTO>,
-    @SerializedName("users") val users: List<Long?>,
+  //  @SerializedName("users") val users: List<Long?>,
 
     @SerializedName("userIds") val userIds: List<Long?>,
 

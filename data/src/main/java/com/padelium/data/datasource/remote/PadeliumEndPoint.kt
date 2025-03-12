@@ -169,7 +169,7 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
     suspend fun PrivateExtras(): Response<List<PrivateExtrasResponseDTO>>
 
 
-    @Headers("Accept: application/json", "Content-Type: application/json")
+    @Headers( "Content-Type: application/json")
     @POST("api/establishments/search/save/booking")
     suspend fun SaveBooking(@Body saveBookingRequest: List<GetBookingResponse>): Response<List<SaveBookingResponse>>
 

@@ -381,10 +381,8 @@ fun PopupCredit(
                                                                         bookingIds = listOfNotNull(
                                                                             bookingId?.toLongOrNull()
                                                                         ),
-                                                                        buyerId = mappedBookings.first().buyerId
-                                                                            ?: "",
-                                                                        couponIds = mappedBookings.first().couponIds
-                                                                            ?: emptyMap(),
+                                                                        buyerId = "",
+                                                                        couponIds = emptyMap(),
                                                                         sharedExtrasIds = mappedBookings.first().sharedExtrasIds
                                                                             ?: emptyList(),
                                                                         status = true,
