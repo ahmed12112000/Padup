@@ -13,52 +13,26 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
 
 @InstallIn(SingletonComponent::class)
 @Module
 object NetworkModule {
 
     @Provides
+    @Singleton
     fun provideSharedPreferences(@ApplicationContext context: Context): SharedPreferences {
         return context.getSharedPreferences("your_prefs_name", Context.MODE_PRIVATE)
     }
 
     @Provides
-    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
-        return Retrofit.Builder()
-            .addConverterFactory(GsonConverterFactory.create())
-            .baseUrl(Constant.BASE_URL)
-            .client(okHttpClient)
-            .build()
+    @Singleton
+    fun provideJSessionInterceptor(sharedPreferences: SharedPreferences): JSessionInterceptor {
+        return JSessionInterceptor(sharedPreferences)
     }
 
     @Provides
-    fun provideOkHttpClient(
-        loggingInterceptor: HttpLoggingInterceptor,
-        jSessionInterceptor: JSessionInterceptor
-    ): OkHttpClient {
-        val logging = HttpLoggingInterceptor().apply {
-            level = HttpLoggingInterceptor.Level.BODY
-        }
-
-        return OkHttpClient.Builder()
-            .connectTimeout(60, TimeUnit.SECONDS) // Increase connection timeout
-            .readTimeout(60, TimeUnit.SECONDS)    // Increase read timeout
-            .writeTimeout(60, TimeUnit.SECONDS)   // Increase write timeout
-            .addInterceptor(logging)
-            .addInterceptor(jSessionInterceptor)
-            .addInterceptor { chain ->
-                val response = chain.proceed(chain.request())
-
-                println("Response Code: ${response.code}")
-                println("Response Body: ${response.peekBody(2048).string()}")
-
-                response
-            }
-            .build()
-    }
-
-    @Provides
+    @Singleton
     fun provideLoggingInterceptor(): HttpLoggingInterceptor {
         return HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -66,9 +40,28 @@ object NetworkModule {
     }
 
     @Provides
-    fun provideJSessionInterceptor(sharedPreferences: SharedPreferences): JSessionInterceptor {
-        return JSessionInterceptor(sharedPreferences)
+    @Singleton
+    fun provideOkHttpClient(
+        loggingInterceptor: HttpLoggingInterceptor,
+        jSessionInterceptor: JSessionInterceptor
+    ): OkHttpClient {
+        return OkHttpClient.Builder()
+            .connectTimeout(60, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS)
+            .writeTimeout(60, TimeUnit.SECONDS)
+            .addInterceptor(loggingInterceptor)
+            .addInterceptor(jSessionInterceptor) // ✅ Add the session interceptor here
+            .build()
+    }
+
+
+    @Provides
+    @Singleton
+    fun provideRetrofit(okHttpClient: OkHttpClient): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(Constant.BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
     }
 }
-
-

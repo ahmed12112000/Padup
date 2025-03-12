@@ -71,22 +71,17 @@ import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.padelium.domain.dataresult.DataResult
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.material.*
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.DrawerValue
-import androidx.compose.ui.graphics.Path
 import androidx.compose.material.CircularProgressIndicator
+import androidx.compose.material.icons.filled.SignalWifiOff
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.unit.Dp
 import com.nevaDev.padeliummarhaba.di.NetworkUtil
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.material.Button
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -95,12 +90,12 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        networkUtil = NetworkUtil(this) // Start network monitoring
+        networkUtil = NetworkUtil(this)
 
         setContent {
             PadeliumMarhabaTheme {
                 var showSplashScreen by remember { mutableStateOf(true) }
-                var isNetworkAvailable by remember { mutableStateOf(true) } // Track network status
+                var isNetworkAvailable by remember { mutableStateOf(true) }
                 val navController = rememberNavController()
                 val viewModel: GetProfileViewModel = hiltViewModel()
                 val context = LocalContext.current
@@ -114,12 +109,10 @@ class MainActivity : ComponentActivity() {
                     networkUtil.registerNetworkCallback { isConnected ->
                         isNetworkAvailable = isConnected // Update network status
                         if (!isNetworkAvailable) {
-                            // Show toast when disconnected
                             Toast.makeText(context, "Internet disconnected", Toast.LENGTH_SHORT).show()
                         }
                     }
                 }
-                // Delay splash screen
                 LaunchedEffect(Unit) {
                     delay(3000)
                     showSplashScreen = false
@@ -141,7 +134,7 @@ class MainActivity : ComponentActivity() {
                         sharedPreferences = sharedPreferences,
                         viewModel = viewModel,
                         navController = navController,
-                        isNetworkAvailable = isNetworkAvailable // Pass the network status
+                        isNetworkAvailable = isNetworkAvailable
                     )
                 }
             }
@@ -153,8 +146,6 @@ class MainActivity : ComponentActivity() {
         networkUtil.unregister()
     }
 }
-
-
 
 @Composable
 fun MainApp(
@@ -173,16 +164,26 @@ fun MainApp(
     val selectedItem = currentBackStackEntry?.destination?.route
     val shouldShowBottomBar = selectedItem !in listOf("splash_screen", "login_screen")
 
-    // Disable UI interactions if no internet
     val interactionSource = remember { MutableInteractionSource() }
     val disabledModifier = if (!isNetworkAvailable) Modifier.clickable(
         interactionSource = interactionSource,
         indication = null // Disable visual feedback
     ) {} else Modifier
 
+    // Track network connection status actively
+    val showDialog = remember { mutableStateOf(!isNetworkAvailable) }
+
+    LaunchedEffect(isNetworkAvailable) {
+        if (!isNetworkAvailable) {
+            showDialog.value = true // Show dialog when internet is disconnected
+        } else {
+            showDialog.value = false // Hide dialog when internet is available
+        }
+    }
+
     Scaffold(
         bottomBar = {
-            if (shouldShowBottomBar ) { // Hide bottom bar if offline
+            if (shouldShowBottomBar) {
                 AnimatedBottomBar(
                     navController = navController,
                     getReservationViewModel = getReservationViewModel
@@ -192,7 +193,6 @@ fun MainApp(
         content = { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 if (isNetworkAvailable) {
-                    // Render AppNavHost normally
                     AppNavHost(
                         navController = navController,
                         isUserLoggedIn = sessionManager.isLoggedIn(),
@@ -205,17 +205,71 @@ fun MainApp(
                         onSignupSuccess = { }
                     )
                 } else {
-                    // Block interactions but keep the UI visible
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
+                            .background(Color.Black.copy(alpha = 0.5f))
                             .clickable(interactionSource = interactionSource, indication = null) {}
                     )
                 }
             }
         }
     )
+
+    // Dialog for no internet connection with Try Again functionality
+    if (showDialog.value) {
+        AlertDialog(
+            onDismissRequest = { showDialog.value = true }, // Keep dialog open on dismiss
+            title = {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.SignalWifiOff,
+                        contentDescription = "No Internet",
+                        tint = Color.Red,
+                        modifier = Modifier.size(40.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Aucune connexion internet",
+                        style = TextStyle(fontSize = 18.sp, color = Color.Black)
+                    )
+                }
+            },
+            text = {
+                Text("Veuillez vérifier votre connexion Internet et réessayer.")
+            },
+            buttons = {
+                Row(
+                    horizontalArrangement = Arrangement.Center,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Button(
+                        onClick = {
+                            // Check if internet is restored after clicking the retry button
+                            if (isNetworkAvailable) {
+                                showDialog.value = false // Hide the dialog if connected
+                            } else {
+                                showDialog.value = true // Keep the dialog open if still disconnected
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor =  Color(0xFF0054D8)
+                        ),
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Text("Réessayez", color = Color.White)
+                    }
+                }
+            }
+        )
+    }
 }
+
+
+
 
 
 

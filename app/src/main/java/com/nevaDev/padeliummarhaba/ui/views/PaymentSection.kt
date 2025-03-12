@@ -98,8 +98,10 @@ import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.data.dto.GetPaymentRequestDTO
+import com.padelium.data.dto.SaveBookingRequestt
 import com.padelium.domain.dto.ConfirmBookingRequest
 import com.padelium.domain.dto.CreditErrorRequest
+import com.padelium.domain.dto.EstablishmentBasicDTO
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetPaymentRequest
 import com.padelium.domain.dto.GetProfileResponse
@@ -709,67 +711,65 @@ fun  PaymentSection1(
                 Button(
                     onClick = {
 
-                        if (isLoading) return@Button // Prevent clicking while processing
+                        if (isLoading) return@Button
                         Log.d(
                             "OLFA",
                             "Selected Players before extracting IDs: ${selectedPlayers.joinToString { "ID=${it}" }}"
                         )
 
-                        // Update selected parts first
                         viewModel9.updateSelectedParts(selectedParts)
 
-                        // Launch a coroutine to collect the latest selected parts
                         coroutineScope.launch {
                             viewModel9.selectedParts.collectLatest { currentSelectedParts ->
                                 val selectedBooking = mappedBookings.firstOrNull()
 
                                 if (selectedBooking != null) {
-                                    val searchDate = selectedDate // Ensure searchDate is used correctly
+                                    val searchDate = selectedDate
                                     Log.e("DateConversion", "Processing searchDate: $searchDate")
 
                                     val firstPlanning = selectedBooking.plannings?.firstOrNull()
 
                                     val startFormatted = firstPlanning?.fromStr?.let { timeStr ->
                                         try {
-                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                                            val formattedTimeStr = timeStr.padStart(5, '0')
                                             val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
                                             LocalDateTime.of(searchDate, time).format(formatterOutput)
                                         } catch (e: Exception) {
                                             Log.e("DateConversion", "Error parsing startFormatted", e)
-                                            searchDate.atTime(9, 30).format(formatterOutput) // Fallback
+                                            searchDate.atTime(9, 30).format(formatterOutput)
                                         }
                                     } ?: searchDate.atTime(9, 30).format(formatterOutput)
 
                                     val endFormatted = firstPlanning?.toStr?.let { timeStr ->
                                         try {
-                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
+                                            val formattedTimeStr = timeStr.padStart(5, '0')
                                             val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
                                             LocalDateTime.of(searchDate, time).format(formatterOutput)
                                         } catch (e: Exception) {
                                             Log.e("DateConversion", "Error parsing endFormatted", e)
-                                            searchDate.atTime(9, 30).format(formatterOutput) // Fallback
+                                            searchDate.atTime(9, 30).format(formatterOutput)
                                         }
                                     } ?: searchDate.atTime(9, 30).format(formatterOutput)
 
                                     val fromFormatted = firstPlanning?.fromStr?.let { timeStr ->
                                         try {
-                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                                            val formattedTimeStr = timeStr.padStart(5, '0')
                                             val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
                                             LocalDateTime.of(searchDate, time).format(formatterWithMillis)
                                         } catch (e: Exception) {
                                             Log.e("DateConversion", "Error parsing fromFormatted", e)
-                                            searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
+                                            searchDate.atTime(9, 30).format(formatterWithMillis)
                                         }
                                     } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
 
                                     val toFormatted = firstPlanning?.toStr?.let { timeStr ->
                                         try {
-                                            val formattedTimeStr = timeStr.padStart(5, '0') // Ensure correct length
+                                            val formattedTimeStr = timeStr.padStart(5, '0')
                                             val time = LocalTime.parse(formattedTimeStr, DateTimeFormatter.ofPattern("HH:mm"))
                                             LocalDateTime.of(searchDate, time).format(formatterWithMillis)
                                         } catch (e: Exception) {
                                             Log.e("DateConversion", "Error parsing toFormatted", e)
-                                            searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
+                                            searchDate.atTime(9, 30).format(formatterWithMillis)
                                         }
                                     } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
 
@@ -790,6 +790,7 @@ fun  PaymentSection1(
 
                                     val playerIds = selectedPlayers.toList()
                                     Log.d("DEBUG", "Converted Players List: $playerIds")
+
                                     val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
 
                                         if (index == 0) {

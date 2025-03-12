@@ -11,56 +11,62 @@ import com.padelium.domain.dto.happyHoursBasicDTO
 import java.math.BigDecimal
 import java.time.Instant
 
-data class SaveBookingRequestDTO5(
-    val aamount: BigDecimal,
-    val amount: BigDecimal,
-    val amountfeeTrans: BigDecimal,
-    val isClient:Boolean = true,
-    val currencyId:Long,
-    val currencySymbol:String,
-    val decimalNumber: Int,
-    val description: String,
-    val end: String,
+data class SaveBookingRequestt(
+    val aamount: BigDecimal?,
+    val amount: BigDecimal?,
+    val amountfeeTrans: BigDecimal?,
+    val bookingAnnulationDTOSet: List<Unit>,
+    val client:Boolean = true,
+    val closeTime: String?,
+    val couponCode: String?,
+    val currencyId:Long?,
+    val currencySymbol:String?,
+    val decimalNumber: Int?,
+    val description: String?,
+    val end: String?,
+    val Establishment: EstablishmentDTO,
+    val establishmentPacksDTO: List<EstablishmentPacksDTO>,
+    val establishmentPictureDTO: List<EstablishmentPictureDTO>,
+    val facadeUrl: String?,
+    val from: String?,
+    val mgAmount: BigDecimal?,
+    val moyFeed: Double?,
+    val numberOfPart: Int?,
+    val payFromAvoir: Boolean?,
+    val privateExtrasIds: List<Long?>,
+    val ramountfeeTrans: BigDecimal?,
+    val reduction: Int?,
+    val reductionAmount: BigDecimal?,
+    val reductionSecondAmount: BigDecimal?,
+    val reductionaAmount: BigDecimal?,
+    val reductionaSecondAmount: BigDecimal?,
+    val rsamountfeeTrans: BigDecimal?,
+    val samountfeeTrans: BigDecimal?,
+    val searchDate: String?,
+    val secondAamount: BigDecimal?,
+    val secondAmount: BigDecimal?,
+    val secondReduction: Int?,
+    val sharedExtrasIds: List<Long?>,
+    val start: String?,
+    val to: String?,
+    val totalFeed: Int?,
+    val withSecondPrice: Boolean?
 
-    val Establishment: EstablishmentBasicDTO,
 
-    val HappyHours: List<happyHoursBasicDTO>,
-    val establishmentPictureDTO: List<EstablishmentPictureBasicDTO>,
-
-    val facadeUrl: String,
+    // val plannings: List<PlanningBasicDTO>,
 
 
-    val mgAmount: BigDecimal,
-    val moyFeed: Double,
-    val numberOfPart:Int,
-    val payFromAvoir: Boolean,
-
-    val plannings: List<PlanningBasicDTO>,
 
 
-    val reductionSecondAmount: BigDecimal,
-    val reductionaSecondAmount: BigDecimal,
-    val rsamountfeeTrans: BigDecimal,
-    val samountfeeTrans: BigDecimal,
-    val searchDate: String,
-    val secondAamount: BigDecimal,
-    val secondAmount: BigDecimal,
-    val secondReduction: Int,
-    val start: String,
-    val closeTime: String,
-    val to: String,
-    val from: String,
-    val totalFeed: Int,
 
-    val withSecondPrice: Boolean,
 
     // val usersIds:List<Long>,
+    //
     // val sharedExtrasIds: List<Long>,
-    // val sharedExtrasIds: List<Long>,
-    //  val privateExtrasIds:List<Long>,
+    //
 
-    //val establishmentPacksDTO: List<EstablishmentPacksDTO>,
-    //  val bookingAnnulationDTOSet: List<bookingAnnulationDTOSet>,
+    //
+    //
 
 
 )
@@ -100,9 +106,7 @@ data class TransformedBookingData(
     val end: String,
     val amountfeeTrans: BigDecimal,
     val samountfeeTrans: BigDecimal,
-    val ramountfeeTrans: BigDecimal,
     val rsamountfeeTrans: BigDecimal,
-    val couponCode: String,
     val establishmentPacksDTO: List<EstablishmentPacksDTO>,
     val establishmentPacksId: Long,
     val plannings: List<PlanningDTO>,

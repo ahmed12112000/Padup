@@ -30,6 +30,8 @@ data class EstablishmentBasicDTO(
     val name: String,
     val id: String,
     val code: String,
+    val description: String,
+    val email: String?,
 
     )
 
