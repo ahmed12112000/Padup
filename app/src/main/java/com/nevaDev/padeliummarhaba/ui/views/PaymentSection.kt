@@ -1,17 +1,11 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
 import android.annotation.SuppressLint
-import android.content.Context
 import android.net.Uri
 import android.util.Log
-import android.webkit.CookieManager
-import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +14,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -30,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.ButtonDefaults
@@ -38,7 +32,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,21 +57,19 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
-import androidx.core.os.bundleOf
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.gson.Gson
-import com.google.gson.GsonBuilder
 import com.google.gson.reflect.TypeToken
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ConfirmBookingViewModel
@@ -97,34 +88,28 @@ import com.nevaDev.padeliummarhaba.viewmodels.UpdatePhoneViewModel
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.data.dto.GetBookingResponseDTO
-import com.padelium.data.dto.GetPaymentRequestDTO
 import com.padelium.data.dto.SaveBookingRequestt
-import com.padelium.domain.dto.ConfirmBookingRequest
 import com.padelium.domain.dto.CreditErrorRequest
-import com.padelium.domain.dto.EstablishmentBasicDTO
+import com.padelium.domain.dto.EstablishmentDTO
+import com.padelium.domain.dto.EstablishmentDTOoo
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetPaymentRequest
 import com.padelium.domain.dto.GetProfileResponse
 import com.padelium.domain.dto.PaymentResponse
 import java.math.BigDecimal
-import java.time.Instant
 import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 import com.padelium.domain.dto.SaveBookingResponse // Adjust import as necessary
-import com.padelium.domain.dto.bookingIds
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
+import com.padelium.domain.dto.test
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody
 import java.math.RoundingMode
-import java.util.UUID
 
 fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
     val formatterOutput = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
@@ -182,63 +167,56 @@ fun List<GetBookingResponseDTO>.toDomain(): List<GetBookingResponse> {
             }
         } ?: "2024-12-20T09:30:00.000Z"
 
+        val formattedAmount = dto.amount?.stripTrailingZeros()?.toPlainString()?.let {
+            if (it.contains(".")) {
+                it.split(".")[0] // Remove the decimal part
+            } else {
+                it // No decimal part, return as is
+            }
+        } ?: "0"
+
+        val formattedAamount = dto.aamount?.stripTrailingZeros()?.toPlainString()?.let {
+            if (it.contains(".")) {
+                it.split(".")[0] // Remove the decimal part
+            } else {
+                it // No decimal part, return as is
+            }
+        } ?: "0"
 
         GetBookingResponse(
-            aamount = dto.aamount ?: BigDecimal.ZERO,
-            amount = dto.amount ?: BigDecimal.ZERO,
-            amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
-            bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptyList(),
-            client = true ,
-            closeTime = null,
+            aamount = BigDecimal(formattedAamount),
+            amount = BigDecimal(formattedAmount),
 
-            couponCode = dto.couponCode ?: "",
-            currencyId = dto.currencyId ?: 0L,
-            currencySymbol = dto.currencySymbol ?: "",
-            decimalNumber = dto.decimalNumber ?: 0,
-            description = dto.description ?: "",
+            amountfeeTrans = dto.amountfeeTrans ?: BigDecimal.ZERO,
+            bookingAnnulationDTOSet = dto.bookingAnnulationDTOSet ?: emptySet(),
+
             end = endFormatted,
             establishmentDTO = dto.establishmentDTO,
-            establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),
-
-            establishmentPacksId = if (dto.establishmentPacksId == 0L) null else dto.establishmentPacksId,
-
-            EstablishmentPictureDTO = dto.EstablishmentPictureDTO ?: emptyList(),
-            facadeUrl = dto.facadeUrl ?: "",
-            from =fromFormatted,
-            happyHours = dto.happyHours ?: "",
-            mgAmount = dto.mgAmount ?: BigDecimal.ZERO,
-            moyFeed = dto.moyFeed ?: 0.0,
-            numberOfPart =  dto.numberOfPart ?: 0,
-            numberOfPlayer = dto.numberOfPlayer ?: 0,
-
-            openTime = dto.openTime,
-            payFromAvoir = dto.payFromAvoir ?: false,
-            plannings = dto.plannings ?: emptyList(),
-            ramountfeeTrans = dto.ramountfeeTrans ?: BigDecimal.ZERO,
-            reduction = dto.reduction ?: 0,
-            reductionAmount = dto.reductionAmount ?: BigDecimal.ZERO,
-            reductionSecondAmount = dto.reductionSecondAmount ?: BigDecimal.ZERO,
-            reductionaAmount = dto.reductionaAmount ?: BigDecimal.ZERO,
-            reductionaSecondAmount = dto.reductionaSecondAmount ?: BigDecimal.ZERO,
-            rsamountfeeTrans = dto.rsamountfeeTrans ?: BigDecimal.ZERO,
-            samountfeeTrans = dto.samountfeeTrans ?: BigDecimal.ZERO,
-            searchDate = dto.searchDate ?: "",
-            secondAamount = dto.secondAamount ?: BigDecimal.ZERO,
-            secondAmount = dto.secondAmount ?: BigDecimal.ZERO,
-            secondReduction = dto.secondReduction ?: 0,
             sharedExtrasIds = dto.sharedExtrasIds ?: emptyList(),
+            privateExtrasIds = dto.privateExtrasIds ?: emptyList(),
+            plannings = dto.plannings ?: emptyList(),
+
+
+            from =fromFormatted,
+
+            numberOfPart =  dto.numberOfPart ?: 0,
+            currencyId = dto.currencyId ?: 0L,
+
+            payFromAvoir = dto.payFromAvoir ?: false,
+
+            searchDate = dto.searchDate ?: "",
+
             to =toFormatted,
             start = startFormatted,
-            totalFeed = dto.totalFeed ?: 0,
-          //  users = dto.users ?: emptyList(),
+            //  users = dto.users ?: emptyList(),
             userIds = dto.userIds ,
-            withSecondPrice = dto.withSecondPrice ?: false,
-           // orderId = dto.orderId ?: 0L,
-         //   id = dto.id ?: 0L,
-            privateExtrasIds = dto.privateExtrasIds ?: emptyList(),
-         //   buyerId = dto.buyerId ?: "",
-          //  couponIds = dto.couponIds ?: emptyMap(),
-        )
+            // orderId = dto.orderId ?: 0L,
+            //   id = dto.id ?: 0L,
+            //   buyerId = dto.buyerId ?: "",
+            //  couponIds = dto.couponIds ?: emptyMap(),
+            establishmentPacksDTO = dto.establishmentPacksDTO ?: emptyList(),
+
+            )
     }
 }
 
@@ -279,8 +257,8 @@ fun  PaymentSection1(
     var totalExtrasCost by remember { mutableStateOf(0.0) }
 
     // Deserialize JSON into List<GetBookingResponse>
-    val type = object : TypeToken<List<GetBookingResponse>>() {}.type
-    val mappedBookings: List<GetBookingResponse> = Gson().fromJson(mappedBookingsJson, type)
+    val type = object : TypeToken<List<GetBookingResponse >>() {}.type
+    val mappedBookings: List<GetBookingResponse > = Gson().fromJson(mappedBookingsJson, type)
     val saveBookingViewModel: SaveBookingViewModel = hiltViewModel()
     val paymentPayAvoirViewModel: PaymentPayAvoirViewModel = hiltViewModel()
     val confirmBookingViewModel: ConfirmBookingViewModel = hiltViewModel()
@@ -315,7 +293,7 @@ fun  PaymentSection1(
     LaunchedEffect(updatePhoneResult) {
         if (updatePhoneResult is DataResult.Success) {
             showMessage = true
-         //   Toast.makeText(context, "Phone number updated successfully ✅", Toast.LENGTH_LONG).show()
+            //   Toast.makeText(context, "Phone number updated successfully ✅", Toast.LENGTH_LONG).show()
             delay(3000)
             showMessage = false
         }
@@ -405,108 +383,70 @@ fun  PaymentSection1(
             }
         }
         // Card for the phone number input
+        // Card for the phone number display
+
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+
+
+        // Card for the phone number display
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(Color.White),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-
-                    OutlinedTextField(
-                        value = phoneNumber,
-                        onValueChange = {
-                            if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
-                                if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains(
-                                        '+'
-                                    ))) {
-                                    phoneNumber = it
-                                }
-                            }
-                        },
-                        modifier = Modifier
-                            .offset(x = 3.dp)
-                            .width(160.dp)
-                            .height(60.dp)
-                            .padding(vertical = 4.dp),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        leadingIcon = {
-                            Icon(
-                                imageVector = Icons.Default.Phone,
-                                contentDescription = "Phone Icon",
-                                modifier = Modifier.padding(8.dp)
-                            )
-                        },
-                        placeholder = {
-                            Text(
-                            text = "* Obligatoire",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.body2
-                        ) },
-                        shape = RoundedCornerShape(13.dp),
-                        colors = TextFieldDefaults.outlinedTextFieldColors(
-                            focusedBorderColor = Color.Gray,
-                            unfocusedBorderColor = Color.Gray,
-                            backgroundColor = Color.Transparent
-                        ),
-                        enabled = phoneNumber.isNotEmpty()
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Phone Icon",
+                        modifier = Modifier.padding(8.dp)
                     )
-
-                    Spacer(modifier = Modifier.width(10.dp))
-
-                    /*
-                    if (phoneNumber.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
+                            .padding(8.dp)
+                            .width(160.dp)
+                    ) {
                         Text(
-                            text = "* Obligatoire",
-                            color = Color.Red,
-                            style = MaterialTheme.typography.body2,
+                            text = if (phoneNumber.isEmpty()) "* Obligatoire" else phoneNumber,
+                            color = if (phoneNumber.isEmpty()) Color.Red else Color.Black,
+                            style = MaterialTheme.typography.body2
+                        )
+                    }
+                }
+                Button(
+                    onClick = {
+                        showPopup = true
+                    },
+                    shape = RoundedCornerShape(13.dp),
+                    border = BorderStroke(1.dp, Color(0xFF0054D8)),
+                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
+                    modifier = Modifier.size(width = 120.dp, height = 45.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),  // Ensure it takes up the full space of the button
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (phoneNumber.isEmpty()) "Ajouter" else "Modifier",
+                            color = Color(0xFF0054D8),
+                            fontWeight = FontWeight.ExtraBold,
+                            fontSize = 15.sp,
+                            textAlign = TextAlign.Center
                         )
                     }
 
-                     */
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .offset(x = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
 
-                        Button(
-                            onClick = {
-                                if (isPhoneNumberValid) {
-                                    // Make API call to update the phone number
-                                    val phoneBody = RequestBody.create(
-                                        "text/plain".toMediaTypeOrNull(), phoneNumber
-                                    )
-                                    updatePhoneViewModel.UpdatePhone(phoneBody)
-                                } else {
-                                    showPopup = true
-                                }
-                            },
-                            shape = RoundedCornerShape(13.dp),
-                            border = BorderStroke(1.dp, Color(0xFF0054D8)),
-                            modifier = Modifier
-                                .fillMaxWidth(0.97f)
-                                .padding(10.dp),
-                            colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-
-                            ) {
-                            Text(
-                                text = "Modifier",
-                                color = Color(0xFF0054D8),
-                                fontWeight = FontWeight.ExtraBold,
-                                fontSize = 15.sp,
-                                modifier = Modifier
-                                  //  .fillMaxWidth()
-                            )
-                        }
-
-                    }
                     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                     val popupHeight = screenHeight / 4
 
@@ -520,8 +460,7 @@ fun  PaymentSection1(
                                 Surface(
                                     modifier = Modifier
                                         .fillMaxWidth()
-                                        .padding(20.dp) // Padding around the dialog
-                                        .align(Alignment.BottomCenter), // Align the dialog to the bottom center
+                                        .padding(20.dp), // Padding around the dialog
                                     shape = RoundedCornerShape(12.dp),
                                     color = Color.White,
                                     elevation = 8.dp
@@ -535,11 +474,16 @@ fun  PaymentSection1(
                                         // Phone number input field in the popup
                                         OutlinedTextField(
                                             value = phoneNumber,
-                                            onValueChange = { newValue -> phoneNumber = newValue },
+                                            onValueChange = { newValue ->
+                                                // Only update if the new value is numeric and length is within the limit
+                                                if (newValue.all { it.isDigit() } && newValue.length <= 8) {
+                                                    phoneNumber = newValue
+                                                }
+                                            },
                                             label = { Text("Numéro de téléphone") },
                                             modifier = Modifier.fillMaxWidth(),
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                            isError = phoneNumber.isEmpty(),
+                                            isError = phoneNumber.isEmpty() || phoneNumber.length != 8 || !phoneNumber.all { it.isDigit() }, // Display error if not valid
                                             shape = RoundedCornerShape(10.dp),
                                             colors = TextFieldDefaults.outlinedTextFieldColors(
                                                 focusedBorderColor = Color.Gray,
@@ -548,9 +492,10 @@ fun  PaymentSection1(
                                             )
                                         )
 
-                                        if (phoneNumber.isEmpty()) {
+                                        // Validation message for invalid phone number
+                                        if (phoneNumber.isEmpty() || phoneNumber.length != 8 || !phoneNumber.all { it.isDigit() }) {
                                             Text(
-                                                text = "* Obligatoire",
+                                                text = "* Numéro de téléphone non valide",
                                                 color = Color.Red,
                                                 style = MaterialTheme.typography.body2,
                                             )
@@ -561,13 +506,16 @@ fun  PaymentSection1(
                                         // Modifier button inside the popup
                                         Button(
                                             onClick = {
-                                                // Handle phone number modification
-                                                if (phoneNumber.isNotEmpty()) {
+                                                // Validate phone number before proceeding
+                                                if (phoneNumber.length == 8 && phoneNumber.all { it.isDigit() }) {
                                                     val phoneBody = RequestBody.create(
                                                         "text/plain".toMediaTypeOrNull(), phoneNumber
                                                     )
                                                     updatePhoneViewModel.UpdatePhone(phoneBody)
                                                     showPopup = false
+                                                } else {
+                                                    // If the phone number is not valid, show an error message
+                                                    // You can trigger the error message in the TextField or another place
                                                 }
                                             },
                                             modifier = Modifier.fillMaxWidth(),
@@ -577,7 +525,7 @@ fun  PaymentSection1(
                                             ),
                                         ) {
                                             Text(
-                                                text = "Modifier",
+                                                text = "Sauvegarder",
                                                 color = Color.White,
                                                 fontWeight = FontWeight.Bold,
                                             )
@@ -791,6 +739,8 @@ fun  PaymentSection1(
                                     val playerIds = selectedPlayers.toList()
                                     Log.d("DEBUG", "Converted Players List: $playerIds")
 
+
+
                                     val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
 
                                         if (index == 0) {
@@ -805,7 +755,7 @@ fun  PaymentSection1(
                                                 sharedExtrasIds = sharedExtras,
                                                 privateExtrasIds = privateExtras,
                                                 amount = BigDecimal(formattedAmount),
-                                                aamount = BigDecimal(formattedAamount)
+                                                aamount = BigDecimal(formattedAamount),
 
                                             )
                                         } else {
@@ -843,8 +793,7 @@ fun  PaymentSection1(
                                                     // Create a PaymentRequest using the updated amount
                                                     val paymentRequest = PaymentRequest(
                                                         amount = totalAmountSelected.toString(),
-                                                        currency = selectedBooking.currencySymbol
-                                                            ?: "DT",
+                                                        currency =  "DT",
                                                         orderId = bookingId
                                                     )
 
@@ -1052,7 +1001,9 @@ fun  PaymentSection1(
                                             is DataResult.Success -> {
                                                 isLoading = false
                                                 val payFromAvoirResponse = true
-                                                Log.d("PAYMENT", "PaymentPayAvoir successful: $payFromAvoirResponse")
+
+
+                                                Log.d("FormattedAmount", "formattedAmount: $formattedAmount")
 
                                                 val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
                                                     if (index == 0) {
@@ -1068,7 +1019,8 @@ fun  PaymentSection1(
                                                             sharedExtrasIds = sharedExtras,
                                                             privateExtrasIds = privateExtras,
                                                             amount = BigDecimal(formattedAmount),
-                                                            aamount = BigDecimal(formattedAamount)
+                                                            aamount = BigDecimal(formattedAamount),
+                                                            establishmentPacksDTO = emptyList()
                                                         )
                                                     } else {
                                                         booking
@@ -1081,30 +1033,32 @@ fun  PaymentSection1(
                                                     saveBookingViewModel.SaveBooking(updatedMappedBookings)
                                                     hasFetchedBooking = true
                                                 }
-                                                saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
-                                                    when (result) {
-                                                        is DataResult.Loading -> {
-                                                            Log.d("SaveBooking", "Saving booking...")
+
+
+                                            saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
+                                                when (result) {
+                                                    is DataResult.Loading -> {
+                                                        Log.d("SaveBooking", "Saving booking...")
+                                                    }
+
+                                                    is DataResult.Success -> {
+                                                        isLoading = false
+                                                        Log.d("SaveBooking", "Booking saved successfully!")
+
+                                                        val bookingList = result.data as? List<SaveBookingResponse>
+                                                        if (!bookingList.isNullOrEmpty()) {
+                                                            val firstBooking = bookingList[0]
+
+                                                            bookingId = firstBooking.id.toString()
+                                                            Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
+
                                                         }
+                                                    }
 
-                                                        is DataResult.Success -> {
-                                                            isLoading = false
-                                                            Log.d("SaveBooking", "Booking saved successfully!")
-
-                                                            val bookingList = result.data as? List<SaveBookingResponse>
-                                                            if (!bookingList.isNullOrEmpty()) {
-                                                                val firstBooking = bookingList[0]
-
-                                                                bookingId = firstBooking.id.toString()
-                                                                Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
-
-                                                            }
-                                                        }
-
-                                                        is DataResult.Failure -> {
-                                                            isLoading = false
-                                                            Log.e("SaveBooking", "Failed to save booking: ${result.errorMessage}")
-                                                        }
+                                                    is DataResult.Failure -> {
+                                                        isLoading = false
+                                                        Log.e("SaveBooking", "Failed to save booking: ${result.errorMessage}")
+                                                    }
                                                     }
                                                 }
                                             }
@@ -1340,7 +1294,7 @@ fun WebViewScreen(
                 val selectedTimeSlot = extractSelectedTimeSlot(lastLoadedUrl.value) ?: ""
 
                 isWebViewExpanded.value = false
-             //   navController.navigate("reservation_options/$selectedDate/$selectedTimeSlot")
+                //   navController.navigate("reservation_options/$selectedDate/$selectedTimeSlot")
             },
             modifier = Modifier
                 .align(Alignment.TopEnd)

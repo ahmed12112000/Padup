@@ -75,7 +75,7 @@ fun LoginScreen(
 
 
     LaunchedEffect(destinationRoute) {
-        Log.d("ESSSSSSSSSSID", "Navigating to $destinationRoute")
+        Log.d("ESSSSSSSSSSID", "Navigating to $redirectUrl")
     }
 
 
@@ -84,8 +84,10 @@ fun LoginScreen(
         when (result) {
             is Resulta.Loading -> isLoading = true
             is Resulta.Success -> {
-                result.data?.let { token ->
-                    sessionManager.saveAuthToken(token.toString()) // Save token in session
+                result.data?.let { tokenResponse ->
+                    val token = tokenResponse.toString()  // Extract token (modify if needed)
+                    val expiresIn = 1800000L
+                    sessionManager.saveAuthToken(token, expiresIn) // Save token with expiration time
                     getProfileViewModel.fetchProfileData()
                     Log.d("SessionToken", "Saved token: ${sessionManager.getAuthToken()}")
                     onLoginSuccess()
@@ -297,7 +299,10 @@ fun LoginScreen(
                     val response = viewModel.loginUser(updatedRequest)
 
                     if (response is Resulta.Success) {
-                        sessionManager.saveAuthToken(response.data.toString()) // Store token
+                        val token = response.data.toString() // Extract token (modify if needed)
+                        val expiresIn = 1800000L // Example: 1 hour (3600000 milliseconds)
+
+                        sessionManager.saveAuthToken(token, expiresIn)
                         errorMessage = null
                         onLoginSuccess()
 

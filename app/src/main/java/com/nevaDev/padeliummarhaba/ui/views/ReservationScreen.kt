@@ -156,7 +156,7 @@ fun ReservationScreen(
         when (searchResult) {
             is DataResultBooking.Success -> {
                 reservationKey.value?.let { key ->
-                    if (!hasFetchedInitBooking) { // ✅ Ensure GetInit is only called once
+                    if (!hasFetchedInitBooking) {
                         viewModel2.GetInit(key)
                         Log.d("Tagggg", "FETCH TERRAIN 3********")
                         hasFetchedInitBooking = true
@@ -164,7 +164,7 @@ fun ReservationScreen(
                 }
             }
             is DataResultBooking.Failure -> {
-                navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
+                navController.navigate("server_error_screen")
             }
             else -> {}
         }
@@ -200,7 +200,10 @@ fun ReservationScreen(
             is DataResult.Success -> {
                 if (!hasCompletedFetch) { // ✅ Ensure getBooking is only called once
                     reservationKey.value?.let { key ->
+                        Log.d("FLOWWWWWWWW", "$key")
+
                         getBookingViewModel.getBooking(key, selectedDate.value)
+
                         Log.d("Tagggg", "FETCH FULL DATA 5********")
                         hasCompletedFetch = true
                     }
@@ -223,12 +226,13 @@ fun ReservationScreen(
         // Immediately clear the old time slots
         selectedTimeSlot.value = null // or any other state that indicates no slots are available
 
-        fetchJob?.cancel() // Cancel previous job
-
+        fetchJob?.cancel()
         fetchJob = CoroutineScope(Dispatchers.Main).launch {
             // Remove the delay to make it more responsive
             reservationKey.value?.let { key ->
                 getBookingViewModel.getBooking(key, newDate)
+                Log.d("OWNNNNNNNN", "$newDate")
+
             } ?: run {
                 errorMessage = "No reservation key available."
             }

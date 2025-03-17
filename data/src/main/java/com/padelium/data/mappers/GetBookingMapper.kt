@@ -25,61 +25,38 @@ class GetBookingMapper @Inject constructor() {
 
             GetBookingResponseDTO(
                 establishmentDTO = response.establishmentDTO,
-                description = response.description ?: "",
                 amount = response.amount ?: BigDecimal.ZERO,
-                decimalNumber = response.decimalNumber ?: 0,
-                currencySymbol = response.currencySymbol ?: "",
-                facadeUrl = response.facadeUrl ?: "",
+                establishmentPacksDTO = response.establishmentPacksDTO ?: emptyList(),
 
-                openTime = response.openTime,
-                closeTime = null,
 
                 searchDate = response.searchDate ?: "",
                 from = response.from,
                 to = response.to,
-                numberOfPlayer = response.numberOfPlayer ?: 0,
-                currencyId = response.currencyId ?: 0L,
-                mgAmount = response.mgAmount ?: BigDecimal.ZERO,
-                totalFeed = response.totalFeed ?: 0,
-                moyFeed = response.moyFeed ?: 0.0,
-                bookingAnnulationDTOSet = response.bookingAnnulationDTOSet ?: emptyList(),
-                secondAmount = response.secondAmount ?: BigDecimal.ZERO,
-                secondAamount = response.secondAamount ?: BigDecimal.ZERO,
-                happyHours = response.happyHours ?: "",
-                withSecondPrice = response.withSecondPrice ?: false,
-                reductionAmount = response.reductionAmount ?: BigDecimal.ZERO,
-                reductionSecondAmount = response.reductionSecondAmount ?: BigDecimal.ZERO,
+
+                bookingAnnulationDTOSet = response.bookingAnnulationDTOSet ?: emptySet(),
+
+            //,    happyHours = response.happyHours ?: emptySet(),
+
                 payFromAvoir = response.payFromAvoir ?: false,
-                reduction = response.reduction ?: 0,
-                reductionaAmount = response.reductionaAmount ?: BigDecimal.ZERO,
-                reductionaSecondAmount = response.reductionaSecondAmount ?: BigDecimal.ZERO,
+
                 start = response.start?.let { Instant.parse(it.toString()).toString() } ?: Instant.now().toString(),
                 end = response.end,
                 amountfeeTrans = response.amountfeeTrans ?: BigDecimal.ZERO,
-                samountfeeTrans = response.samountfeeTrans ?: BigDecimal.ZERO,
-                ramountfeeTrans = response.ramountfeeTrans ?: BigDecimal.ZERO,
-                rsamountfeeTrans = response.rsamountfeeTrans ?: BigDecimal.ZERO,
-                couponCode = response.couponCode ?: "",
-                establishmentPacksDTO = response.establishmentPacksDTO ?: emptyList(),
 
-                establishmentPacksId = if (response.establishmentPacksId == 0L) null else response.establishmentPacksId,
-
-          //      orderId = response.orderId ?: 0L,
+                currencyId = response.currencyId ?: 0L,
                 plannings = response.plannings ?: emptyList(),
-              //  users = response.users ?: emptyList(),
-                client = true ,
-                secondReduction = response.secondReduction ?: 0,
+                //  users = response.users ?: emptyList(),
+
                 aamount = response.aamount ?: BigDecimal.ZERO,
-                EstablishmentPictureDTO = response.EstablishmentPictureDTO ?: emptyList(),
                 numberOfPart =  response.numberOfPart ?: 0,
                 sharedExtrasIds = response.sharedExtrasIds ?: emptyList(),
                 userIds = response.userIds ?: emptyList(),
-            //    id = response.id ?: 0L,
+                //    id = response.id ?: 0L,
                 privateExtrasIds = response.privateExtrasIds ?: emptyList(),
-             //   buyerId = response.buyerId ?: "",
-              //  couponIds = response.couponIds ?: emptyMap(),
+                //   buyerId = response.buyerId ?: "",
+                //  couponIds = response.couponIds ?: emptyMap(),
 
-                )
+            )
         }
     }
 }

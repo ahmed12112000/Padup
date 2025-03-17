@@ -84,6 +84,7 @@ import androidx.lifecycle.ViewModel
 import com.google.android.material.snackbar.Snackbar
 import android.view.View
 import android.widget.TextView
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.collectAsState
 import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.di.SessionManager
@@ -250,6 +251,7 @@ fun SuccessState(
             onTimeSlotSelected = onTimeSlotSelected,
             selectedTimeSlot = selectedTimeSlot
         )
+        Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
             items(establishmentsList) { getBookingResponseDTO ->
@@ -446,7 +448,6 @@ fun handleCardClick(
     isUserLoggedIn: Boolean,
     sessionmanager: SessionManager
 ) {
-    val currencySymbol = selectedBooking.currencySymbol ?: "€"
     val formattedAmount = String.format("%.2f", amountToShow)
     val price = " $formattedAmount"
 
@@ -455,7 +456,7 @@ fun handleCardClick(
 
     val updatedBooking = selectedBooking.copy(plannings = listOf(planning))
     val encodedDate = Uri.encode(selectedDate.toString())
-    bookingViewModel.updateBookings(listOf(updatedBooking))
+   // bookingViewModel.updateBookings(listOf(updatedBooking))
 
     val mappedBookingsJson = Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))
     val reservationOption = ReservationOption(

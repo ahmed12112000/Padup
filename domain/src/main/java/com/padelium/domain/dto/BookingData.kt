@@ -107,6 +107,22 @@ data class currency (
     ): Serializable
 
 
+data class bookingAnnulationDTOSet(
+    val id: Long,
+    val label: String,
+    val cancelLimitTime: String,
+    val amount: BigDecimal,
+    val amountLocal: BigDecimal,
+    val bookingId: Long,
+    val conditionId: Long,
+    val currencyId: Long,
+    val currencySymbol: String,
+    val forSecondAmount: Boolean,
+    val formuleAmount: String,
+    val marge: BigDecimal,
+    val notRefundable: Boolean
+) : Serializable
+
 data class EstablishmentPacksDTO(
     val name:String,
     val firstTitle:String,
@@ -474,18 +490,31 @@ data class establishmentSearchDTO(
 ) : Serializable
 
 
-data class bookingAnnulationDTOSet(
-    val id: Long,
-    val label: String,
-    val cancelLimitTime: String,
+
+
+data class test(
+    val aamount: BigDecimal,
     val amount: BigDecimal,
-    val amountLocal: BigDecimal,
-    val bookingId: Long,
-    val conditionId: Long,
-    val currencyId: Long,
-    val currencySymbol: String,
-    val forSecondAmount: Boolean,
-    val formuleAmount: String,
-    val marge: BigDecimal,
-    val notRefundable: Boolean
-) : Serializable
+    val bookingAnnulationDTOSet: Set<bookingAnnulationDTOSet> = emptySet(),
+    val end: String,
+    val establishmentDTO: EstablishmentDTOoo,
+    val establishmentPacksDTO: List<EstablishmentPacksDTO> = emptyList(),
+    val searchDate: String,
+    val from: String,
+    val to: String,
+    val payFromAvoir: Boolean,
+    val privateExtrasIds: List<Long>,
+    val sharedExtrasIds: List<Long>,
+    val users: List<Long>,
+    val start: String
+    )
+data class EstablishmentDTOoo(
+    val id:Long,
+    val name: String,
+    val code: String,
+    val description: String,
+
+    ) : Serializable
+
+
+

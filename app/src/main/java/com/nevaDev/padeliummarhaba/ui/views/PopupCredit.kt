@@ -355,8 +355,7 @@ fun PopupCredit(
 
                                                     val paymentRequest = PaymentRequest(
                                                         amount = totalAmountSelected.toString(),
-                                                        currency = selectedBooking.currencySymbol
-                                                            ?: "EUR",
+                                                        currency =  "DT",
                                                         orderId = bookingId?.toLongOrNull()
                                                             ?.toString() ?: ""
                                                     )

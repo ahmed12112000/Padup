@@ -421,19 +421,3 @@ data class establishmentSearchDTO1(
     val moyFeed: Double
 ) : Serializable
 
-
-data class bookingAnnulationDTOSet(
-  val id: Long,
-    val label: String,
-    val cancelLimitTime: String,
-    val amount: BigDecimal,
-    val amountLocal: BigDecimal,
-    val bookingId: Long,
-    val conditionId: Long,
-    val currencyId: Long,
-    val currencySymbol: String,
-    val forSecondAmount: Boolean,
-    val formuleAmount: String,
-    val marge: BigDecimal,
-    val notRefundable: Boolean
-) : Serializable

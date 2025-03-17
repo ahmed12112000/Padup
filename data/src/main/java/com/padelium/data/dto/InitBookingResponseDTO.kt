@@ -2,7 +2,6 @@ package com.padelium.data.dto
 
 import com.padelium.domain.dto.EstablishmentPacksDTO
 import com.padelium.domain.dto.EstablishmentPictureDTO
-import com.padelium.domain.dto.happyHours
 import com.padelium.domain.dto.PlanningDTO
 import com.padelium.domain.dto.PlanningDTOo
 import com.padelium.domain.dto.bookingAnnulationDTOSet

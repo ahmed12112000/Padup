@@ -18,31 +18,34 @@ class SessionManager(private val context: Context) {
         checkAndHandleSessionValidity()
     }
 
-    fun saveAuthToken(token: String) {
+    fun saveAuthToken(token: String, expiresIn: Long) {
+        val expiryTime = System.currentTimeMillis() + expiresIn
         prefs.edit()
             .putString(KEY_AUTH_TOKEN, token)
+            .putLong(KEY_EXPIRY_TIME, expiryTime)
             .apply()
         updateLoginState(true)
     }
 
     fun getAuthToken(): String? {
-        return prefs.getString(KEY_AUTH_TOKEN, null)
+        return if (isSessionValid()) prefs.getString(KEY_AUTH_TOKEN, null) else null
     }
 
     fun isLoggedIn(): Boolean {
-        return !prefs.getString(KEY_AUTH_TOKEN, null).isNullOrEmpty()
+        return isSessionValid()
+    }
+
+    fun isSessionValid(): Boolean {
+        val expiryTime = prefs.getLong(KEY_EXPIRY_TIME, 0)
+        return expiryTime > System.currentTimeMillis() && !prefs.getString(KEY_AUTH_TOKEN, null).isNullOrEmpty()
     }
 
     private fun checkAndHandleSessionValidity() {
-        if (isLoggedIn()) {
-            updateLoginState(true)
-        } else {
-            updateLoginState(false)
-        }
+        updateLoginState(isSessionValid())
     }
 
     fun clearAuthToken() {
-        prefs.edit().remove(KEY_AUTH_TOKEN).apply()
+        prefs.edit().remove(KEY_AUTH_TOKEN).remove(KEY_EXPIRY_TIME).apply()
         updateLoginState(false)
     }
 
@@ -55,9 +58,9 @@ class SessionManager(private val context: Context) {
     }
 
     companion object {
-        private const val PREFS_NAME = "user_session"
+        private const val PREFS_NAME = "app_prefs"
         private const val KEY_AUTH_TOKEN = "auth_token"
-
+        private const val KEY_EXPIRY_TIME = "auth_expiry"
         @SuppressLint("StaticFieldLeak")
         @Volatile
         private var INSTANCE: SessionManager? = null

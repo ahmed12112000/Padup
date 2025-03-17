@@ -637,17 +637,21 @@ fun CustomBottomNavItem(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
         modifier = Modifier
-            .padding(horizontal = 8.dp, vertical = 4.dp) // Ensure space for the text
             .clickable {
                 if (!isConnected.value) {
                     showToastForFiveSeconds(context, "No internet connection")
                 } else if (route in restrictedRoutes && !sessionManager.isLoggedIn()) {
-                    navController.navigate("login_screen?destination=$route") {
+                    Log.d("Routeeeeeee","restricted route is : $route")
+                    if (!sessionManager.isSessionValid()) {
+                        sessionManager.clearAuthToken() // Clear expired session
+                    }
+                    navController.navigate("login_screen?redirectUrl=$route") {
                         popUpTo("main_screen") { inclusive = false }
                     }
                 } else {
                     navController.navigate(route)
                 }
+
             }
             .offset(y = animatedOffsetY)
             .scale(animatedScale)

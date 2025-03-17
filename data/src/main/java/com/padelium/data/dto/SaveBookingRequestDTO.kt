@@ -7,6 +7,8 @@ import com.padelium.domain.dto.EstablishmentPictureBasicDTO
 import com.padelium.domain.dto.EstablishmentPictureDTO
 import com.padelium.domain.dto.PlanningBasicDTO
 import com.padelium.domain.dto.PlanningDTO
+import com.padelium.domain.dto.bookingAnnulationDTOSet
+import com.padelium.domain.dto.happyHours
 import com.padelium.domain.dto.happyHoursBasicDTO
 import java.math.BigDecimal
 import java.time.Instant
@@ -15,48 +17,20 @@ data class SaveBookingRequestt(
     val aamount: BigDecimal?,
     val amount: BigDecimal?,
     val amountfeeTrans: BigDecimal?,
-    val bookingAnnulationDTOSet: List<Unit>,
-    val client:Boolean = true,
-    val closeTime: String?,
-    val couponCode: String?,
-    val currencyId:Long?,
-    val currencySymbol:String?,
-    val decimalNumber: Int?,
-    val description: String?,
+    val bookingAnnulationDTOSet: Set<bookingAnnulationDTOSet?> = emptySet(),
     val end: String?,
-    val Establishment: EstablishmentDTO,
-    val establishmentPacksDTO: List<EstablishmentPacksDTO>,
-    val establishmentPictureDTO: List<EstablishmentPictureDTO>,
-    val facadeUrl: String?,
+    val establishmentDTO: EstablishmentDTO?,
     val from: String?,
-    val mgAmount: BigDecimal?,
-    val moyFeed: Double?,
     val numberOfPart: Int?,
     val payFromAvoir: Boolean?,
-    val privateExtrasIds: List<Long?>,
-    val ramountfeeTrans: BigDecimal?,
-    val reduction: Int?,
-    val reductionAmount: BigDecimal?,
-    val reductionSecondAmount: BigDecimal?,
-    val reductionaAmount: BigDecimal?,
-    val reductionaSecondAmount: BigDecimal?,
-    val rsamountfeeTrans: BigDecimal?,
-    val samountfeeTrans: BigDecimal?,
     val searchDate: String?,
-    val secondAamount: BigDecimal?,
-    val secondAmount: BigDecimal?,
-    val secondReduction: Int?,
-    val sharedExtrasIds: List<Long?>,
     val start: String?,
     val to: String?,
-    val totalFeed: Int?,
-    val withSecondPrice: Boolean?
-
-
-    // val plannings: List<PlanningBasicDTO>,
-
-
-
+    val userIds: List<Long?>,
+    val plannings: List<PlanningDTO?>,
+ //   val users: String,
+    val privateExtrasIds: List<Long?>,
+    val sharedExtrasIds: List<Long?>,
 
 
 
