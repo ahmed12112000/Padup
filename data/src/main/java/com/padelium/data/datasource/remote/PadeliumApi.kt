@@ -207,7 +207,7 @@ class PadeliumApi @Inject constructor(
     }
 
 
-    suspend fun GetPayment (getPaymentRequest: GetPaymentRequestDTO): Response<GetPaymentResponse> {
+    suspend fun GetPayment (getPaymentRequest: GetPaymentRequestDTO): Response<Boolean> {
         return endPoint.GetPayment(getPaymentRequest)
     }
 

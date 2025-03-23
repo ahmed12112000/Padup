@@ -154,7 +154,7 @@ fun CreditPayment(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .verticalScroll(rememberScrollState()) // Add scrolling
+                    .verticalScroll(rememberScrollState())
                     .padding(16.dp)
             ) {
                 Card(
@@ -288,6 +288,29 @@ fun CreditCard(credit: CreditPayResponse) {
                             softWrap = false,
                             modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically, // Align text vertically in the center
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "Reference: ",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false
+                            )
+                            Text(
+                                text = credit.bookingReference,
+                                fontWeight = FontWeight.Normal,
+                                fontSize = 14.sp,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                softWrap = false
+                            )
+                        }
                     }
                 }
 
@@ -308,7 +331,7 @@ fun CreditCard(credit: CreditPayResponse) {
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     Text(
                         text = "crédits",
                         fontWeight = FontWeight.Bold,

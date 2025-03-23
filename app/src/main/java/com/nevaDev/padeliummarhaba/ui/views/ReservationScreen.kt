@@ -2,12 +2,17 @@ package com.nevaDev.padeliummarhaba.ui.views
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,6 +23,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.*
@@ -45,16 +51,31 @@ import com.padelium.domain.dto.FetchKeyRequest
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.outlined.CalendarToday
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.Popup
 import androidx.navigation.compose.rememberNavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
 import com.nevaDev.padeliummarhaba.viewmodels.GetInitViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.InitBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
@@ -67,10 +88,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.time.DayOfWeek
 
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Calendar
+import java.util.Date
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -86,6 +110,8 @@ fun ReservationScreen(
     viewModel3: SearchListViewModel = hiltViewModel(),
     viewModel4: InitBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
+    getReservationViewModel: GetReservationViewModel // Pass your reservation view model here
+
 ) {
     var fetchJob by remember { mutableStateOf<Job?>(null) }
 
@@ -267,7 +293,7 @@ fun ReservationScreen(
             )
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         DaySelectorWithArrows(
             selectedDate = selectedDate.value,
@@ -291,7 +317,6 @@ fun ReservationScreen(
         }
     }
 
-    Spacer(modifier = Modifier.height(16.dp))
 
     if (!showPaymentSection) {
         ReservationOptions(
@@ -303,7 +328,7 @@ fun ReservationScreen(
             selectedDate = selectedDate.value ,
             selectedTimeSlot = selectedTimeSlot.value,
             paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-
+            getReservationViewModel = getReservationViewModel
         )
     }
 }
@@ -480,9 +505,274 @@ fun ReservationSummary(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DatePickerModal(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = rememberDatePickerState()
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onDateSelected(datePickerState.selectedDateMillis)
+                onDismiss()
+            }) {
+                Text("OK",color = Color(0xFF0054D8), fontWeight = FontWeight.Bold,)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler",color = Color(0xFF0054D8), fontWeight = FontWeight.Bold,)
+            }
+        }
+    ) {
+        Surface(
+            color = Color.White, // Set the background color to white
+            modifier = Modifier.fillMaxSize() // Ensure it takes up the full space
+        ) {
+            DatePicker(state = datePickerState)
+        }
+    }
+}
 
 
-@RequiresApi(Build.VERSION_CODES.O)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CustomDatePickerModal(
+    onDateSelected: (Long?) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = remember { mutableStateOf<Long?>(null) }
+    val selectedDate = datePickerState.value
+    val today = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }.timeInMillis
+    val maxSelectableDate = today + (21 * 24 * 60 * 60 * 1000) // 21 days ahead
+
+    val calendar = Calendar.getInstance()
+    var currentMonth by remember { mutableStateOf(calendar.get(Calendar.MONTH)) }
+    var currentYear by remember { mutableStateOf(calendar.get(Calendar.YEAR)) }
+
+    calendar.set(Calendar.MONTH, currentMonth)
+    calendar.set(Calendar.YEAR, currentYear)
+    calendar.set(Calendar.DAY_OF_MONTH, 1)
+
+    val startDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
+    val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
+
+    // French abbreviated month names
+    val frenchMonths = listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                onDateSelected(selectedDate)
+                onDismiss()
+            }) {
+                Text("OK", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Annuler", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
+            }
+        }
+    ) {
+        Surface(
+            color = Color.White,
+            shape = RoundedCornerShape(16.dp),
+            shadowElevation = 8.dp,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                // Month and Year Header with Arrows
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    IconButton(onClick = {
+                        if (currentMonth == 0) {
+                            currentMonth = 11
+                            currentYear--
+                        } else {
+                            currentMonth--
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Mois précédent")
+                    }
+                    Text(
+                        text = "${frenchMonths[currentMonth]} $currentYear",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    IconButton(onClick = {
+                        if (currentMonth == 11) {
+                            currentMonth = 0
+                            currentYear++
+                        } else {
+                            currentMonth++
+                        }
+                    }) {
+                        Icon(Icons.Default.ArrowForward, contentDescription = "Mois suivant")
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Days of the week
+                Row(
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    listOf("LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM").forEach {
+                        Text(text = it, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Calendar Grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(7),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // Empty cells before the first day
+                    items(startDayOfWeek - 1) {
+                        Box(modifier = Modifier.size(40.dp))
+                    }
+
+                    // Days of the month
+                    items(totalDaysInMonth) { day ->
+                        val normalizedCalendar = Calendar.getInstance().apply {
+                            set(Calendar.YEAR, calendar.get(Calendar.YEAR))
+                            set(Calendar.MONTH, calendar.get(Calendar.MONTH))
+                            set(Calendar.DAY_OF_MONTH, day + 1)
+                            set(Calendar.HOUR_OF_DAY, 0)
+                            set(Calendar.MINUTE, 0)
+                            set(Calendar.SECOND, 0)
+                            set(Calendar.MILLISECOND, 0)
+                        }
+                        val dateMillis = normalizedCalendar.timeInMillis
+
+                        val isSelected = selectedDate?.let {
+                            val selectedCalendar = Calendar.getInstance().apply { timeInMillis = it }
+                            selectedCalendar.get(Calendar.YEAR) == normalizedCalendar.get(Calendar.YEAR) &&
+                                    selectedCalendar.get(Calendar.MONTH) == normalizedCalendar.get(Calendar.MONTH) &&
+                                    selectedCalendar.get(Calendar.DAY_OF_MONTH) == normalizedCalendar.get(Calendar.DAY_OF_MONTH)
+                        } ?: false
+
+                        val isDisabled = dateMillis < today || dateMillis > maxSelectableDate
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .background(
+                                    when {
+                                        isSelected -> Color(0xFF0054D8) // Blue for selected date
+                                        else -> Color.Transparent
+                                    },
+                                    shape = CircleShape
+                                )
+                                .clickable(enabled = !isDisabled) {
+                                    datePickerState.value = dateMillis
+                                }
+                        ) {
+                            Text(
+                                text = (day + 1).toString(),
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = when {
+                                        isSelected -> Color.White
+                                        isDisabled -> Color.Gray // Gray color for disabled days
+                                        else -> Color.Black
+                                    },
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+
+
+
+
+
+@Composable
+fun MonthSelectionDialog(onMonthSelected: (Int) -> Unit) {
+    val months = listOf(
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    )
+
+    AlertDialog(
+        onDismissRequest = {},
+        title = {
+            Text("Select Month")
+        },
+        text = {
+            Column {
+                months.forEachIndexed { index, month ->
+                    TextButton(onClick = { onMonthSelected(index) }) {
+                        Text(month)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = {}) {
+                Text("Cancel")
+            }
+        }
+    )
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewCustomDatePickerModal() {
+    CustomDatePickerModal(
+        onDateSelected = { selectedDate ->
+            // Handle the selected date here
+            Log.d("Selected Date", "Date selected: $selectedDate")
+        },
+        onDismiss = {
+            // Handle dismiss action here
+            Log.d("DatePicker", "Date Picker dismissed")
+        }
+    )
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
+@Composable
+fun DatePickerModalDarkPreview() {
+    MaterialTheme {
+        DatePickerModal(
+            onDateSelected = { /* Handle date selection */ },
+            onDismiss = { /* Handle dismiss */ }
+        )
+    }
+}
+
 @Composable
 fun DaySelectorWithArrows(
     selectedDate: LocalDate?,
@@ -494,11 +784,17 @@ fun DaySelectorWithArrows(
 
     val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
     val finalSelectedDate = selectedDate ?: currentDate
-    val startOfWeek = finalSelectedDate.with(DayOfWeek.MONDAY) // Always start from Monday
+    val startOfWeek = finalSelectedDate.with(DayOfWeek.MONDAY)
     val daysInWeek = List(7) { startOfWeek.plusDays(it.toLong()) }
+
+    val maxFutureDate = currentDate.plusWeeks(3)
+    val minPastDate = currentDate
 
     val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
     val listState = rememberLazyListState()
+
+    // State for popup visibility and selected date
+    var showCalendarDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
         // Month-Year Header
@@ -510,21 +806,26 @@ fun DaySelectorWithArrows(
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 4.dp)
+                .padding(vertical = 2.dp)
         )
 
         // Navigation Row with Arrows and "AUJOURD'HUI"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = {
-                val newDate = finalSelectedDate.minusWeeks(1) // Go to previous week
-                onDateSelected(newDate)
-            }) {
+            IconButton(
+                onClick = {
+                    val newDate = finalSelectedDate.minusWeeks(1)
+                    if (newDate >= minPastDate) {
+                        onDateSelected(newDate)
+                    }
+                },
+                enabled = finalSelectedDate > minPastDate
+            ) {
                 Icon(Icons.Default.ArrowBack, contentDescription = "Previous week", tint = Color.Gray)
             }
 
@@ -542,31 +843,48 @@ fun DaySelectorWithArrows(
                     fontSize = 12.sp,
                 )
                 Icon(
-                    Icons.Default.CalendarToday,
+                    Icons.Filled.CalendarMonth,
                     contentDescription = "Today",
                     tint = Color(0xFF0054D8),
                     modifier = Modifier
                         .padding(start = 4.dp)
                         .size(20.dp)
+                        .clickable { showCalendarDialog = true } // Show calendar dialog
                 )
             }
 
-            IconButton(onClick = {
-                val newDate = finalSelectedDate.plusWeeks(1) // Go to next week
-                onDateSelected(newDate)
-            }) {
+            IconButton(
+                onClick = {
+                    val newDate = finalSelectedDate.plusWeeks(1)
+                    if (newDate <= maxFutureDate) {
+                        onDateSelected(newDate)
+                    }
+                },
+                enabled = finalSelectedDate < maxFutureDate
+            ) {
                 Icon(Icons.Default.ArrowForward, contentDescription = "Next week", tint = Color.Gray)
             }
+        }
+
+        // Show the CustomDatePickerModal when clicked
+        if (showCalendarDialog) {
+            CustomDatePickerModal(
+                onDateSelected = { millis ->
+                    millis?.let { onDateSelected(LocalDate.ofEpochDay(it / 86400000)) }
+                    showCalendarDialog = false // Close dialog after selecting a date
+                },
+                onDismiss = { showCalendarDialog = false }
+            )
         }
 
         // Days of the Week
         LazyRow(
             state = listState,
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp) // Slightly less spacing
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(daysInWeek) { day ->
-                val isClickable = day >= currentDate // Disable past days
+                val isClickable = day >= currentDate
                 val textColor = if (!isClickable) Color.LightGray else if (day == finalSelectedDate) Color.White else Color.Black
                 val backgroundColor = if (day == finalSelectedDate) Color(0xFF0054D8) else Color.White
                 val borderColor = if (day == finalSelectedDate) Color.Transparent else Color.Gray
@@ -575,7 +893,7 @@ fun DaySelectorWithArrows(
                     modifier = Modifier
                         .then(
                             if (isClickable) Modifier.clickable { onDateSelected(day) }
-                            else Modifier // No clickable for past days
+                            else Modifier
                         )
                         .background(color = backgroundColor, shape = RoundedCornerShape(8.dp))
                         .border(1.dp, borderColor, shape = RoundedCornerShape(8.dp))
@@ -609,6 +927,10 @@ fun DaySelectorWithArrows(
         }
     }
 }
+
+
+
+
 
 @Preview(showBackground = true)
 @Composable

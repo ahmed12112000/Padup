@@ -630,6 +630,7 @@ fun ReservationCard1(
                     TableRow(label = "Référence", value = reservation.reference, isBold = true)
                     Divider()
                     TableRow(label = "Créé le", value = formattedCreatedDate, isBold = true)
+
                 }
             }
         }

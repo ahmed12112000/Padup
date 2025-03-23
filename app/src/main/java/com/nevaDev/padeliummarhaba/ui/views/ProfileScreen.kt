@@ -10,10 +10,13 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -25,10 +28,16 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -42,6 +51,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
+import coil.compose.rememberImagePainter
 import com.nevaDev.padeliummarhaba.di.SessionManager
 import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
@@ -49,6 +59,7 @@ import com.nevaDev.padeliummarhaba.viewmodels.ProfileViewModel
 import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.GetProfileResponse
+import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -77,8 +88,30 @@ fun ProfileScreen(
     val isLoggedIn by sessionManager.isLoggedInFlow.collectAsStateWithLifecycle()
     Log.e("ProfileScreen", "$isLoggedIn") // Debugging log
     val currentLoginState = rememberUpdatedState(isLoggedIn)
+    val coroutineScope = rememberCoroutineScope()
+    var showToast by remember { mutableStateOf(false) }
+    var toastMessage by remember { mutableStateOf("") }
+    val keyboardController = LocalSoftwareKeyboardController.current
 
+    fun isFormValid(): Boolean {
+        return firstName.isNotBlank() && lastName.isNotBlank() && phoneNumber.isNotBlank() && phoneNumber.length >= 8
+    }
 
+    if (showToast) {
+        Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
+        LaunchedEffect(Unit) {
+            delay(3000)
+            showToast = false
+        }
+    }
+    val bitmap = remember(image) {
+        if (image.isNotEmpty()) {
+            val decodedString = Base64.decode(image, Base64.DEFAULT)
+            android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+        } else {
+            null
+        }
+    }
 
 
     val launcher = rememberLauncherForActivityResult(
@@ -87,7 +120,7 @@ fun ProfileScreen(
         if (uri != null) {
             profileImageUri = uri
         } else {
-          //  Toast.makeText(context, "Image selection cancelled", Toast.LENGTH_SHORT).show()
+            //  Toast.makeText(context, "Image selection cancelled", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -99,6 +132,7 @@ fun ProfileScreen(
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
     val sessionManager = remember { SessionManager(context) }
     val isLoggedInState by rememberUpdatedState(sessionManager.isLoggedIn())
+    val scrollState = rememberScrollState()
 
 
 
@@ -111,239 +145,292 @@ fun ProfileScreen(
                 lastName = profile.lastName
                 phoneNumber = profile.phone
                 activated = profile.activated
-                authorities  = profile.authorities
-                email  = profile.email
-                langKey  = profile.langKey
-                login  = profile.login
-                image  = profile.image
-                imageUrl  = profile.imageUrl
+                authorities = profile.authorities
+                email = profile.email
+                langKey = profile.langKey
+                login = profile.login
+                image = profile.image
+                imageUrl = profile.imageUrl
 
             } else {
                 Text(text = "")
             }
         }
+
         is DataResult.Loading -> {
-          //  Text(text = "Loading profile data...")
+            //  Text(text = "Loading profile data...")
         }
+
         is DataResult.Failure -> {
-          //  Text(text = "Error: ${result.errorMessage}")
+            //  Text(text = "Error: ${result.errorMessage}")
         }
     }
+    val focusManager = LocalFocusManager.current
 
 
     Column(
         modifier = Modifier
-            .padding(16.dp)
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
+            .padding(16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    // Dismiss the keyboard when tapped outside
+                    focusManager.clearFocus()
+                })
+            }
     ) {
-        Text(
-            text = "Mon Profil",
-            fontSize = 25.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.Black,
-            modifier = Modifier.offset(x = 5.dp)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        HorizontalDivider(
-            modifier = Modifier.width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
-            color = Color.Gray, thickness = 1.dp
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-
-        OutlinedTextField(
-            value = firstName,
-            onValueChange = { firstName = it },
-            label = { Text("Prénom") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(13.dp)
-        )
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = lastName,
-            onValueChange = { lastName = it },
-            label = { Text("Nom") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(13.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        OutlinedTextField(
-            value = phoneNumber,
-            onValueChange = {
-                if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
-                    if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains('+'))) {
-                        phoneNumber = it
-                    }
-                }
-            },
-            label = { Text("Téléphone") },
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(13.dp),
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Phone,
-                    contentDescription = "Phone Icon"
-                )
-            },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
-        )
-
-        Spacer(modifier = Modifier.height(36.dp))
-
-        Column(
-            modifier = Modifier
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
             Text(
-                text = "Photo de profile",
-                color = Color.Black,
+                text = "Mon Profil",
+                fontSize = 25.sp,
                 fontWeight = FontWeight.Bold,
-                fontSize = 19.sp,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                color = Color.Black,
+                modifier = Modifier.offset(x = 5.dp)
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider(
+                modifier = Modifier.width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
+                color = Color.Gray, thickness = 1.dp
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Column {
+                    // Display Email as Text
+                    Text(
+                        text = "${email}", // Display email
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(5.dp))
+
+            OutlinedTextField(
+                value = firstName,
+                onValueChange = { firstName = it },
+                label = { Text("Prénom") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(13.dp)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            Box(
+            OutlinedTextField(
+                value = lastName,
+                onValueChange = { lastName = it },
+                label = { Text("Nom") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(13.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = phoneNumber,
+                onValueChange = {
+                    if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
+                        if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains(
+                                '+'
+                            ))) {
+                            phoneNumber = it
+                        }
+                    }
+                },
+                label = { Text("Téléphone") },
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(13.dp),
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Phone,
+                        contentDescription = "Phone Icon"
+                    )
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone)
+            )
+
+            Spacer(modifier = Modifier.height(26.dp))
+
+            Column(
                 modifier = Modifier
-                    .size(90.dp)
-                    .align(Alignment.CenterHorizontally)
-                    .drawBehind {
-                        drawCircle(
-                            color = Color.Gray.copy(alpha = 0.5f),
-                            radius = size.minDimension / 3 + 2.dp.toPx(),
-                            center = center
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Photo de profile",
+                    color = Color.Black,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 19.sp,
+                    modifier = Modifier.align(Alignment.CenterHorizontally)
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+
+                Box(
+                    modifier = Modifier
+                        .size(90.dp)
+                        .align(Alignment.CenterHorizontally)
+                ) {
+                    if (profileImageUri != null) {
+                        Image(
+                            painter = rememberImagePainter(profileImageUri),
+                            contentDescription = "Profile Image",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .clickable {
+                                    launcher.launch("image/*") // Opens gallery to select a new image
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                    } else if (bitmap != null) {
+                        Image(
+                            bitmap = bitmap.asImageBitmap(),
+                            contentDescription = "Avatar",
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .clip(CircleShape)
+                                .clickable {
+                                    launcher.launch("image/*") // Opens gallery to select a new image
+                                },
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Fallback image if both profileImageUri and bitmap are null
+                        Image(
+                            painter = painterResource(id = R.drawable.a9),
+                            contentDescription = "Fallback Avatar",
+                            modifier = Modifier
+                                .size(90.dp)
+                                .clip(CircleShape)
+                                .clickable {
+                                    launcher.launch("image/*") // Opens gallery to select a new image
+                                }
+                                .align(Alignment.Center),
+                            contentScale = ContentScale.Crop
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
             ) {
-                if (profileImageUri != null) {
-                    Image(
-                        painter = rememberAsyncImagePainter(profileImageUri),
-                        contentDescription = "Profile Picture",
-                        modifier = Modifier.fillMaxSize()
-                            .clickable {
-                                launcher.launch("image/*")
-                            },
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        painter = painterResource(id = R.drawable.a123),
-                        contentDescription = "Upload Photo",
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter), // Keeps the rest of the content at the top
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+
+
+                    Button(
+                        onClick = {
+                            if (!isFormValid()) {
+                                toastMessage = "Veuillez vérifier vos champs"
+                                showToast = true
+                            } else {
+                                val base64Image = profileImageUri?.let { getBase64FromUri(context, it) } ?: image
+
+                                val accountData = mapOf(
+                                    "activated" to activated,
+                                    "authorities" to listOf(authorities),
+                                    "email" to email,
+                                    "firstName" to firstName,
+                                    "image" to base64Image,
+                                    "imageUrl" to imageUrl,
+                                    "langKey" to langKey,
+                                    "lastName" to lastName,
+                                    "login" to login,
+                                    "phone" to phoneNumber,
+                                )
+                                val accountJson = JSONObject(accountData).toString()
+                                viewModel2.Profile(accountJson, profileImageUri)
+                                toastMessage = "Photo de Profil changée avec succès"
+                                showToast = true
+                            }
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color(0xFF0066CC),
+                            contentColor = Color.White
+                        ),
+                        enabled = isFormValid(), // Disable the button if the form is not valid
+
                         modifier = Modifier
-                            .align(Alignment.Center)
-                            .fillMaxSize()
-                            .clickable {
-                                launcher.launch("image/*")
+                            .fillMaxWidth(0.9f)
+                            .padding(horizontal = 8.dp)
+                    ) {
+                        Text(
+                            text = "Sauvegarder",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                    if (showToast) {
+                        Toast.makeText(context, "Photo de Profil changée avec succès", Toast.LENGTH_SHORT).show()
+                        LaunchedEffect(Unit) {
+                            delay(3000) // Wait for 3 seconds before resetting the toast state
+                            showToast = false
+                        }
+                    }
+
+                    LaunchedEffect(Unit) {
+                        viewModel.fetchProfileData()
+                    }
+                     Spacer(modifier = Modifier.height(20.dp))
+
+
+                        Button(
+                            onClick = {
+                                sessionManager.logout()
+                                navController.navigate("main_screen") {
+                                    popUpTo("profile") { inclusive = true }
+                                }
+
                             },
-                        tint = Color.Unspecified
-                    )
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                //.offset(y = 120.dp)
+                                .border(1.dp, Color.Black, RoundedCornerShape(13.dp)),
+                            //  shape = RoundedCornerShape(13.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                backgroundColor = Color.Transparent
+                            ),
+                            elevation = ButtonDefaults.elevation(0.dp)
+
+
+                        ) {
+                            Text(
+                                text = "Se déconnecter",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Normal,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center,
+                                color = Color.Red
+                            )
+
+                    }
                 }
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-        ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.TopCenter), // Keeps the rest of the content at the top
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-
-
-            Button(
-                onClick = {
-                    val base64Image =
-                        profileImageUri?.let { getBase64FromUri(context, it) } ?: image
-
-                    val accountData = mapOf(
-                        "activated" to activated,
-                        "authorities" to listOf(authorities),
-                        "email" to email,
-                        "firstName" to firstName,
-                        "image" to base64Image,
-                        "imageUrl" to imageUrl,
-                        "langKey" to langKey,
-                        "lastName" to lastName,
-                        "login" to login,
-                        "phone" to phoneNumber,
-                    )
-                    val accountJson = JSONObject(accountData).toString()
-
-                    viewModel2.Profile(accountJson, profileImageUri)
-                },
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color(0xFF0066CC),
-                    contentColor = Color.White
-                ),
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .padding(horizontal = 8.dp)
-            ) {
-                Text(
-                    text = "Sauvegarder",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.Bold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
-                )
-            }
-            LaunchedEffect(Unit) {
-                viewModel.fetchProfileData()
-            }
-
-            Spacer(modifier = Modifier.height(40.dp))
-        }
-            Button(
-                onClick = {
-                    sessionManager.logout()
-                    navController.navigate("main_screen") {
-                        popUpTo("profile") { inclusive = true }
-                    }
-
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .offset(y=120.dp)
-                    .border(1.dp, Color.Black, RoundedCornerShape(13.dp)),
-              //  shape = RoundedCornerShape(13.dp),
-                colors = ButtonDefaults.buttonColors(
-                    backgroundColor = Color.Transparent
-                ),
-                elevation = ButtonDefaults.elevation(0.dp)
-
-
-            ) {
-                Text(
-                    text = "Se déconnecter",
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Normal,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center,
-                    color = Color.Red
-                )
-            }
-        }
-
-
     }
-}
+
 fun getBase64FromUri(context: Context, uri: Uri): String? {
     return try {
         val inputStream: InputStream? = context.contentResolver.openInputStream(uri)

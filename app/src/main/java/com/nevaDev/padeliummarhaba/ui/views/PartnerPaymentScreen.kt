@@ -10,10 +10,15 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Money
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.ShoppingCart
@@ -30,20 +35,26 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
+import com.nevaDev.padeliummarhaba.viewmodels.ConfirmBookingViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.ErrorCreditViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.FindTermsViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PartnerPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentParCreditViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPartBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPartViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PrivateExtrasViewModel
 import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.CreditErrorRequest
 import com.padelium.domain.dto.PaymentParCreditRequest
 import com.padelium.domain.dto.PaymentPartBookingRequest
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.domain.dto.PaymentResponse
 import com.padelium.domain.dto.PrivateExtrasResponse
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
 
 
 @Composable
@@ -55,7 +66,9 @@ fun PartnerPaymentScreen(
     viewModel2: PaymentParCreditViewModel = hiltViewModel(),
 
     ) {
-
+    var showPopup by remember { mutableStateOf(false) }
+    val viewModel: GetProfileViewModel = hiltViewModel()
+    var totalPrice by remember { mutableStateOf(BigDecimal.ZERO) }
     var isLoading by remember { mutableStateOf(false) }
     val partnerPayResponse by viewModel4.partnerPayResponse.observeAsState()
     var selectedExtras by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
@@ -72,7 +85,9 @@ fun PartnerPaymentScreen(
         selectedExtras = newExtras
         totalExtrasCost = newTotalExtrasCost
     }
-
+    fun handleTotalPriceCalculated(newTotalPrice: BigDecimal) {
+        totalPrice = newTotalPrice
+    }
 
     Column(
         modifier = Modifier
@@ -102,9 +117,13 @@ fun PartnerPaymentScreen(
             partnerPayResponse?.let { response ->
                 ReservationSummary2(
                     viewModel4 = viewModel4,
-                    selectedExtras,
-                    totalExtrasCost
+                    selectedExtras = selectedExtras,
+                    totalExtrasCost = totalExtrasCost,
+                    onTotalPriceCalculated = { newTotalPrice ->
+                        handleTotalPriceCalculated(newTotalPrice) // Handle the updated total price
+                    }
                 )
+
             } ?: run {
                 // Optionally show a placeholder or loading state if no reservation is selected
                 Text(
@@ -224,18 +243,9 @@ fun PartnerPaymentScreen(
 
                 Button(
                     onClick = {
-                        viewModel4.partnerPayResponse.observeForever { response ->
-                            response?.let {
 
+                        showPopup = true
 
-                                val paymentParCreditRequest = PaymentParCreditRequest(
-                                    id = partnerPayId?.toLongOrNull() ?:0L,
-                                    privateExtrasIds = privateList.value.map { it as Long? }
-                                )
-
-                                viewModel2.PaymentParCredit(paymentParCreditRequest)
-                            }
-                        }
                     } ,
                     modifier = Modifier
                         .height(48.dp),
@@ -256,6 +266,20 @@ fun PartnerPaymentScreen(
                             fontWeight = FontWeight.ExtraBold
                         )
                     }
+                }
+
+                if (showPopup) {
+                    PopupCreditPartner(
+                        navController = navController, // Pass the NavController
+                        showPopup = showPopup, // Toggle state correctly
+                        onDismiss = { showPopup = false }, // Handle dismissal
+                        viewModel4 = viewModel4, // Pass shared view model
+                      //  bookingId = bookingId,
+                        partnerPayId = partnerPayId,
+                        viewModel = viewModel,
+                        totalPrice = totalPrice, // Pass the updated totalPricee to the popup
+
+                    )
                 }
             }
         }
@@ -370,6 +394,7 @@ fun ReservationSummary2(
     viewModel4: PartnerPayViewModel = hiltViewModel(),
     selectedExtras: List<Triple<String, String, Int>>,
     totalExtrasCost: Double,
+    onTotalPriceCalculated: (BigDecimal) -> Unit // Callback to pass totalPrice
 
     ) {
     val storedPartnerPayResponse by viewModel4.partnerPayResponse.observeAsState()
@@ -394,7 +419,7 @@ fun ReservationSummary2(
 
         storedPartnerPayResponse?.let { booking ->
             val totalPrice = (booking.amount + BigDecimal(totalExtrasCost)).setScale(2, RoundingMode.HALF_UP)
-
+            onTotalPriceCalculated(totalPrice)
             ReservationDetailRow(label = "Espace", value = booking.bookingEstablishmentName ?: "N/A")
             ReservationDetailRow(label = "Heure", value = booking.bookingDateStr ?: "N/A")
             ReservationDetailRow(label = "Prix", value = "${booking.amount} DT")
@@ -444,6 +469,7 @@ fun WebViewScreen2(
     navController: NavController,
     viewmodel: PaymentPartBookingViewModel,
     formUrl: String,
+    onReservationClicked: (LocalDate) -> Unit,
 
     ) {
     val backStackEntry = navController.currentBackStackEntry
@@ -454,13 +480,31 @@ fun WebViewScreen2(
     val navBackStackEntry = remember { navController.currentBackStackEntry }
     val privateListString = navBackStackEntry?.arguments?.getString("privateList") ?: ""
     val privateList = privateListString.split(",").mapNotNull { it.toLongOrNull() }.toMutableList()
+    val isWebViewExpanded = remember { mutableStateOf(true) }
 
     // Observe dataResult from the ViewModel    BookingId
     val dataResult by viewmodel.dataResult.observeAsState()
+    val coroutineScope = rememberCoroutineScope()
+    val errorCreditViewModel: ErrorCreditViewModel = hiltViewModel()
+    var isButtonClicked by remember { mutableStateOf(false) }
 
     // Manage the loading state
     var isLoading by remember { mutableStateOf(true) }
+    val scrollState = rememberScrollState()
+    val bookingIdsString = backStackEntry?.arguments?.getString("BookingId") ?: ""
+    val bookingIdsList = bookingIdsString.split(",").mapNotNull { it.toLongOrNull() }
 
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(scrollState)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+                .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+        ) {
     // AndroidView to embed the WebView
     AndroidView(factory = {
         WebView(context).apply {
@@ -520,7 +564,48 @@ fun WebViewScreen2(
             // Load the initial URL
             loadUrl(formUrl)
         }
-    })
+    }, modifier = Modifier.fillMaxSize()
+    )
+            IconButton(
+                onClick = {
+                    val creditErrorRequest = CreditErrorRequest(
+                        amount = BigDecimal.ZERO,
+                        bookingIds = listOf(encodedPartnerPayId),
+                        buyerId = 0L,
+                        payFromAvoir = false,
+                        status = true,
+                        token = "",
+                        transactionId = 0L
+                    )
+                    coroutineScope.launch {
+                        errorCreditViewModel.ErrorCredit(creditErrorRequest)
+                    }
+                    val selectedDate = LocalDate.now()
+
+                    if (!isButtonClicked) {
+                        isButtonClicked = true
+
+                        selectedDate?.let { date ->
+                            isLoading = true
+                            onReservationClicked(date)
+                        } ?: Log.e("MainScreen", "Selected date is null")
+                    }
+
+                    isWebViewExpanded.value = false
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(Color.White, shape = CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close WebView",
+                    tint = Color.Black
+                )
+            }
+        }
+    }
     dataResult?.let { result ->
         when (result) {
             is DataResult.Loading -> {

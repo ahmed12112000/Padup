@@ -24,6 +24,8 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
+
+
 @HiltViewModel
 class GetBookingViewModel @Inject constructor(
     private val getBookingUseCase: GetBookingUseCase,

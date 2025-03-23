@@ -202,7 +202,7 @@ suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
     @Headers("Content-Type: application/json")
     @POST("api/payment/get")
-    suspend fun GetPayment(@Body getPaymentRequest: GetPaymentRequestDTO): Response<GetPaymentResponse>
+    suspend fun GetPayment(@Body getPaymentRequest: GetPaymentRequestDTO): Response<Boolean>
 
     @Headers("Content-Type: application/json")
     @POST("api/bookings/confirmation/email/to/manager")

@@ -45,7 +45,6 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -85,10 +84,17 @@ import com.google.android.material.snackbar.Snackbar
 import android.view.View
 import android.widget.TextView
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.collectAsState
 import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.di.SessionManager
+import com.nevaDev.padeliummarhaba.ui.activities.AnimatedBottomBar
+import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.padelium.domain.dto.PlanningDTOo
+import androidx.compose.ui.Alignment as ComposeAlignment
+import androidx.compose.ui.Alignment
 
 @Composable
 fun TimeSlotSelector(
@@ -157,7 +163,6 @@ fun TimeSlotSelector(
 
 
 
-
 @Composable
 fun ReservationOptions(
     onReservationSelected: (ReservationOption) -> Unit,
@@ -171,8 +176,9 @@ fun ReservationOptions(
     viewModel2: SaveBookingViewModel = hiltViewModel(),
     bookingViewModel: GetBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
+    getReservationViewModel: GetReservationViewModel // Pass your reservation view model here
 
-    ) {
+) {
     Log.e("SelectedDateeeeeeee", "Failed to save booking: ${selectedDate}")
     val context = LocalContext.current
 
@@ -190,34 +196,40 @@ fun ReservationOptions(
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
 
 
-    when (val result = dataResultBooking) {
-        is DataResultBooking.Loading -> LoadingState()
-        is DataResultBooking.Success -> SuccessState(
-            establishmentsList = result.data,
-            filteredTimeSlots = filteredTimeSlots.distinctBy { it.time },
-            isUserLoggedIn = isUserLoggedIn,
-            navController = navController,
-            bookingViewModel = bookingViewModel,
-            saveBookingViewModel = viewModel2,
-            onReservationSelected = onReservationSelected,
-            setAmountSelected = { amountSelected = it },
-            setCurrencySymbol = { currencySymbol = it },
-            showLoginPopup = { showLoginPopup = it },
-            selectedTimeSlot = selectedTimeSlot,
-            onTimeSlotSelected = { selectedTimeSlot = it },
-            paymentPayAvoirViewModel= paymentPayAvoirViewModel,
-            selectedDate = selectedDate
-        )
-        is DataResultBooking.Failure -> FailureState(result.errorMessage, setErrorMessage = { errorMessage = it })
+        when (val result = dataResultBooking) {
+            is DataResultBooking.Loading -> LoadingState()
+            is DataResultBooking.Success -> SuccessState(
+                establishmentsList = result.data,
+                filteredTimeSlots = filteredTimeSlots.distinctBy { it.time },
+                isUserLoggedIn = isUserLoggedIn,
+                navController = navController,
+                bookingViewModel = bookingViewModel,
+                saveBookingViewModel = viewModel2,
+                onReservationSelected = onReservationSelected,
+                setAmountSelected = { amountSelected = it },
+                setCurrencySymbol = { currencySymbol = it },
+                showLoginPopup = { showLoginPopup = it },
+                selectedTimeSlot = selectedTimeSlot,
+                onTimeSlotSelected = { selectedTimeSlot = it },
+                paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                selectedDate = selectedDate
+            )
+
+            is DataResultBooking.Failure -> FailureState(
+                result.errorMessage,
+                setErrorMessage = { errorMessage = it })
+        }
+
+        if (showLoginPopup) {
+        }
+
+
+
+        errorMessage?.let {
+            Text(text = it, color = Color.Red, modifier = Modifier.padding(16.dp))
+        }
     }
 
-    if (showLoginPopup) {
-    }
-
-    errorMessage?.let {
-        Text(text = it, color = Color.Red, modifier = Modifier.padding(16.dp))
-    }
-}
 
 @Composable
 fun LoadingState() {
@@ -225,6 +237,7 @@ fun LoadingState() {
         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
     }
 }
+
 @Composable
 fun SuccessState(
     establishmentsList: List<GetBookingResponseDTO>,
@@ -242,18 +255,21 @@ fun SuccessState(
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
     selectedDate: LocalDate
 ) {
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .offset(y=280.dp)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .offset(y = 253.dp)
     ) {
         TimeSlotSelector(
             timeSlots = filteredTimeSlots,
             onTimeSlotSelected = onTimeSlotSelected,
             selectedTimeSlot = selectedTimeSlot
         )
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
-        LazyColumn(modifier = Modifier.fillMaxSize().padding(8.dp)) {
+        LazyColumn(
+            modifier = Modifier.fillMaxSize()
+        ) {
             items(establishmentsList) { getBookingResponseDTO ->
                 EstablishmentCard(
                     getBookingResponseDTO = getBookingResponseDTO,
@@ -264,13 +280,16 @@ fun SuccessState(
                     setAmountSelected = setAmountSelected,
                     setCurrencySymbol = setCurrencySymbol,
                     selectedTimeSlot = selectedTimeSlot,
-                    paymentPayAvoirViewModel= paymentPayAvoirViewModel,
+                    paymentPayAvoirViewModel = paymentPayAvoirViewModel,
                     selectedDate = selectedDate
                 )
             }
         }
     }
 }
+
+
+
 
 
 @Composable
@@ -296,8 +315,6 @@ private fun EstablishmentCard(
         planning.fromStr == selectedTimeSlot
     }
 
-    var showLoginPopup by remember { mutableStateOf(false) }
-
     availablePlannings.forEach { planning ->
         val amountToShow = if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
             planning.reductionPrice
@@ -310,21 +327,21 @@ private fun EstablishmentCard(
                 .fillMaxWidth()
                 .padding(vertical = 4.dp)
                 .clickable {
-                        handleCardClick(
-                            selectedBooking = getBookingResponseDTO,
-                            planning = planning,
-                            bookingViewModel = bookingViewModel,
-                            navController = navController,
-                            saveBookingViewModel = saveBookingViewModel,
-                            viewModel1 = viewModel1,
-                            onReservationSelected = { reservationOption -> },
-                            paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-                            amountToShow = amountToShow,
-                            context = context,
-                            selectedDate = selectedDate,
-                            isUserLoggedIn = isUserLoggedIn,
-                            sessionmanager = sessionManager
-                        )
+                    handleCardClick(
+                        selectedBooking = getBookingResponseDTO,
+                        planning = planning,
+                        bookingViewModel = bookingViewModel,
+                        navController = navController,
+                        saveBookingViewModel = saveBookingViewModel,
+                        viewModel1 = viewModel1,
+                        onReservationSelected = { reservationOption -> },
+                        paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                        amountToShow = amountToShow,
+                        context = context,
+                        selectedDate = selectedDate,
+                        isUserLoggedIn = isUserLoggedIn,
+                        sessionmanager = sessionManager
+                    )
                 },
             shape = RoundedCornerShape(10.dp),
             border = BorderStroke(1.dp, Color.Gray),
@@ -336,13 +353,14 @@ private fun EstablishmentCard(
 }
 
 
+
 @Composable
 private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDTO, planning: PlanningDTO) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .background(Color.White)
-            .padding(6.dp),
+            .padding(4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Icon(
@@ -355,7 +373,7 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
             tint = Color.Unspecified
         )
 
-        Spacer(modifier = Modifier.width(12.dp))
+        Spacer(modifier = Modifier.width(7.dp))
 
         Column(modifier = Modifier.weight(1f)) {
             Text(

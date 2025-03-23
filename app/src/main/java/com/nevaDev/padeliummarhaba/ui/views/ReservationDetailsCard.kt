@@ -6,6 +6,9 @@ import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +27,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -49,11 +54,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.IntSize
 import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.rememberImagePainter
@@ -126,7 +134,6 @@ fun ReservationDetailsCard(
         0.0
     }
 
-    Log.d("ReservationDetailsCard", "reservationPrice: $reservationPrice")
 
     var extrasEnabled by remember { mutableStateOf(false) }
     var totalExtrasCost by remember { mutableStateOf(0.0) }
@@ -208,6 +215,13 @@ fun ReservationDetailsCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(10.dp)
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        // Dismiss dropdowns when tapping outside
+                        partsDropdownExpanded = false
+                        partnerSearchDropdownExpanded = false
+                    })
+                }
         ) {
             // Dropdown for selecting parts
             Row(
@@ -221,7 +235,7 @@ fun ReservationDetailsCard(
 
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(end = 8.dp) // Add space between text and dropdown
+                    modifier = Modifier.padding(end = 8.dp)
                 )
 
                 // Dropdown
@@ -234,7 +248,7 @@ fun ReservationDetailsCard(
                         onValueChange = {},
                         readOnly = true,
                         modifier = Modifier
-                            .width(50.dp) // Adjusted width for dropdown
+                            .width(50.dp)
                             .border(1.dp, Color.Gray, RoundedCornerShape(6.dp)),
                         colors = TextFieldDefaults.textFieldColors(
                             backgroundColor = Color.White,
@@ -243,7 +257,7 @@ fun ReservationDetailsCard(
                             unfocusedIndicatorColor = Color.Transparent
                         ),
                         textStyle = TextStyle(
-                            fontSize = 22.sp, // Make the number bigger
+                            fontSize = 22.sp,
                             fontWeight = FontWeight.Bold
                         ),
                         placeholder = { Text("Select") }
@@ -388,9 +402,7 @@ fun ReservationDetailsCard(
                             prefix = "ID=[",
                             postfix = "]"
                         ) { it.toString() }
-                        Log.d("Debug", "Current selectedPlayers list: $selectedPlayers")
 
-                        Log.d("abdallah", "Final Selected Players IDs: $userIds")
 
                         LaunchedEffect(selectedPlayers) {
                             Log.d("AMANI", "Final Selected Players (in LaunchedEffect): $userIds")
@@ -401,13 +413,7 @@ fun ReservationDetailsCard(
         }
     }
 }
-
-
-
-
-
-
-
+@OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun PartnerField(
     label: String,
@@ -419,130 +425,112 @@ fun PartnerField(
     onPlayerSelected: (String, Long) -> Unit
 ) {
     val playersState by findTermsViewModel.players.observeAsState(initial = DataResult.Loading)
-    var dropdownExpanded by remember { mutableStateOf(false) }
-
-    val focusRequester = remember { FocusRequester() }
+    var showDropdown by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
 
-    var isTextChanged by remember { mutableStateOf(false) }
-
-    LaunchedEffect(value) {
-        isTextChanged = value.isNotEmpty()
-        dropdownExpanded = isTextChanged
-    }
-
-    var textFieldSize by remember { mutableStateOf(IntSize.Zero) }
-
-    Column {
-        Box {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color.White)
+            .clickable {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+                showDropdown = false
+            }
+    ) {
+        Column {
             OutlinedTextField(
                 value = value,
                 onValueChange = { text ->
                     onValueChange(text)
-
-                    if (text.isNotEmpty()) {
-                        val requestBody: RequestBody =
-                            text.toRequestBody("text/plain".toMediaType())
-
-                        if (text.length == 1) {
-                            findTermsViewModel.findTerms(requestBody, limit = 9)
-                        } else {
-                            findTermsViewModel.findTerms(requestBody)
-                        }
-
-                        dropdownExpanded = true
-                    } else {
-                        dropdownExpanded = false
+                    showDropdown = text.isNotEmpty()
+                    if (text.length >= 1) {
+                        val requestBody: RequestBody = text.toRequestBody("text/plain".toMediaType())
+                        findTermsViewModel.findTerms(requestBody, limit = 9)
                     }
-                    isTextChanged = text.isNotEmpty()
                 },
                 label = { Text(label) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(focusRequester)
-                    .onFocusChanged { focusState ->
-                        if (focusState.isFocused) {
-                            dropdownExpanded = isTextChanged
-                        }
-                    }
-                    .onGloballyPositioned { layoutCoordinates ->
-                        textFieldSize = layoutCoordinates.size
-                    },
+                modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(15.dp),
                 colors = TextFieldDefaults.outlinedTextFieldColors(
                     focusedBorderColor = Color.Black,
                     unfocusedBorderColor = Color.Black
+                ),
+                keyboardOptions = KeyboardOptions.Default.copy(
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        focusManager.clearFocus()
+                        keyboardController?.hide()
+                        showDropdown = false
+                    }
                 )
             )
 
-            if (dropdownExpanded) {
-                DropdownMenu(
-                    expanded = dropdownExpanded,
-                    onDismissRequest = {
-                        dropdownExpanded = false
-                        focusRequester.requestFocus() // Keep focus on the text field
-                    },
-                    modifier = Modifier
-                        .width(200.dp)
-                        .align(Alignment.TopStart)
-                        .offset(y = with(LocalDensity.current) { textFieldSize.height.toDp() })
-                ) {
-                    when (playersState) {
-                        is DataResult.Loading -> {
-                            DropdownMenuItem(onClick = {}) {
-                                CircularProgressIndicator(modifier = Modifier.padding(16.dp))
-                            }
-                        }
+            // Show dropdown menu
+            if (showDropdown) {
+                when (playersState) {
+                    is DataResult.Loading -> {
+                        CircularProgressIndicator(modifier = Modifier.padding(16.dp))
+                    }
 
-                        is DataResult.Success -> {
-                            if (playerFullNames.isEmpty()) {
-                                DropdownMenuItem(onClick = {}) {
-                                    Text(text = "No results found", modifier = Modifier.padding(16.dp))
-                                }
-                            } else {
-                                playerFullNames.forEach { fullName ->
-                                    DropdownMenuItem(onClick = {
-                                        val selectedPlayerData = findTermsViewModel.getPlayerByFullName(fullName)
-                                        selectedPlayerData?.let { player ->
-                                            val playerId = player.id
-                                            if (!selectedPlayers.contains(playerId)) {
-                                                selectedPlayers.add(playerId)
-                                                onPlayerSelected(player.fullName, playerId)
+                    is DataResult.Success -> {
+                        if (playerFullNames.isEmpty()) {
+                            Text(text = "No results found", modifier = Modifier.padding(16.dp))
+                        } else {
+                            playerFullNames.forEach { fullName ->
+                                Text(
+                                    text = fullName,
+                                    modifier = Modifier
+                                        .padding(8.dp)
+                                        .clickable {
+                                            // Handle player selection
+                                            val selectedPlayerData = findTermsViewModel.getPlayerByFullName(fullName)
+                                            selectedPlayerData?.let { player ->
+                                                val playerId = player.id
+                                                if (!selectedPlayers.contains(playerId)) {
+                                                    selectedPlayers.add(playerId)
+                                                    // Update the field with the selected player's full name
+                                                    onValueChange(player.fullName)
+                                                    onPlayerSelected(player.fullName, playerId)
+                                                }
                                             }
+                                            showDropdown = false // Hide dropdown after selection
                                         }
-                                        dropdownExpanded = false
-                                        focusRequester.requestFocus() // Keep focus on text field after selection
-                                    }) {
-                                        Text(text = fullName)
-                                    }
-                                }
-                            }
-                        }
-
-                        is DataResult.Failure -> {
-                            DropdownMenuItem(onClick = {}) {
-                                Text(
-                                    text = "Error: ${(playersState as DataResult.Failure).errorMessage}",
-                                    color = Color.Red,
-                                    modifier = Modifier.padding(16.dp)
                                 )
                             }
                         }
+                    }
 
-                        else -> {
-                            DropdownMenuItem(onClick = {}) {
-                                Text(
-                                    text = "Start typing to search for partners.",
-                                    modifier = Modifier.padding(16.dp)
-                                )
-                            }
-                        }
+                    is DataResult.Failure -> {
+                        Text(
+                            text = "Error: ${(playersState as DataResult.Failure).errorMessage}",
+                            color = Color.Red,
+                            modifier = Modifier.padding(16.dp)
+                        )
+                    }
+
+                    else -> {
+                        Text(
+                            text = "Start typing to search for partners.",
+                            modifier = Modifier.padding(16.dp)
+                        )
                     }
                 }
             }
         }
     }
 }
+
+
+
+
+
+
+
+
 
 
 /*
@@ -588,7 +576,7 @@ fun ExtrasSection(
         Text(
             text = "  Je commande des extras ?",
             fontSize = 18.sp,
-           // color = Color.Black,
+            // color = Color.Black,
             fontWeight = FontWeight.Bold,
             modifier = Modifier.weight(1f)
 
@@ -632,7 +620,7 @@ fun ExtrasSection(
                         text = "  Article(s) réserver à mon usage",
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Bold,
-                       // color = Color.Black
+                        // color = Color.Black
                     )
                     privateExtrasList?.forEach { privateExtra ->
                         val isPrivateExtraAdded =
@@ -674,13 +662,13 @@ fun ExtrasSection(
                             text = "  Article(s) partagé(s) entre tous les joueurs",
                             fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                           // color = Color.Black
+                            // color = Color.Black
                         )
                         Text(
                             text = "  (Frais partagé)",
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Bold,
-                           // color = Color.Black
+                            // color = Color.Black
                         )
                     }
                     sharedExtrasList?.forEach { sharedExtra ->

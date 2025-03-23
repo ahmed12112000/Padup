@@ -1,12 +1,17 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.annotation.SuppressLint
+import android.graphics.Bitmap
 import android.net.Uri
 import android.net.http.SslError
 import android.util.Log
 import android.view.ViewGroup
+import android.webkit.ConsoleMessage
 import android.webkit.SslErrorHandler
+import android.webkit.WebChromeClient
 import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -39,6 +44,7 @@ import androidx.compose.material.Text
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -96,6 +102,7 @@ fun CreditCharge(
 
     // Get context from LocalContext
     val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier.fillMaxSize().background(Color(0xFFE5E5E5)).verticalScroll(rememberScrollState())
@@ -176,7 +183,7 @@ fun CreditCharge(
         when (paymentResponse) {
             is DataResult.Success -> {
                 val formUrl: String? = ((paymentResponse as DataResult.Success).data as? UserAvoirResponse)?.formUrl
-
+                Log.d("FormUrl","$formUrl")
                 // Handling the packsData correctly
                 val amountValue: BigDecimal? = when (val result = packsData) {
                     is DataResult.Success -> {
@@ -200,13 +207,15 @@ fun CreditCharge(
                     val encodedUrl = Uri.encode(formUrl)
                     val encodedAmount = Uri.encode(amountValue.toString()) // Correctly encode amount
                     val encodedId = Uri.encode(IdValue.toString())
-                    navController.navigate("WebViewScreen1?formUrl=${encodedUrl}&encodedAmount=${encodedAmount}&encodedId=${encodedId}")
+                    navController.navigate("WebViewScreen1?paymentUrl=${encodedUrl}&encodedAmount=${encodedAmount}&encodedId=${encodedId}")
                 } else {
-                    Toast.makeText(context, "No form URL or amount received.", Toast.LENGTH_LONG).show()
+                   // Toast.makeText(context, "No form URL or amount received.", Toast.LENGTH_LONG).show()
+                    isLoading = false
+
                 }
             }
             is DataResult.Failure -> {
-                Toast.makeText(context, "Payment failed: ${(paymentResponse as DataResult.Failure).errorMessage}", Toast.LENGTH_LONG).show()
+            //    Toast.makeText(context, "Payment failed: ${(paymentResponse as DataResult.Failure).errorMessage}", Toast.LENGTH_LONG).show()
             }
             is DataResult.Loading -> {
                 // Optionally show loading state or handle it differently
@@ -288,7 +297,7 @@ fun PricingCard(
 }
 
 
-
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebViewScreen1(
     navController: NavController,
@@ -296,150 +305,187 @@ fun WebViewScreen1(
     paymentGetAvoirViewModel: PaymentGetAvoirViewModel,
     amount: BigDecimal,
     Id: Long,
-
 ) {
-    // Access the local context for WebView
     val context = LocalContext.current
     val amountList = amount.toPlainString().split(",").mapNotNull { it.toLongOrNull() }
     val IdValue = Id
     val errorCreditViewModel: ErrorCreditViewModel = hiltViewModel()
     val coroutineScope = rememberCoroutineScope()
     val isWebViewExpanded = remember { mutableStateOf(true) }
+    val scrollState = rememberScrollState()
+    var isLoading by remember { mutableStateOf(true) }
+    val bookingIdsList: List<Long?> = Id.toString().split(",").map { it.toLongOrNull() }
 
     // Observe dataResult from the ViewModel
-    val dataResult by paymentGetAvoirViewModel.dataResult.observeAsState()
 
-    // Manage the loading state
-    var isLoading by remember { mutableStateOf(true) }
-
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
-            .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+            .verticalScroll(scrollState)
     ) {
-    // AndroidView to embed the WebView
-    AndroidView(factory = {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-            settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW // Allow mixed content
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+                .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+        ) {
+            AndroidView(
+                factory = {
+                    WebView(context).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
 
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    Log.d("WebViewScreen", "Loading URL: $url")
-                    return super.shouldOverrideUrlLoading(view, url)
-                }
-                override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
-                    val url = request.url.toString()
-                    val packId = extractPackId3(url)
-                    val orderId = extractOrderId1(url)
-                    val amountBigDecimal = amountList.fold(BigDecimal.ZERO) { acc, amount ->
-                        acc + BigDecimal(amount) // Summing up the values in the list to form a BigDecimal
+                        webViewClient = object : WebViewClient() {
+                            @Deprecated("Deprecated in Java")
+                            override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
+                                url?.let {
+                                    // Only handle specific URLs (e.g., payment success or error URLs)
+                                    if (it.contains("paymentSuccess")) {
+                                        Log.e("paymentSuccess", "Payment successful URL: $it")
+                                        navController.navigate("PaymentSuccessScreen")
+                                        return true
+                                    }
+                                    // If not a specific URL, let the WebView load it
+                                    return false
+                                }
+                                return super.shouldOverrideUrlLoading(view, url)
+                            }
+
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView?,
+                                request: WebResourceRequest
+                            ): Boolean {
+                                val url = request.url.toString()
+                                Log.d("WebViewScreen", "Loading URL: $url")
+
+                                val originalUri = Uri.parse(formUrl)
+                                val orderId = extractOrderId1(url)
+                                val amountBigDecimal = amountList.fold(BigDecimal.ZERO) { acc, amount ->
+                                    acc + BigDecimal(amount) // Summing up the values in the list to form a BigDecimal
+                                }
+                                val newUri = Uri.parse(url).buildUpon()
+                                    .build()
+                                Log.d("WebViewScreen", "New URL: ${newUri}")
+
+                                if (orderId.isNotEmpty()) {
+                                    val request1 = PaymentGetAvoirRequest(
+                                        amount = amountBigDecimal,
+                                        packId = IdValue,
+                                        paymentRef = extractpaymentRef(url),
+                                        orderId = orderId,
+                                    )
+
+                                    Log.d("WebViewScreen", "Sending GetPayment request: $request")
+                                    /*
+                                    coroutineScope.launch {
+                                        try {
+                                            paymentGetAvoirViewModel.PaymentGetAvoir(request1,navController)
+                                            val response: Boolean = paymentGetAvoirViewModel.PaymentGetAvoir(request1, navController) // Ensure this returns Boolean
+                                            if (response) {
+
+                                            navController.navigate("PaymentSuccessScreen")
+                                        } catch (e: Exception) {
+                                            Log.e("WebViewScreen", "Error processing payment: $e")
+                                        }
+                                    }
+                                } else {
+                                    Log.e("WebViewScreen", "Order ID not found in URL")
+                                }
+
+                                     */
+                                    coroutineScope.launch {
+                                        try {
+                                            val response: Boolean = paymentGetAvoirViewModel.PaymentGetAvoir(request1, navController) // Ensure this returns Boolean
+                                            if (response) {
+                                                Log.d("WebViewScreen", "Payment successful, navigating to success screen.")
+
+                                                navController.navigate("PaymentSuccessScreen")
+                                            } else {
+                                                Log.e("WebViewScreen", "Payment failed, triggering error credit request.")
+                                                val creditErrorRequest = CreditErrorRequest(
+                                                    amount = BigDecimal.ZERO,
+                                                    bookingIds = bookingIdsList,
+                                                    buyerId = 0L,
+                                                    payFromAvoir = false,
+                                                    status = true,
+                                                    token = "",
+                                                    transactionId = 0L
+                                                )
+
+                                                errorCreditViewModel.ErrorCredit(creditErrorRequest)
+                                                navController.navigate("payment_error_screen")
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("WebViewScreen", "Error processing payment: $e")
+                                        }
+                                    }
+                                } else {
+                                    Log.e("WebViewScreen", "Order ID not found in URL")
+                                }
+                                view?.loadUrl(newUri.toString())
+                                return true
+                            }
+                            override fun onReceivedError(view: WebView?, errorCode: Int, description: String?, failingUrl: String?) {
+                                super.onReceivedError(view, errorCode, description, failingUrl)
+                                Log.e("WebView", "Error loading URL: $failingUrl")
+                            }
+
+                            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+                                super.onPageStarted(view, url, favicon)
+                                Log.d("WebView", "Page started loading: $url")
+                            }
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                super.onPageFinished(view, url)
+                                Log.d("WebView", "Page loaded: $url")
+                            }
+                        }
+
+                        val uri = Uri.parse(formUrl)
+
+                        loadUrl(formUrl)
                     }
-                    if (orderId.isNotEmpty()) {
-                        // Extract other parameters (e.g., booking IDs, user IDs)
-                        val request1 = PaymentGetAvoirRequest(
-                            amount = amountBigDecimal,
-                            packId = IdValue,
-                            paymentRef = extractpaymentRef(url),
-                            orderId = orderId,
-                        )
-                        paymentGetAvoirViewModel.PaymentGetAvoir(request1)
-                    } else {
-                        Log.e("WebViewScreen", "Order ID not found in URL")
-                    }
-                    navController.navigate("PaymentSuccessScreen")
-
-                    return true
-                }
-                override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-                    // Ignore SSL certificate errors (for testing only)
-                    handler?.proceed()
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    Log.d("WebView", "Page finished loading: $url")
-                    isLoading = false
-                }
-            }
-
-            // Load the initial URL
-            loadUrl(formUrl)
-        }
-    }, modifier = Modifier.fillMaxSize()
-    )
-
-    IconButton(
-        onClick = {
-            val creditErrorRequest = CreditErrorRequest(
-                amount = BigDecimal.ZERO,
-                bookingIds = listOf(IdValue),
-                buyerId = 0L,
-                payFromAvoir = false,
-                status = true,
-                token = "",
-                transactionId = 0L
+                }, modifier = Modifier.fillMaxSize()
             )
 
-            isWebViewExpanded.value = false
-               navController.navigate("CreditCharge")
-        },
-        modifier = Modifier
-            .align(Alignment.TopEnd)
-            .padding(8.dp)
-            .background(Color.White, shape = CircleShape)
-    ) {
-        Icon(imageVector = Icons.Default.Close, contentDescription = "Close WebView", tint = Color.Black)
-    }
-}
-
-// Observe the dataResult from the errorCreditViewModel
-val errorDataResult by errorCreditViewModel.dataResult.observeAsState()
-errorDataResult?.let { result ->
-    when (result) {
-        is DataResult.Loading -> {
-            Log.d("WebViewScreen", "Processing error credit request...")
-        }
-        is DataResult.Success -> {
-            Log.d("WebViewScreen", "Error credit processed successfully.")
-        }
-        is DataResult.Failure -> {
-            Log.e("WebViewScreen", "Error processing credit: ${result.exception}")
+            IconButton(
+                onClick = {
+                    isWebViewExpanded.value = false
+                    navController.navigate("CreditCharge")
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(Color.White, shape = CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close WebView",
+                    tint = Color.Black
+                )
+            }
         }
     }
-}
-
-    // Handle ViewModel dataResult states
-    dataResult?.let { result ->
+    // Observe the dataResult from the errorCreditViewModel
+    val errorDataResult by errorCreditViewModel.dataResult.observeAsState()
+    errorDataResult?.let { result ->
         when (result) {
             is DataResult.Loading -> {
-                Log.d("WebViewScreen", "Fetching payment details...")
-                isLoading = true
+                Log.d("WebViewScreen", "Processing error credit request...")
             }
             is DataResult.Success -> {
-                Toast.makeText(context, "Payment details fetched successfully!", Toast.LENGTH_LONG).show()
-                Log.d("WebViewScreen", "Payment details fetched successfully: ${result.data}")
-                navController.navigate("PaymentSuccessScreen")
+                Log.d("WebViewScreen", "Error credit processed successfully.")
             }
             is DataResult.Failure -> {
-                Toast.makeText(
-                    context,
-                    "Failed to fetch payment details: ${result.errorMessage} (Code: ${result.errorCode})",
-                    Toast.LENGTH_LONG
-                ).show()
-                Log.e("WebViewScreen", "Error fetching payment details", result.exception)
+                Log.e("WebViewScreen", "Error processing credit: ${result.exception}")
             }
         }
     }
 
-    // Optionally show a loading indicator
-    if (isLoading) {
-        CircularProgressIndicator(modifier = Modifier)
-    }
-}
 
+
+    // Optionally show a loading indicator
+
+}
 
 
 // Utility functions with improvements

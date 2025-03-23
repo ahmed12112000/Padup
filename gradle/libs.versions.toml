@@ -68,6 +68,7 @@ identityJvm = "202408.1"
 uiGraphicsAndroid = "1.7.4"
 preferenceKtx = "1.2.1"
 androidxCoreKtx = "1.2.0"
+navigationRuntime = "2.8.0"
 
 [libraries]
 androidx-appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -148,6 +149,7 @@ identity-jvm = { group = "com.android.identity", name = "identity-jvm", version.
 androidx-ui-graphics-android = { group = "androidx.compose.ui", name = "ui-graphics-android", version.ref = "uiGraphicsAndroid" }
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCoreKtx" }
+androidx-navigation-runtime = { group = "androidx.navigation", name = "navigation-runtime", version.ref = "navigationRuntime" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

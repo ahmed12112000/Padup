@@ -293,11 +293,7 @@ fun TopBar(
                 .height(100.dp)
               //  .padding(top = 3.dp)
                 .background(Color(0xFF0054D8))
-                .shadow(
-                    elevation = 200.dp,
-                    shape = RoundedCornerShape(topStart = 20.dp, topEnd = 30.dp),
-                    clip = true
-                )
+
         ) {
 
 
@@ -309,7 +305,7 @@ fun TopBar(
                         .fillMaxSize(0.6f)
                         .clip(CircleShape)
                         .clickable {
-                            navController.navigate("popup_credit")
+                            navController.navigate("main_screen")
                         }
                         .align(Alignment.CenterEnd)
 

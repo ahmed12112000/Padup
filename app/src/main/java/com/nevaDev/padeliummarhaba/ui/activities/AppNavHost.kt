@@ -89,6 +89,11 @@ fun AppNavHost(
                 )
             }
 
+            composable("payment_error_screen") {
+                PaymentErrorScreen(onRetry = {}
+                )
+            }
+
             composable("popup_credit") { backStackEntry ->
                 var showPopup by remember { mutableStateOf(true) } // Manage popup visibility state
                 val name = backStackEntry.arguments?.getString("name").orEmpty()
@@ -98,6 +103,8 @@ fun AppNavHost(
                 val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookingsJson") ?: ""
                 val selectedDate = LocalDate.parse(backStackEntry.arguments?.getString("selectedDate") ?: LocalDate.now().toString())
                 val bookingId = backStackEntry.arguments?.getString("bookingId")
+                val playerIds = backStackEntry.arguments?.getString("playerIds")
+                val playerIdList: List<Long> = playerIds?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
 
                 if (showPopup) {
                     PopupCredit(
@@ -125,7 +132,8 @@ fun AppNavHost(
                         selectedDate = selectedDate, // Pass selected date
                         selectedReservation = ReservationOption(name, time, price, mappedBookingsJson),
                         saveBookingViewModel = hiltViewModel(),
-                        bookingId= bookingId
+                        bookingId= bookingId,
+                        playerIds = playerIdList
                     )
                 }
             }
@@ -138,46 +146,6 @@ fun AppNavHost(
                     viewModel = hiltViewModel()
                 )
             }
-/*
-            composable(
-                route = "login_screen?destination={destination}&name={name}&time={time}&price={price}&mappedBookings={mappedBookings}&selectedDate={selectedDate}",
-                deepLinks = listOf(
-                    navDeepLink {
-                        uriPattern = "android-app://androidx.navigation/payment_section1/{name}/{time}/{price}/{mappedBookings}/{selectedDate}"
-                    }
-                ),
-                arguments = listOf(
-                    navArgument("destination") { type = NavType.StringType; nullable = true },
-                    navArgument("name") { type = NavType.StringType; nullable = true },
-                    navArgument("time") { type = NavType.StringType; nullable = true },
-                    navArgument("price") { type = NavType.StringType; nullable = true },
-                    navArgument("mappedBookings") { type = NavType.StringType; nullable = true },
-                    navArgument("selectedDate") { type = NavType.StringType; nullable = true }
-                )
-            ) { backStackEntry ->
-                val destination = backStackEntry.arguments?.getString("destination")?: "main_screen"
-                val name = backStackEntry.arguments?.getString("name").orEmpty()
-                val time = backStackEntry.arguments?.getString("time").orEmpty()
-                val price = backStackEntry.arguments?.getString("price").orEmpty()
-                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookings").orEmpty()
-                val selectedDate = backStackEntry.arguments?.getString("selectedDate").orEmpty()
-                val viewModel: UserViewModel = hiltViewModel()
-                val getProfileViewModel: GetProfileViewModel = hiltViewModel()
-
-                LoginScreen(
-                    onLoginSuccess = {
-                        navController.navigate(destination) {
-                            popUpTo("login_screen") { inclusive = true }
-                        }
-                    },
-                    viewModel = viewModel,
-                    getProfileViewModel = getProfileViewModel,
-                    navController = navController,
-                    loginRequest = LoginRequest("", ""),
-                )
-            }
-
- */
 
             composable(
                 route = "login_screen?redirectUrl={redirectUrl}",
@@ -233,7 +201,7 @@ fun AppNavHost(
                     viewModel2 = hiltViewModel(),
                     bookingViewModel = hiltViewModel(),
                     paymentPayAvoirViewModel = hiltViewModel(),
-
+                    getReservationViewModel = hiltViewModel(),
                 )
             }
             composable("reservation_options") { backStackEntry ->
@@ -253,6 +221,7 @@ fun AppNavHost(
                     viewModel2 = hiltViewModel(),
                     bookingViewModel = hiltViewModel(),
                     paymentPayAvoirViewModel = hiltViewModel(),
+                    getReservationViewModel = hiltViewModel(),
 
                     )
             }
@@ -264,25 +233,27 @@ fun AppNavHost(
             }
 
             composable(
-                route = "WebViewScreen1?formUrl={formUrl}&encodedAmount={encodedAmount}&encodedId={encodedId}",
+                route = "WebViewScreen1?paymentUrl={paymentUrl}&encodedAmount={encodedAmount}&encodedId={encodedId}",
                 arguments = listOf(
-                    navArgument("formUrl") { type = NavType.StringType },
+                    navArgument("paymentUrl") { type = NavType.StringType },
                     navArgument("encodedAmount") { type = NavType.StringType; defaultValue = "0" },
-                    navArgument("encodedId") { type = NavType.LongType; defaultValue = 0L }
-                )
+                    navArgument("encodedId") { type = NavType.LongType; defaultValue = 0L },
+
+                    )
             ) { backStackEntry ->
-                val formUrl = backStackEntry.arguments?.getString("formUrl") ?: ""
+                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
                 val encodedAmount = backStackEntry.arguments?.getString("encodedAmount")?.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 val paymentGetAvoirViewModel: PaymentGetAvoirViewModel = hiltViewModel()
                 val encodedId = backStackEntry.arguments?.getLong("encodedId") ?: 0L
 
                 WebViewScreen1(
-                    formUrl = formUrl,
+                    formUrl = paymentUrl,
                     navController = navController,
                     paymentGetAvoirViewModel = paymentGetAvoirViewModel,
                     amount = encodedAmount,
-                    Id = encodedId
-                )
+                    Id = encodedId,
+
+                    )
             }
 
             composable(
@@ -308,6 +279,22 @@ fun AppNavHost(
                     navController = navController,
                     viewmodel = viewmodel,
                     formUrl = formUrl,
+                    onReservationClicked = { selectedDate ->
+                        val key = "someKey"
+                        val activityName = "SomeActivity"
+                        val cityName = "SomeCity"
+                        val activityId = "1"
+                        val cityId = "1"
+                        val establishmentId = "1"
+                        val time = "10:00"
+                        val isCity = false
+                        val formattedDate =
+                            selectedDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"))
+
+                        val destination =
+                            "reservation_screen/$key/$formattedDate/$activityName/$cityName/$activityId/$cityId/$establishmentId/$time/$isCity"
+                        navController.navigate(destination)
+                    },
                 )
             }
 
@@ -434,6 +421,7 @@ fun AppNavHost(
                     viewModel = viewModel,
                     getBookingViewModel = getBookingViewModel,
                     paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                    getReservationViewModel = hiltViewModel(),
 
                 )
             }
@@ -541,6 +529,45 @@ fun AppNavHost(
                     },
 
                 )
+            }
+
+
+            composable(
+                route = "popup_partner_credit/{partnerPayId}/{totalPrice}",
+                arguments = listOf(
+                    navArgument("partnerPayId") { type = NavType.StringType },
+                    navArgument("totalPrice") { type = NavType.StringType } // Add totalPrice as an argument
+                )
+            ) { backStackEntry ->
+            var showPopup by remember { mutableStateOf(true) } // Manage popup visibility state
+                val name = backStackEntry.arguments?.getString("name").orEmpty()
+                val time = backStackEntry.arguments?.getString("time").orEmpty()
+                val price = backStackEntry.arguments?.getString("price").orEmpty()
+                // Retrieve necessary arguments (ensure they're passed properly when navigating)
+                val mappedBookingsJson = backStackEntry.arguments?.getString("mappedBookingsJson") ?: ""
+                val selectedDate = LocalDate.parse(backStackEntry.arguments?.getString("selectedDate") ?: LocalDate.now().toString())
+                val bookingId = backStackEntry.arguments?.getString("bookingId")
+                val playerIds = backStackEntry.arguments?.getString("playerIds")
+                val playerIdList: List<Long> = playerIds?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
+                val partnerPayId = backStackEntry.arguments?.getString("partnerPayId")
+                val totalPriceString = backStackEntry.arguments?.getString("totalPrice").orEmpty()
+                var totalPrice = totalPriceString.toBigDecimalOrNull() ?: BigDecimal.ZERO
+
+                if (showPopup) {
+                    PopupCreditPartner(
+
+                        navController = navController,
+                        showPopup = showPopup, // Pass visibility state
+                        onDismiss = { showPopup = false }, // Handle dismiss event
+                        viewModel4 = hiltViewModel(), // SharedViewModel
+                     //   bookingId =bookingId,
+                        viewModel = hiltViewModel(),
+                        partnerPayId = partnerPayId,
+                        totalPrice = totalPrice,
+
+
+                    )
+                }
             }
 
         }

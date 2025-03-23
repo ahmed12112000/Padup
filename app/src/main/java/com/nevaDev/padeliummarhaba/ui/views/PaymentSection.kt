@@ -2,7 +2,9 @@ package com.nevaDev.padeliummarhaba.ui.views
 
 import android.annotation.SuppressLint
 import android.net.Uri
+import android.net.http.SslError
 import android.util.Log
+import android.webkit.SslErrorHandler
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -22,6 +24,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -68,6 +71,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
@@ -89,6 +93,7 @@ import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.data.dto.SaveBookingRequestt
+import com.padelium.domain.dataresult.DataResult2
 import com.padelium.domain.dto.CreditErrorRequest
 import com.padelium.domain.dto.EstablishmentDTO
 import com.padelium.domain.dto.EstablishmentDTOoo
@@ -358,13 +363,12 @@ fun  PaymentSection1(
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
                     text = "Requis pour votre réservation",
-                    fontSize = 22.sp,
+                    fontSize = 20.sp,
                     fontWeight = FontWeight.Bold
                 )
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp)) // Add some space between the cards
 
         if (showMessage) {
             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(8.dp)) {
@@ -382,17 +386,13 @@ fun  PaymentSection1(
                 )
             }
         }
-        // Card for the phone number input
-        // Card for the phone number display
-
 
         Spacer(modifier = Modifier.height(16.dp))
-
-
-
         // Card for the phone number display
         Card(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp),  // Add some padding to avoid screen edge issues
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(Color.White),
             elevation = CardDefaults.cardElevation(4.dp)
@@ -404,17 +404,22 @@ fun  PaymentSection1(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                // Left Section (Icon + Phone Number Box)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.weight(0.7f).offset(x = -10.dp)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Phone,
                         contentDescription = "Phone Icon",
-                        modifier = Modifier.padding(8.dp)
+                        modifier = Modifier.padding(end = 8.dp)
                     )
                     Box(
                         modifier = Modifier
+                            .weight(0.3f)
                             .border(1.dp, Color.Black, RoundedCornerShape(8.dp))
                             .padding(8.dp)
-                            .width(160.dp)
+                            .height(20.dp)
                     ) {
                         Text(
                             text = if (phoneNumber.isEmpty()) "* Obligatoire" else phoneNumber,
@@ -423,27 +428,26 @@ fun  PaymentSection1(
                         )
                     }
                 }
+
+                // Button Section
                 Button(
-                    onClick = {
-                        showPopup = true
-                    },
+                    onClick = { showPopup = true },
                     shape = RoundedCornerShape(13.dp),
                     border = BorderStroke(1.dp, Color(0xFF0054D8)),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.White),
-                    modifier = Modifier.size(width = 120.dp, height = 45.dp)
+                    modifier = Modifier
+                        .wrapContentHeight()  // Ensures button is not cut off
+                        .size(width = 120.dp, height = 45.dp) // Maintain proper button size
                 ) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),  // Ensure it takes up the full space of the button
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = if (phoneNumber.isEmpty()) "Ajouter" else "Modifier",
-                            color = Color(0xFF0054D8),
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 15.sp,
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    Text(
+                        text = if (phoneNumber.isEmpty()) "Ajouter" else "Modifier",
+                        color = Color(0xFF0054D8),
+                        fontWeight = FontWeight.ExtraBold,
+                        fontSize = 15.sp,
+                        textAlign = TextAlign.Center
+                    )
+
+
 
 
 
@@ -653,7 +657,7 @@ fun  PaymentSection1(
                 val privateExtras by findTermsViewModel.privateExtras.observeAsState(initial = mutableListOf())
                 val formatterOutput: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 val formatterWithMillis: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-
+                val playerIds = selectedPlayers.toList()
 
 
                 Button(
@@ -762,7 +766,6 @@ fun  PaymentSection1(
                                             booking
                                         }
                                     }
-                                    Log.d("OLFA", "Formatted Values: start=$startFormatted, end=$updatedMappedBookings")
 
                                     val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected)
                                     val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
@@ -1123,11 +1126,11 @@ fun  PaymentSection1(
                         selectedReservation = selectedReservation, // Pass selected reservation
                         saveBookingViewModel = hiltViewModel(), // Pass SaveBookingViewModel
                         bookingId = bookingId,
+                        playerIds = playerIds
                     )
                 }
 
             }
-
         }
     }
 }
@@ -1161,8 +1164,6 @@ fun WebViewScreen(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
-    val dataResult by getPaymentViewModel.dataResult.observeAsState()
-    val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
     val userIdsList = userIds.split(",").mapNotNull { it.toLongOrNull() }
     val sharedListIds = sharedList.split(",").mapNotNull { it.toLongOrNull() }
     val privateListIds = privateList.split(",").mapNotNull { it.toLongOrNull() }
@@ -1173,138 +1174,181 @@ fun WebViewScreen(
     val bookingIdsList = bookingIds.split(",").mapNotNull { it.toLongOrNull() }
     var isButtonClicked by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    Log.d("WebViewScreen", "Selected Parts: $numberOfPart")
-    Log.d("WebViewScreen", "Extracted userIds: $userIdsList")
-    Log.e("Faaaaaaaaaaaaaaaaaaaaaaaaa", "Selected Parts: $bookingIdsList")
+    val scrollState = rememberScrollState()
 
-    Box(
+
+
+    Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(8.dp)
-            .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+            .verticalScroll(scrollState)
     ) {
-        AndroidView(factory = {
-            WebView(context).apply {
-                settings.javaScriptEnabled = true
-                settings.domStorageEnabled = true
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp)
+                .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
+        ) {
+            AndroidView(
+                factory = {
+                    WebView(context).apply {
+                        settings.javaScriptEnabled = true
+                        settings.domStorageEnabled = true
 
-                webViewClient = object : WebViewClient() {
-                    override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                        url?.let {
-                            if (it.contains("paymentSuccess")) {
-                                Log.e("paymentSuccess", "Payment successful URL: $it")
-                                navController.navigate("PaymentSuccessScreen")
+                        webViewClient = object : WebViewClient() {
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView?,
+                                url: String?
+                            ): Boolean {
+                                url?.let {
+                                    if (it.contains("paymentSuccess")) {
+                                        Log.e("paymentSuccess", "Payment successful URL: $it")
+                                        navController.navigate("PaymentSuccessScreen")
+                                        return true
+                                    }
+                                }
+                                return super.shouldOverrideUrlLoading(view, url)
+                            }
+
+                            override fun shouldOverrideUrlLoading(
+                                view: WebView?,
+                                request: WebResourceRequest
+                            ): Boolean {
+                                val url = request.url.toString()
+                                Log.d("WebViewScreen", "Loading URL: $url")
+
+                                val originalUri = Uri.parse(formUrl)
+                                val numberOfPartValue =
+                                    originalUri.getQueryParameter("numberOfPart")
+                                        ?: numberOfPart.toString()
+
+                                val newUri = Uri.parse(url).buildUpon()
+                                    .appendQueryParameter("numberOfPart", numberOfPartValue)
+                                    .build()
+                                Log.d("WebViewScreen", "New URL: ${newUri}")
+
+                                val orderId = extractOrderId(url)
+                                val bookingIds = extractBookingIds(url)
+                                val numberOfPartValueNew = extractNumberOfPart(newUri.toString())
+
+                                if (orderId.isNotEmpty()) {
+                                    val request = GetPaymentRequest(
+                                        bookingIds = bookingIds,
+                                        couponIds = extractCouponIds(newUri.toString()),
+                                        numberOfPart = numberOfPartValueNew,
+                                        orderId = orderId,
+                                        privateExtrasIds = privateListIds,
+                                        sharedExtrasIds = sharedListIds,
+                                        userIds = userIdsList
+                                    )
+
+                                    Log.d("WebViewScreen", "Sending GetPayment request: $request")
+                                    coroutineScope.launch {
+                                        try {
+                                            val response: Boolean = getPaymentViewModel.GetPayment2(request, navController) // Ensure this returns Boolean
+                                            if (response) {
+                                                Log.d("WebViewScreen", "Payment successful, navigating to success screen.")
+                                                getManagerViewModel.GetManager(bookingIds)
+                                                getEmailViewModel.GetEmail(bookingIds)
+                                                navController.navigate("PaymentSuccessScreen")
+                                            } else {
+                                                Log.e("WebViewScreen", "Payment failed, triggering error credit request.")
+                                                val creditErrorRequest = CreditErrorRequest(
+                                                    amount = BigDecimal.ZERO,
+                                                    bookingIds = bookingIdsList,
+                                                    buyerId = 0L,
+                                                    payFromAvoir = false,
+                                                    status = true,
+                                                    token = "",
+                                                    transactionId = 0L
+                                                )
+
+                                                errorCreditViewModel.ErrorCredit(creditErrorRequest)
+                                                navController.navigate("payment_error_screen")
+                                            }
+                                        } catch (e: Exception) {
+                                            Log.e("WebViewScreen", "Error processing payment: $e")
+                                        }
+                                    }
+                                } else {
+                                    Log.e("WebViewScreen", "Order ID not found in URL")
+                                }
+
+                                view?.loadUrl(newUri.toString())
                                 return true
                             }
-                        }
-                        return super.shouldOverrideUrlLoading(view, url)
-                    }
 
-                    override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest): Boolean {
-                        val url = request.url.toString()
-                        Log.d("WebViewScreen", "Loading URL: $url")
-
-                        val originalUri = Uri.parse(formUrl)
-                        val numberOfPartValue = originalUri.getQueryParameter("numberOfPart") ?: numberOfPart.toString()
-
-                        val newUri = Uri.parse(url).buildUpon()
-                            .appendQueryParameter("numberOfPart", numberOfPartValue)
-                            .build()
-                        Log.d("WebViewScreen", "New URL: ${newUri}")
-
-                        val orderId = extractOrderId(url)
-                        val bookingIds = extractBookingIds(url)
-                        val numberOfPartValueNew = extractNumberOfPart(newUri.toString())
-
-                        if (orderId.isNotEmpty()) {
-                            val request = GetPaymentRequest(
-                                bookingIds = bookingIds,
-                                couponIds = extractCouponIds(newUri.toString()),
-                                numberOfPart = numberOfPartValueNew,
-                                orderId = orderId,
-                                privateExtrasIds = privateListIds,
-                                sharedExtrasIds = sharedListIds,
-                                userIds = userIdsList
-                            )
-
-                            Log.d("WebViewScreen", "Sending GetPayment request: $request")
-                            coroutineScope.launch {
-                                try {
-                                    getPaymentViewModel.GetPayment2(request)
-                                    getManagerViewModel.GetManager(bookingIds)
-                                    getEmailViewModel.GetEmail(bookingIds)
-                                    navController.navigate("PaymentSuccessScreen")
-                                } catch (e: Exception) {
-                                    Log.e("WebViewScreen", "Error processing payment: $e")
-                                }
+                            override fun onReceivedSslError(
+                                view: WebView?,
+                                handler: SslErrorHandler?,
+                                error: SslError?
+                            ) {
+                                handler?.proceed()
                             }
-                        } else {
-                            Log.e("WebViewScreen", "Order ID not found in URL")
+
+                            override fun onPageFinished(view: WebView?, url: String?) {
+                                super.onPageFinished(view, url)
+                                Log.d("WebView", "Page finished loading: $url")
+                            }
                         }
 
-                        view?.loadUrl(newUri.toString())
-                        return true
+                        val uri = Uri.parse(formUrl)
+                        val updatedUrl =
+                            if (uri.getQueryParameter("numberOfPart").isNullOrEmpty()) {
+                                "$formUrl&numberOfPart=$numberOfPart"
+                            } else {
+                                val newUri = uri.buildUpon()
+                                    .appendQueryParameter("numberOfPart", numberOfPart.toString())
+                                    .build()
+                                newUri.toString()
+                            }
+                        Log.d("WebViewScreen", "Final URL passed to WebView: $updatedUrl")
+                        loadUrl(updatedUrl)
                     }
+                }, modifier = Modifier.fillMaxSize()
+            )
 
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        Log.d("WebView", "Page finished loading: $url")
+            IconButton(
+                onClick = {
+                    val creditErrorRequest = CreditErrorRequest(
+                        amount = BigDecimal.ZERO,
+                        bookingIds = bookingIdsList,
+                        buyerId = 0L,
+                        payFromAvoir = false,
+                        status = true,
+                        token = "",
+                        transactionId = 0L
+                    )
+                    coroutineScope.launch {
+                        errorCreditViewModel.ErrorCredit(creditErrorRequest)
                     }
-                }
+                    val selectedDate = LocalDate.now()
 
-                val uri = Uri.parse(formUrl)
-                val updatedUrl = if (uri.getQueryParameter("numberOfPart").isNullOrEmpty()) {
-                    "$formUrl&numberOfPart=$numberOfPart"
-                } else {
-                    val newUri = uri.buildUpon()
-                        .appendQueryParameter("numberOfPart", numberOfPart.toString())
-                        .build()
-                    newUri.toString()
-                }
-                Log.d("WebViewScreen", "Final URL passed to WebView: $updatedUrl")
-                loadUrl(updatedUrl)
-            }
-        }, modifier = Modifier.fillMaxSize()
-        )
+                    if (!isButtonClicked) {
+                        isButtonClicked = true
 
-        IconButton(
-            onClick = {
-                val creditErrorRequest = CreditErrorRequest(
-                    amount = BigDecimal.ZERO,
-                    bookingIds = bookingIdsList,
-                    buyerId = 0L,
-                    payFromAvoir = false,
-                    status = true,
-                    token = "",
-                    transactionId = 0L
+                        selectedDate?.let { date ->
+                            isLoading = true
+                            onReservationClicked(date)
+                        } ?: Log.e("MainScreen", "Selected date is null")
+                    }
+                    val selectedTimeSlot = extractSelectedTimeSlot(lastLoadedUrl.value) ?: ""
+
+                    isWebViewExpanded.value = false
+                },
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(8.dp)
+                    .background(Color.White, shape = CircleShape)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close WebView",
+                    tint = Color.Black
                 )
-                coroutineScope.launch {
-                    errorCreditViewModel.ErrorCredit(creditErrorRequest)
-                }
-                val selectedDate = LocalDate.now()
-
-                if (!isButtonClicked) {
-                    isButtonClicked = true
-
-                    selectedDate?.let { date ->
-                        isLoading = true
-                        onReservationClicked(date)
-                    } ?: Log.e("MainScreen", "Selected date is null")
-                }
-                val selectedTimeSlot = extractSelectedTimeSlot(lastLoadedUrl.value) ?: ""
-
-                isWebViewExpanded.value = false
-                //   navController.navigate("reservation_options/$selectedDate/$selectedTimeSlot")
-            },
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(8.dp)
-                .background(Color.White, shape = CircleShape)
-        ) {
-            Icon(imageVector = Icons.Default.Close, contentDescription = "Close WebView", tint = Color.Black)
+            }
         }
     }
-
     // Observe the dataResult from the errorCreditViewModel
     val errorDataResult by errorCreditViewModel.dataResult.observeAsState()
     errorDataResult?.let { result ->
@@ -1312,112 +1356,98 @@ fun WebViewScreen(
             is DataResult.Loading -> {
                 Log.d("WebViewScreen", "Processing error credit request...")
             }
+
             is DataResult.Success -> {
                 Log.d("WebViewScreen", "Error credit processed successfully.")
             }
+
             is DataResult.Failure -> {
                 Log.e("WebViewScreen", "Error processing credit: ${result.exception}")
             }
         }
     }
 
-    dataResult?.let { result ->
-        when (result) {
-            is DataResult.Loading -> {
-                Log.d("WebViewScreen", "Fetching payment details...")
-            }
-            is DataResult.Success -> {
-                navController.navigate("PaymentSuccessScreen")
-            }
-            is DataResult.Failure -> {
-                Log.e("WebViewScreen", "Error fetching payment details", result.exception)
-            }
+}
+    fun extractSelectedDate(url: String): String? {
+        return Uri.parse(url).getQueryParameter("selectedDate")
+    }
+
+    fun extractSelectedTimeSlot(url: String): String? {
+        return Uri.parse(url).getQueryParameter("selectedTimeSlot")
+    }
+
+
+    fun extractBookingIds(url: String): List<Long> {
+        val uri = Uri.parse(url)
+        val ids = uri.getQueryParameter("bookingIds")
+        if (ids != null) {
+            Log.d("extractBookingIds", "Raw bookingIds parameter: $ids")
+            return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
         }
-    }
-}
-fun extractSelectedDate(url: String): String? {
-    return Uri.parse(url).getQueryParameter("selectedDate")
-}
 
-fun extractSelectedTimeSlot(url: String): String? {
-    return Uri.parse(url).getQueryParameter("selectedTimeSlot")
-}
-
-
-fun extractBookingIds(url: String): List<Long> {
-    val uri = Uri.parse(url)
-    val ids = uri.getQueryParameter("bookingIds")
-    if (ids != null) {
-        Log.d("extractBookingIds", "Raw bookingIds parameter: $ids")
-        return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
+        // Fallback: Extract ID from path
+        val pathSegments = uri.pathSegments
+        Log.d("extractBookingIds", "Path segments: $pathSegments")
+        val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
+        return if (fallbackId != null) listOf(fallbackId) else emptyList()
     }
 
-    // Fallback: Extract ID from path
-    val pathSegments = uri.pathSegments
-    Log.d("extractBookingIds", "Path segments: $pathSegments")
-    val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
-    return if (fallbackId != null) listOf(fallbackId) else emptyList()
-}
 
-
-
-// Utility functions with improvements
-fun extractOrderId(url: String): String {
-    val uri = Uri.parse(url)
-    return uri.getQueryParameter("orderId") ?: ""
-}
-
-
-
-fun extractNumberOfPart(url: String): Int {
-    val uri = Uri.parse(url)
-    val numberOfPartRaw = uri.getQueryParameter("numberOfPart")
-    Log.d("extractNumberOfPart", "Raw numberOfPart: $numberOfPartRaw")
-    return numberOfPartRaw?.toIntOrNull() ?: 1
-}
-
-
-
-
-fun extractCouponIds(url: String): Map<Long, Long> {
-    val uri = Uri.parse(url)
-    val ids = uri.getQueryParameter("couponIds")
-    return ids?.split(",")?.mapNotNull {
-        val pair = it.split(":")
-        if (pair.size == 2) {
-            val key = pair[0].toLongOrNull()
-            val value = pair[1].toLongOrNull()
-            if (key != null && value != null) key to value else null
-        } else null
-    }?.toMap() ?: emptyMap()
-}
-
-fun extractPrivateExtrasIds(url: String): List<Long?> {
-    val uri = Uri.parse(url)
-    val ids = uri.getQueryParameter("privateExtrasIds")
-    return ids?.split(",")?.map { it.toLongOrNull() } ?: emptyList()
-}
-
-fun extractSharedExtrasIds(url: String): List<Long?> {
-    val uri = Uri.parse(url)
-    val ids = uri.getQueryParameter("sharedExtrasIds")
-    return ids?.split(",")?.map { it.toLongOrNull() } ?: emptyList()
-}
-
-fun extractUserIds(url: String): List<Long> {
-    val uri = Uri.parse(url)
-    val ids = uri.getQueryParameter("userIds")
-    if (ids != null) {
-        Log.d("extractUser Ids", "Raw userIds parameter: $ids")
-        return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
+    // Utility functions with improvements
+    fun extractOrderId(url: String): String {
+        val uri = Uri.parse(url)
+        return uri.getQueryParameter("orderId") ?: ""
     }
 
-    // Fallback: Extract ID from path
-    val pathSegments = uri.pathSegments
-    Log.d("extractUser Ids", "Path segments: $pathSegments")
-    val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
-    return if (fallbackId != null) listOf(fallbackId) else emptyList()
-}
+
+    fun extractNumberOfPart(url: String): Int {
+        val uri = Uri.parse(url)
+        val numberOfPartRaw = uri.getQueryParameter("numberOfPart")
+        Log.d("extractNumberOfPart", "Raw numberOfPart: $numberOfPartRaw")
+        return numberOfPartRaw?.toIntOrNull() ?: 1
+    }
+
+
+    fun extractCouponIds(url: String): Map<Long, Long> {
+        val uri = Uri.parse(url)
+        val ids = uri.getQueryParameter("couponIds")
+        return ids?.split(",")?.mapNotNull {
+            val pair = it.split(":")
+            if (pair.size == 2) {
+                val key = pair[0].toLongOrNull()
+                val value = pair[1].toLongOrNull()
+                if (key != null && value != null) key to value else null
+            } else null
+        }?.toMap() ?: emptyMap()
+    }
+
+    fun extractPrivateExtrasIds(url: String): List<Long?> {
+        val uri = Uri.parse(url)
+        val ids = uri.getQueryParameter("privateExtrasIds")
+        return ids?.split(",")?.map { it.toLongOrNull() } ?: emptyList()
+    }
+
+    fun extractSharedExtrasIds(url: String): List<Long?> {
+        val uri = Uri.parse(url)
+        val ids = uri.getQueryParameter("sharedExtrasIds")
+        return ids?.split(",")?.map { it.toLongOrNull() } ?: emptyList()
+    }
+
+    fun extractUserIds(url: String): List<Long> {
+        val uri = Uri.parse(url)
+        val ids = uri.getQueryParameter("userIds")
+        if (ids != null) {
+            Log.d("extractUser Ids", "Raw userIds parameter: $ids")
+            return ids.split(",").mapNotNull { it.trim().toLongOrNull() }
+        }
+
+        // Fallback: Extract ID from path
+        val pathSegments = uri.pathSegments
+        Log.d("extractUser Ids", "Path segments: $pathSegments")
+        val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
+        return if (fallbackId != null) listOf(fallbackId) else emptyList()
+    }
+
 
 
 

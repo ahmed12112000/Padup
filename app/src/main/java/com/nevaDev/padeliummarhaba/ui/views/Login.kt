@@ -54,7 +54,7 @@ fun LoginScreen(
     navController: NavController,
     loginRequest: LoginRequest,
 
-) {
+    ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val balanceViewModel: BalanceViewModel = hiltViewModel()
@@ -257,16 +257,16 @@ fun LoginScreen(
                 isError = isPasswordError
             )
 
-/*
-            if (isPasswordError) {
-                Text(
-                    text = stringResource(R.string.password_error),
-                    color = Color.Red,
-                    style = MaterialTheme.typography.body2,
-                    modifier = Modifier.padding(start = 16.dp)
-                )
-            }
-*/
+            /*
+                        if (isPasswordError) {
+                            Text(
+                                text = stringResource(R.string.password_error),
+                                color = Color.Red,
+                                style = MaterialTheme.typography.body2,
+                                modifier = Modifier.padding(start = 16.dp)
+                            )
+                        }
+            */
 
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -323,7 +323,7 @@ fun LoginScreen(
                     }
                 }
 
-                },
+            },
 
                 enabled = !isLoading && isButtonEnabled,
                 modifier = Modifier.fillMaxWidth().height(48.dp),

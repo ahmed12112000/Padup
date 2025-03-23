@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.spofun.padeliummarhaba"
-        versionCode = 21
+        versionCode = 25
         versionName = "2.0.8"
         minSdk = 28
         targetSdk = 34

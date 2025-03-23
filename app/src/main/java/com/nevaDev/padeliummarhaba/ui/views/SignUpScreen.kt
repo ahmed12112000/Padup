@@ -21,6 +21,7 @@ import androidx.compose.material.Checkbox
 import androidx.compose.material.CheckboxDefaults
 import androidx.compose.material.Icon
 import androidx.compose.material.IconButton
+import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.OutlinedTextField
 import androidx.compose.material.Text
@@ -47,6 +48,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration.Companion.Underline
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
@@ -59,6 +61,8 @@ import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.SignupRequest
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import java.time.format.TextStyle
 
 @Composable
 fun SignUpScreen(
@@ -85,27 +89,38 @@ fun SignUpScreen(
     viewModel.dataResult.observe(lifecycleOwner) { result ->
         isLoading = false
         when (result) {
-            is DataResult.Loading -> Log.e("TAG", "Loading")
+            is DataResult.Loading -> {
+                Log.e("TAG", "Loading")
+            }
+
             is DataResult.Success -> {
                 Log.e("TAG", "Success")
-
-                showMessage = true
+                message = "Sign up successful"
+                isSuccess = true
 
                 navController.navigate("main_screen")
+
+                // Show toast for 5 seconds
+                coroutineScope.launch {
+                    Toast.makeText(context, "Compte enrigistré ! Mercie de Vérifier votre email de confirmation.", Toast.LENGTH_LONG).show()
+                    delay(5000)
+                    message = ""
+                }
             }
+
             is DataResult.Failure -> {
+                /*
                 isLoading = false
+                message = "Error: ${result.errorMessage}"
+                isSuccess = false
                 Log.e("TAG", "Failure - Error Code:${result.errorCode}, Message: ${result.errorMessage}")
+
+                 */
             }
         }
     }
 
     if (showMessage) {
-        LaunchedEffect(Unit) {
-            delay(5000)
-            showMessage = false
-        }
-
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -113,7 +128,7 @@ fun SignUpScreen(
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Sign up successful",
+                text = message,
                 color = Color.White,
                 fontSize = 18.sp,
                 modifier = Modifier
@@ -123,6 +138,7 @@ fun SignUpScreen(
             )
         }
     }
+
 
     Column(
         modifier = Modifier
@@ -196,6 +212,7 @@ fun SignUpScreen(
                     focusedLabelColor = Color.Black,
                     unfocusedLabelColor = Color.Black,
                 )
+
             )
 
             OutlinedTextField(
@@ -425,6 +442,7 @@ fun SignUpScreen(
     Spacer(modifier = Modifier.height(8.dp))*/
     // State for the checkbox
     var checked by remember { mutableStateOf(false) }
+    var showErrorMessage by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -433,7 +451,8 @@ fun SignUpScreen(
     ) {
         Checkbox(
             checked = checked,
-            onCheckedChange = { checked = it },
+            onCheckedChange = { checked = it
+                showErrorMessage = false},
             colors = CheckboxDefaults.colors(
                 checkedColor = MaterialTheme.colors.primary,
                 uncheckedColor = Color.Gray,
@@ -493,14 +512,20 @@ fun SignUpScreen(
     val isButtonEnabled = isEmailValid && isPasswordValid && isFirstNameValid && isLastNameValid
     Button(
         onClick = {
-
-            Log.e("TAG","onclick")
-            isLoading = true
-            val signupRequest = SignupRequest(email, password,firstName,lastName)
-            viewModel.signupUser(signupRequest)
-
+            // Check if any of the fields are empty
+            if (firstName.isBlank() || lastName.isBlank() || email.isBlank() || password.isBlank()) {
+                Toast.makeText(context, "Vérifier les champs", Toast.LENGTH_SHORT).show()
+            } else if (!checked) {
+                // If fields are filled but checkbox is not checked
+                Toast.makeText(context, "Veuillez accepter les conditions générales et la politique de confidentialité", Toast.LENGTH_SHORT).show()
+            } else {
+                // Proceed with signup
+                isLoading = true
+                val signupRequest = SignupRequest(email, password, firstName, lastName)
+                viewModel.signupUser (signupRequest)
+            }
         },
-        enabled = !isLoading && isButtonEnabled,
+        enabled = isButtonEnabled && !isLoading,
         modifier = Modifier
             .fillMaxWidth()
             .height(48.dp)
@@ -510,14 +535,18 @@ fun SignUpScreen(
         shape = RoundedCornerShape(24.dp)
     ) {
         Text(
-            text = stringResource(R.string.signup_button),
+            text = "Enrigistrement",
             color = Color.White,
             fontSize = 25.sp
         )
     }
 
-    if (message.isNotEmpty()) {
-        Text(text = message, color = if (isSuccess) Color.Green else Color.Red)
+    if (message.isNotEmpty() && !isSuccess) {
+        Text(
+            text = message,
+            color = Color.Red,
+            modifier = Modifier.padding(top = 16.dp)
+        )
     }
     /*
         // OR Divider

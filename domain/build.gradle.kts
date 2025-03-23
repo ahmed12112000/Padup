@@ -49,6 +49,7 @@ dependencies {
     implementation (libs.androidx.compose.compiler)
     implementation (libs.androidx.compose.runtime)
     implementation(libs.hilt.android)
+    implementation(libs.androidx.navigation.runtime)
     // implementation(project(":data"))
     kapt(libs.hilt.android.compiler)
     implementation (libs.squareup.retrofit)
