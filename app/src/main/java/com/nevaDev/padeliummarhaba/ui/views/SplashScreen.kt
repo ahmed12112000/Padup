@@ -86,7 +86,7 @@ fun SplashScreen() {
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(3.dp))
-
+// ahmed
                     Text(
                         text = "v1.0.0.2",
                         fontSize = 10.sp,
