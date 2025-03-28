@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.spofun.padeliummarhaba"
-        versionCode = 25
+        versionCode = 29
         versionName = "2.0.8"
         minSdk = 28
         targetSdk = 34
@@ -84,6 +84,7 @@ dependencies {
     implementation(libs.identity.jvm)
     implementation(libs.androidx.preference.ktx)
     implementation(libs.core.ktx)
+    implementation(libs.androidx.hilt.common)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -168,6 +169,7 @@ dependencies {
     implementation("androidx.datastore:datastore-core:1.1.2")
     implementation(libs.kotlinx.coroutines.core.v160) // or the latest version
     implementation(libs.kotlinx.coroutines.android.v181) // or the latest version
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 
 
 

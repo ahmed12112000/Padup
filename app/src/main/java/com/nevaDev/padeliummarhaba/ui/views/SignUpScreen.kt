@@ -95,19 +95,19 @@ fun SignUpScreen(
 
             is DataResult.Success -> {
                 Log.e("TAG", "Success")
-                message = "Sign up successful"
+                message = "Inscription réussie"
                 isSuccess = true
 
-                navController.navigate("main_screen")
+                navController.navigate("SignUp_SuccessScreen")
 
                 // Show toast for 5 seconds
                 coroutineScope.launch {
-                    Toast.makeText(context, "Compte enrigistré ! Mercie de Vérifier votre email de confirmation.", Toast.LENGTH_LONG).show()
+                   // Toast.makeText(context, "Compte enregistré ! Merci de vérifier votre email de confirmation.", Toast.LENGTH_LONG).show()
                     delay(5000)
                     message = ""
                 }
             }
-
+//
             is DataResult.Failure -> {
                 /*
                 isLoading = false
@@ -535,7 +535,7 @@ fun SignUpScreen(
         shape = RoundedCornerShape(24.dp)
     ) {
         Text(
-            text = "Enrigistrement",
+            text = "ENREGISTREMENT",
             color = Color.White,
             fontSize = 25.sp
         )
@@ -684,7 +684,7 @@ fun SignUpScreen(
             text = stringResource(R.string.loginredirection),
             fontWeight = FontWeight.Normal,
             color = Color.Black,
-            textDecoration = Underline,
+           // textDecoration = Underline,
             modifier = Modifier.clickable {  navController.navigate("login_screen") },
         )
     }

@@ -1,6 +1,7 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
 import android.annotation.SuppressLint
+import android.content.Context
 import android.net.Uri
 import android.net.http.SslError
 import android.util.Log
@@ -73,6 +74,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
+import androidx.work.WorkerParameters
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
@@ -658,16 +660,19 @@ fun  PaymentSection1(
                 val formatterOutput: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
                 val formatterWithMillis: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
                 val playerIds = selectedPlayers.toList()
+                var errorMessage by remember { mutableStateOf<String?>(null) }
+                LaunchedEffect(errorMessage) {
+                    if (!errorMessage.isNullOrEmpty()) {
+                        Log.e("ErrorDisplay", "Error Message: $errorMessage")
+                    }
+                }
 
 
                 Button(
                     onClick = {
 
                         if (isLoading) return@Button
-                        Log.d(
-                            "OLFA",
-                            "Selected Players before extracting IDs: ${selectedPlayers.joinToString { "ID=${it}" }}"
-                        )
+
 
                         viewModel9.updateSelectedParts(selectedParts)
 
@@ -783,15 +788,19 @@ fun  PaymentSection1(
                                                 isLoading = false
                                                 Log.d("SaveBooking", "Booking saved successfully!")
 
-                                                val bookingList =
-                                                    result.data as? List<SaveBookingResponse>
+                                                val bookingList = result.data as? List<SaveBookingResponse>
+
                                                 if (!bookingList.isNullOrEmpty()) {
                                                     val firstBooking = bookingList[0]
                                                     val bookingId = firstBooking.id.toString()
-                                                    Log.d(
-                                                        "FRIH",
-                                                        "numberOfPart after booking save: ${firstBooking.numberOfPart}"
-                                                    )
+
+                                                    if (bookingId == null || bookingId == "0") {
+                                                        Log.d("AFFFFFFFFFFF", "Booking saved successfully!$bookingId")
+
+                                                        errorMessage = "Cette réservation n'est pas disponible pour le moment. Veuillez réessayer plus tard."
+                                                        return@observe
+                                                    }
+
 
                                                     // Create a PaymentRequest using the updated amount
                                                     val paymentRequest = PaymentRequest(
@@ -843,11 +852,15 @@ fun  PaymentSection1(
 
                                                             is DataResult.Failure -> {
                                                                 isLoading = false
+                                                                errorMessage = "Cette réservation n'est pas disponible pour le moment. Veuillez réessayer plus tard."
+
                                                             }
                                                         }
                                                     }
                                                 } else {
                                                     isLoading = false
+                                                    errorMessage = "Une erreur s'est produite. Veuillez réessayer."
+
                                                 }
                                             }
 
@@ -864,7 +877,6 @@ fun  PaymentSection1(
                             }
                         }
                     },
-
                     enabled = (phoneNumber.isEmpty() &&  updatePhoneResult is DataResult.Success && phoneNumber.length == 8 && phoneNumber.all { it.isDigit() } ) || (phoneNumber.isNotEmpty() && phoneNumber.length == 8 && phoneNumber.all { it.isDigit() }) ,
 
                     modifier = Modifier
@@ -892,6 +904,13 @@ fun  PaymentSection1(
                         )
                     }
                 }
+                if (!errorMessage.isNullOrEmpty()) {
+                    Text(
+                        text = errorMessage ?: "",
+                        color = Color.Red
+
+                    )
+                }
                 var amount by remember { mutableStateOf(BigDecimal.ZERO) }
                 var showPopup by remember { mutableStateOf(false) }
                 var bookingId by remember { mutableStateOf<String?>(null) }
@@ -906,9 +925,11 @@ fun  PaymentSection1(
                 }
                 Button(
                     onClick = {
-                        if (isLoading) return@Button // Prevent clicking while processing
-                        Log.d("BPPPPPPPPPPPPPPPPP", "showPopup:  $showPopup")
+                        if (isLoading) return@Button // Prevent multiple clicks while processing
+
+                        Log.d("BPPPPPPPPPPPPPPPPP", "showPopup: $showPopup")
                         val selectedBooking = mappedBookings.firstOrNull()
+
                         if (!hasFetchedSelectedParts) {
                             viewModel9.updateSelectedParts(selectedParts)
                             hasFetchedSelectedParts = true
@@ -916,15 +937,14 @@ fun  PaymentSection1(
 
                         coroutineScope.launch {
                             viewModel9.selectedParts.collectLatest { currentSelectedParts ->
-                                if (hasFetchedBooking) return@collectLatest // Prevent multiple booking calls
-
+                                if (isLoading) return@collectLatest
 
                                 val selectedBooking = mappedBookings.firstOrNull()
-
                                 if (selectedBooking != null) {
                                     val searchDate = selectedDate
                                     val totalAmountSelected = adjustedAmount + totalExtrasCost
                                     val firstPlanning = selectedBooking.plannings?.firstOrNull()
+
                                     val startFormatted = firstPlanning?.fromStr?.let { timeStr ->
                                         try {
                                             val formattedTimeStr = timeStr.padStart(5, '0') // Ensure "HH:mm" format
@@ -968,6 +988,7 @@ fun  PaymentSection1(
                                             searchDate.atTime(9, 30).format(formatterWithMillis) // Fallback
                                         }
                                     } ?: searchDate.atTime(9, 30).format(formatterWithMillis)
+
                                     if (totalAmountSelected <= 0) {
                                         isLoading = false
                                         return@collectLatest
@@ -984,8 +1005,8 @@ fun  PaymentSection1(
                                     val playerIds = selectedPlayers.toList()
                                     val totalAmountBigDecimal = BigDecimal.valueOf(totalAmountSelected).setScale(0, RoundingMode.DOWN)
                                     val currency = selectedReservation.price.takeWhile { !it.isDigit() && it != '.' }
-                                    onTotalAmountCalculated(totalAmountBigDecimal.toInt().toDouble(), currency)
 
+                                    onTotalAmountCalculated(totalAmountBigDecimal.toInt().toDouble(), currency)
 
                                     // Trigger PaymentPayAvoir with rounded amount
                                     paymentPayAvoirViewModel.PaymentPayAvoir(totalAmountBigDecimal)
@@ -997,16 +1018,10 @@ fun  PaymentSection1(
 
                                     paymentPayAvoirViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
                                         when (paymentResult) {
-                                            is DataResult.Loading -> {
-                                                Log.d("PAYMENT", "Processing PaymentPayAvoir...")
-                                            }
-
+                                            is DataResult.Loading -> Log.d("PAYMENT", "Processing PaymentPayAvoir...")
                                             is DataResult.Success -> {
                                                 isLoading = false
                                                 val payFromAvoirResponse = true
-
-
-                                                Log.d("FormattedAmount", "formattedAmount: $formattedAmount")
 
                                                 val updatedMappedBookings = mappedBookings.mapIndexed { index, booking ->
                                                     if (index == 0) {
@@ -1029,65 +1044,68 @@ fun  PaymentSection1(
                                                         booking
                                                     }
                                                 }
-                                                Log.d("AFFFFFFFFFFFFFAAAAAA", "Formatted Values: start=$startFormatted, end=$updatedMappedBookings")
 
                                                 balanceViewModel.fetchAndBalance()
+
+                                                // ✅ Reset `hasFetchedBooking` before calling SaveBooking
                                                 if (!hasFetchedBooking) {
+                                                    hasFetchedBooking = true // Mark as triggered
                                                     saveBookingViewModel.SaveBooking(updatedMappedBookings)
-                                                    hasFetchedBooking = true
-                                                }
-
-
-                                            saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
-                                                when (result) {
-                                                    is DataResult.Loading -> {
-                                                        Log.d("SaveBooking", "Saving booking...")
-                                                    }
-
-                                                    is DataResult.Success -> {
-                                                        isLoading = false
-                                                        Log.d("SaveBooking", "Booking saved successfully!")
-
-                                                        val bookingList = result.data as? List<SaveBookingResponse>
-                                                        if (!bookingList.isNullOrEmpty()) {
-                                                            val firstBooking = bookingList[0]
-
-                                                            bookingId = firstBooking.id.toString()
-                                                            Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
-
-                                                        }
-                                                    }
-
-                                                    is DataResult.Failure -> {
-                                                        isLoading = false
-                                                        Log.e("SaveBooking", "Failed to save booking: ${result.errorMessage}")
-                                                    }
-                                                    }
                                                 }
                                             }
-// on click only
                                             is DataResult.Failure -> {
                                                 isLoading = false
                                                 Log.e("PAYMENT", "PaymentPayAvoir failed: ${paymentResult.errorMessage}")
                                             }
                                         }
                                     }
-                                }
 
+                                    // Observe SaveBooking Result
+                                    saveBookingViewModel.dataResult.observe(lifecycleOwner) { result ->
+                                        when (result) {
+                                            is DataResult.Loading -> Log.d("SaveBooking", "Saving booking...")
+                                            is DataResult.Success -> {
+                                                isLoading = false
+                                                Log.d("SaveBooking", "Booking saved successfully!")
+
+                                                val bookingList = result.data as? List<SaveBookingResponse>
+                                                if (!bookingList.isNullOrEmpty()) {
+                                                    val firstBooking = bookingList[0]
+                                                    bookingId = firstBooking.id.toString()
+                                                    Log.d("SaveBooking", "Extracted Booking ID: $bookingId")
+                                                }
+
+                                                // ✅ Reset `hasFetchedBooking` after booking is saved successfully
+                                                hasFetchedBooking = false
+
+                                                if (bookingId == null || bookingId == "0") {
+                                                    errorMessage = "Cette réservation n'est pas disponible pour le moment. Veuillez réessayer."
+                                                    showPopup = false // Prevent showing popup
+                                                } else {
+                                                    showPopup = true // Show the popup if bookingId is valid
+                                                }
+                                            }
+                                            is DataResult.Failure -> {
+                                                isLoading = false
+                                                Log.e("SaveBooking", "Failed to save booking: ${result.errorMessage}")
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
-                        showPopup = true
                     },
                     enabled = phoneNumber.length == 8 && phoneNumber.all { it.isDigit() },
                     modifier = Modifier
-                        .height(48.dp).offset(x=-7.dp)
-                        .weight(1.3f), // Ensure both buttons take equal space
+                        .height(48.dp)
+                        .offset(x = -7.dp)
+                        .weight(1.3f),
                     colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
                     shape = RoundedCornerShape(13.dp)
                 ) {
                     Row(
-                        verticalAlignment = Alignment.CenterVertically, // Aligns items vertically in the center
-                        horizontalArrangement = Arrangement.Center // Centers the content horizontally
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
                     ) {
                         Icon(
                             imageVector = Icons.Default.Money,
@@ -1104,6 +1122,7 @@ fun  PaymentSection1(
                         )
                     }
                 }
+
                 if (showPopup) {
                     PopupCredit(
                         onPayClick = {
@@ -1174,7 +1193,7 @@ fun WebViewScreen(
     val bookingIdsList = bookingIds.split(",").mapNotNull { it.toLongOrNull() }
     var isButtonClicked by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
-    val scrollState = rememberScrollState()
+        val scrollState = rememberScrollState()
 
 
 
@@ -1327,10 +1346,7 @@ fun WebViewScreen(
                     if (!isButtonClicked) {
                         isButtonClicked = true
 
-                        selectedDate?.let { date ->
-                            isLoading = true
-                            onReservationClicked(date)
-                        } ?: Log.e("MainScreen", "Selected date is null")
+                        navController.navigate("main_screen")
                     }
                     val selectedTimeSlot = extractSelectedTimeSlot(lastLoadedUrl.value) ?: ""
 
@@ -1348,6 +1364,7 @@ fun WebViewScreen(
                 )
             }
         }
+
     }
     // Observe the dataResult from the errorCreditViewModel
     val errorDataResult by errorCreditViewModel.dataResult.observeAsState()
@@ -1447,6 +1464,7 @@ fun WebViewScreen(
         val fallbackId = pathSegments.getOrNull(3)?.toLongOrNull()
         return if (fallbackId != null) listOf(fallbackId) else emptyList()
     }
+
 
 
 

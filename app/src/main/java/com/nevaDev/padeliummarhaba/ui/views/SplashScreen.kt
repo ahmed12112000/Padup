@@ -81,14 +81,14 @@ fun SplashScreen() {
             ) {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth() // Ensure the Column stretches to full width
+                        .fillMaxWidth()
                         .padding(6.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Spacer(modifier = Modifier.height(3.dp))
-// ahmed
+
                     Text(
-                        text = "v1.0.0.2",
+                        text = "v1.0.0.29",
                         fontSize = 10.sp,
                         color = Color.White
                     )

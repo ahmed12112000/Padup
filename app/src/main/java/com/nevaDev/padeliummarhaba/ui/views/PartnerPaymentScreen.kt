@@ -510,8 +510,7 @@ fun WebViewScreen2(
         WebView(context).apply {
             settings.javaScriptEnabled = true
             settings.domStorageEnabled = true
-            settings.mixedContentMode =
-                WebSettings.MIXED_CONTENT_ALWAYS_ALLOW // Allow mixed content
+
 
             webViewClient = object : WebViewClient() {
                 override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {

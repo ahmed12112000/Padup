@@ -14,6 +14,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import okhttp3.RequestBody
 import javax.inject.Inject
+
+
 @HiltViewModel
 class FindTermsViewModel @Inject constructor(
     private val findTermsUseCase: FindTermsUseCase
@@ -95,7 +97,9 @@ class FindTermsViewModel @Inject constructor(
     fun getPlayerByFullName(fullName: String): FindTermsResponse? {
         return allPlayersData.find { it.fullName.equals(fullName, ignoreCase = true) }
     }
-
+    fun getPlayerById(id: Long): FindTermsResponse? {
+        return allPlayersData.find { it.id == id }
+    }
 
 
 

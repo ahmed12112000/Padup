@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -95,7 +96,6 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Calendar
 import java.util.Date
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReservationScreen(
@@ -110,8 +110,7 @@ fun ReservationScreen(
     viewModel3: SearchListViewModel = hiltViewModel(),
     viewModel4: InitBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel: PaymentPayAvoirViewModel,
-    getReservationViewModel: GetReservationViewModel // Pass your reservation view model here
-
+    getReservationViewModel: GetReservationViewModel
 ) {
     var fetchJob by remember { mutableStateOf<Job?>(null) }
 
@@ -123,160 +122,201 @@ fun ReservationScreen(
     var isLoading by remember { mutableStateOf(false) }
     val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
 
-    var hasCompletedFetch by remember { mutableStateOf(false) } // Flag to prevent repeated fetches
-    var hasFetchedInitBooking by remember { mutableStateOf(false) } // Flag for InitBooking   hasCalledInitBooking
-    var hasFetchedGetBooking by remember { mutableStateOf(false) }
+    // Flags to prevent repeated fetches
+    var hasCompletedFetch by remember { mutableStateOf(false) }
+    var hasFetchedInitBooking by remember { mutableStateOf(false) }
     var hasFetchedSearchList by remember { mutableStateOf(false) }
     var hasCalledInitBooking by remember { mutableStateOf(false) }
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
+    var previousSelectedDate by remember { mutableStateOf<LocalDate?>(null) }
 
     val parsedTimeSlots by getBookingViewModel.parsedTimeSlots.collectAsState(initial = emptyList())
 
-    // Function to fetch reservation data
+    var hasFetchedBooking by remember { mutableStateOf(false) }
+
+    fun fetchInitBooking() {
+        reservationKey.value?.let { key ->
+            if (!hasFetchedInitBooking) {
+                hasFetchedInitBooking = true
+                val initBookingRequest = InitBookingRequest(key = key)
+                viewModel4.InitBooking(initBookingRequest)
+                Log.d("Tagggg", "FETCH DATA 4********")
+            }
+        }
+    }
+
+    fun fetchSearchList() {
+        reservationKey.value?.let { key ->
+            if (!hasFetchedSearchList) {
+                hasFetchedSearchList = true
+                viewModel3.searchList(key)
+                Log.d("Tagggg", "FETCH KEY 2")
+            }
+        }
+    }
+    fun  fetchInitData() {
+        reservationKey.value?.let { key ->
+            if (!hasCompletedFetch) {
+                hasCompletedFetch = true
+                viewModel2.GetInit(key)
+                Log.d("Tagggg", "FETCH TERRAIN 3********")
+            }
+        }
+    }
+    fun  fetchBookingData() {
+        reservationKey.value?.let { key ->
+                hasFetchedBooking = true
+                getBookingViewModel.getBooking(key, selectedDate.value)
+                Log.d("Tagggg", "FETCH TERRAIN 3********")
+
+        }
+    }
+
+    /*
+
+    fun fetchBookingData() {
+        // Only fetch if the data has not been fetched yet
+        if (!hasFetchedBooking) {
+            hasFetchedBooking = true // Mark as fetched
+
+            fetchJob?.cancel()
+            fetchJob = CoroutineScope(Dispatchers.Main).launch {
+                reservationKey.value?.let { key ->
+                    getBookingViewModel.getBooking(key, selectedDate.value) // Use selectedDate.value here
+                    Log.d("Tagggg", "FETCH FULL DATA 5********")
+                }
+            }
+        }
+    }
+
+     */
+
+    LaunchedEffect(reservationKey.value) {
+        Log.d("Tagggg", "Reservation Key Changed: ${reservationKey.value}")
+        fetchBookingData() // Call fetchBookingData whenever reservationKey changes
+    }
+
+    fun handleFailure(errorCode: Int?) {
+        isLoading = false
+        errorCode?.let {
+            if (it != 200) {
+                navController.navigate("server_error_screen")
+            }
+        }
+    }
+    // Function to reset all data before fetching new reservation data
+    fun resetData() {
+        reservationKey.value = null
+        hasCompletedFetch = false
+        hasFetchedInitBooking = false
+        hasFetchedSearchList = false
+        hasCalledInitBooking = false
+        isLoading = false
+        fetchJob?.cancel()
+    }
     fun fetchReservationData(date: LocalDate) {
-        if (isLoading || hasCompletedFetch) return // Don't fetch if already loading or completed
+        if (isLoading) return // Prevent multiple parallel requests
+        resetData() // Clear all previous data
+
         val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
         isLoading = true
         viewModel.getReservationKey(fetchKeyRequest, date)
-        Log.d("Tagggg", "FETCH KEY 1")
+        Log.d("Tagggg", "FETCH KEY for Date: $date")
     }
 
-    // Observe ViewModel response for reservation key
     LaunchedEffect(selectedDate.value) {
-        fetchReservationData(selectedDate.value)
+        if (selectedDate.value != previousSelectedDate) {
+            fetchReservationData(selectedDate.value)
+            previousSelectedDate = selectedDate.value
+        }
     }
 
     viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
         when (result) {
-            is DataResultBooking.Loading -> isLoading = true
             is DataResultBooking.Success -> {
-                if (!hasFetchedInitBooking) { // ✅ Ensure it's only called once
-                    reservationKey.value = result.data.key
-                    isLoading = false
-                    onFetchSuccess()
-                    reservationKey.value?.let { key ->
-                        if (!hasFetchedSearchList) { // ✅ Ensure searchList is only called once
-                            viewModel3.searchList(key)
-                            hasFetchedSearchList = true
-                            Log.d("Tagggg", "FETCH KEY 2")
-                        }
-                    }
-                }
-            }
-            is DataResultBooking.Failure -> {
+                reservationKey.value = result.data.key
                 isLoading = false
-                result.errorCode?.let { errorCode ->
-                    if (errorCode != 200) {
-                        navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
-                    }
-                }
+                onFetchSuccess()
+                fetchSearchList()
             }
+            is DataResultBooking.Failure -> handleFailure(result.errorCode)
+            is DataResultBooking.Loading -> isLoading = true
         }
     }
 
-// Step 2: Observe searchList results
-    viewModel3.dataResultBooking.observe(lifecycleOwner) { searchResult ->
-        when (searchResult) {
+
+
+    viewModel3.dataResultBooking.observe(lifecycleOwner) { result ->
+        when (result) {
             is DataResultBooking.Success -> {
-                reservationKey.value?.let { key ->
-                    if (!hasFetchedInitBooking) {
-                        viewModel2.GetInit(key)
-                        Log.d("Tagggg", "FETCH TERRAIN 3********")
-                        hasFetchedInitBooking = true
-                    }
-                }
+                // Call the next step in sequence: Fetch Init Data
+                fetchInitData()
+                fetchInitBooking()
             }
-            is DataResultBooking.Failure -> {
-                navController.navigate("server_error_screen")
-            }
-            else -> {}
+            is DataResultBooking.Failure -> handleFailure(result.errorCode)
+            is DataResultBooking.Loading -> isLoading = true
         }
     }
 
-// Step 3: Observe GetInit results
-    viewModel2.dataResultBooking.observe(lifecycleOwner) { searchResult ->
-        when (searchResult) {
+    viewModel3.navigateToErrorScreen.observe(lifecycleOwner) { shouldNavigate ->
+        if (shouldNavigate) {
+            navController.navigate("server_error_screen")
+        }
+    }
+
+/*
+    viewModel2.dataResultBooking.observe(lifecycleOwner) { result ->
+        when (result) {
             is DataResultBooking.Success -> {
-                reservationKey.value?.let { key ->
-                    if (!hasCalledInitBooking) { // ✅ Ensure InitBooking is only called once
-                        val initBookingRequest = InitBookingRequest(key = key)
-                        viewModel4.InitBooking(initBookingRequest)
-                        Log.d("Tagggg", "FETCH DATA 4********")
-                        hasCalledInitBooking = true // ✅ Use separate flag
-                    }
-                }
+                // Call the next step in sequence: Fetch Init Booking
+                fetchInitBooking()
             }
-            is DataResultBooking.Failure -> {
-                searchResult.errorCode?.let { errorCode ->
-                    if (errorCode != 200) {
-                        navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
-                    }
-                }
-            }
-            else -> {}
+            is DataResultBooking.Failure -> handleFailure(result.errorCode)
+            is DataResultBooking.Loading -> isLoading = true
         }
     }
 
-// Step 4: Observe InitBooking results
-    viewModel4.dataResult1.observe(lifecycleOwner) { initResult ->
-        when (initResult) {
+ */
+
+
+
+    viewModel4.dataResult1.observe(lifecycleOwner) { result ->
+        when (result) {
             is DataResult.Success -> {
-                if (!hasCompletedFetch) { // ✅ Ensure getBooking is only called once
-                    reservationKey.value?.let { key ->
-                        Log.d("FLOWWWWWWWW", "$key")
-
-                        getBookingViewModel.getBooking(key, selectedDate.value)
-
-                        Log.d("Tagggg", "FETCH FULL DATA 5********")
-                        hasCompletedFetch = true
-                    }
-                }
+                // Call the final step in sequence: Fetch Booking Data
+                fetchBookingData()
             }
-            is DataResult.Failure -> {
-                initResult.errorCode?.let { errorCode ->
-                    if (errorCode != 200) {
-                        navController.navigate("server_error_screen") // Navigate to error screen if errorCode is not 200
-                    }
-                }
-            }
-            else -> {}
+            is DataResult.Failure -> handleFailure(result.errorCode)
+            is DataResult.Loading -> isLoading = true
         }
     }
 
 
-    // Function to fetch time slots based on selected date
-    fun filterSlotsByDate(newDate: LocalDate) {
-        // Immediately clear the old time slots
-        selectedTimeSlot.value = null // or any other state that indicates no slots are available
 
-        fetchJob?.cancel()
-        fetchJob = CoroutineScope(Dispatchers.Main).launch {
-            // Remove the delay to make it more responsive
-            reservationKey.value?.let { key ->
-                getBookingViewModel.getBooking(key, newDate)
-                Log.d("OWNNNNNNNN", "$newDate")
 
-            } ?: run {
-                errorMessage = "No reservation key available."
-            }
-        }
-    }
 
-    LaunchedEffect(selectedDate.value, reservationKey.value) {
+
+// Ensure that when selectedDate changes, the fetchBookingData is called again
+
+
+
+
+
+
+    // Function to fetch time slots based on the selected date
+
+
+    // Trigger filtering when a new date is selected
+     /* LaunchedEffect(selectedDate.value, reservationKey.value) {
         reservationKey.value?.let { key ->
             filterSlotsByDate(selectedDate.value)
-            //  fetchReservationData(selectedDate.value)
-
         }
     }
 
-
-
-
-
+      */
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
@@ -287,7 +327,7 @@ fun ReservationScreen(
             TabItem(
                 isSelected = !showPaymentSection,
                 title = "CHOISIR UN CRÉNEAU",
-                icon = painterResource(id = R.drawable.calendre),  // Load drawable icon
+                icon = painterResource(id = R.drawable.calendre),
                 onClick = { showPaymentSection = false },
                 navController = navController
             )
@@ -298,10 +338,13 @@ fun ReservationScreen(
         DaySelectorWithArrows(
             selectedDate = selectedDate.value,
             onDateSelected = { newDate ->
+                Log.d("DATE_SELECTION", "Selected Date: $newDate")
                 selectedDate.value = newDate
-                filterSlotsByDate(newDate)
+                resetData()
+                fetchReservationData(newDate)
             }
         )
+
 
 
 
@@ -312,9 +355,7 @@ fun ReservationScreen(
 
         Spacer(modifier = Modifier.height(10.dp))
 
-        if (isLoading) {
-            CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
-        }
+
     }
 
 
@@ -568,36 +609,29 @@ fun CustomDatePickerModal(
     val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
 
     // French abbreviated month names
-    val frenchMonths = listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")
+    val frenchMonths =
+        listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")
 
-    DatePickerDialog(
-        onDismissRequest = onDismiss,
-        confirmButton = {
-            TextButton(onClick = {
-                onDateSelected(selectedDate)
-                onDismiss()
-            }) {
-                Text("OK", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Annuler", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
-            }
-        }
-    ) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
-            color = Color.White,
+            color = Color.White, // Ensuring entire dialog is white
             shape = RoundedCornerShape(16.dp),
-            shadowElevation = 8.dp,
+            border = BorderStroke(1.dp, Color(0xFFE0E0E0)), // Light grayish border
             modifier = Modifier
-                .fillMaxWidth()
+               // .fillMaxWidth()
+                .heightIn(min = 10.dp, max = 600.dp) // Control min/max height
+
                 .padding(16.dp)
         ) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 10.dp, max = 500.dp) // Control min/max height
+
+                    .background(Color.White) // Ensuring white background
+                    .padding(16.dp)
             ) {
                 // Month and Year Header with Arrows
                 Row(
@@ -613,7 +647,11 @@ fun CustomDatePickerModal(
                             currentMonth--
                         }
                     }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Mois précédent")
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Mois précédent",
+                            tint = Color.Black
+                        )
                     }
                     Text(
                         text = "${frenchMonths[currentMonth]} $currentYear",
@@ -629,7 +667,11 @@ fun CustomDatePickerModal(
                             currentMonth++
                         }
                     }) {
-                        Icon(Icons.Default.ArrowForward, contentDescription = "Mois suivant")
+                        Icon(
+                            Icons.Default.ArrowForward,
+                            contentDescription = "Mois suivant",
+                            tint = Color.Black
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -640,7 +682,11 @@ fun CustomDatePickerModal(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     listOf("LUN", "MAR", "MER", "JEU", "VEN", "SAM", "DIM").forEach {
-                        Text(text = it, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.Bold)
+                        Text(
+                            text = it,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold
+                        )
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
@@ -648,7 +694,7 @@ fun CustomDatePickerModal(
                 // Calendar Grid
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
                     // Empty cells before the first day
                     items(startDayOfWeek - 1) {
@@ -669,10 +715,17 @@ fun CustomDatePickerModal(
                         val dateMillis = normalizedCalendar.timeInMillis
 
                         val isSelected = selectedDate?.let {
-                            val selectedCalendar = Calendar.getInstance().apply { timeInMillis = it }
-                            selectedCalendar.get(Calendar.YEAR) == normalizedCalendar.get(Calendar.YEAR) &&
-                                    selectedCalendar.get(Calendar.MONTH) == normalizedCalendar.get(Calendar.MONTH) &&
-                                    selectedCalendar.get(Calendar.DAY_OF_MONTH) == normalizedCalendar.get(Calendar.DAY_OF_MONTH)
+                            val selectedCalendar =
+                                Calendar.getInstance().apply { timeInMillis = it }
+                            selectedCalendar.get(Calendar.YEAR) == normalizedCalendar.get(
+                                Calendar.YEAR
+                            ) &&
+                                    selectedCalendar.get(Calendar.MONTH) == normalizedCalendar.get(
+                                Calendar.MONTH
+                            ) &&
+                                    selectedCalendar.get(Calendar.DAY_OF_MONTH) == normalizedCalendar.get(
+                                Calendar.DAY_OF_MONTH
+                            )
                         } ?: false
 
                         val isDisabled = dateMillis < today || dateMillis > maxSelectableDate
@@ -704,6 +757,32 @@ fun CustomDatePickerModal(
                                 )
                             )
                         }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                // Buttons Row
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.background(Color.White) // Ensuring button background is white
+                    ) {
+                        Text("Annuler", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
+                    }
+                    TextButton(
+                        onClick = {
+                            onDateSelected(selectedDate)
+                            onDismiss()
+                        },
+                        modifier = Modifier.background(Color.White) // Ensuring button background is white
+                    ) {
+                        Text("OK", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -849,7 +928,7 @@ fun DaySelectorWithArrows(
                     modifier = Modifier
                         .padding(start = 4.dp)
                         .size(20.dp)
-                        .clickable { showCalendarDialog = true } // Show calendar dialog
+                        .clickable { showCalendarDialog = true }
                 )
             }
 

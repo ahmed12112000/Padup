@@ -69,6 +69,7 @@ uiGraphicsAndroid = "1.7.4"
 preferenceKtx = "1.2.1"
 androidxCoreKtx = "1.2.0"
 navigationRuntime = "2.8.0"
+hiltCommon = "1.2.0"
 
 [libraries]
 androidx-appcompat-v161 = { module = "androidx.appcompat:appcompat", version.ref = "appcompat" }
@@ -150,6 +151,7 @@ androidx-ui-graphics-android = { group = "androidx.compose.ui", name = "ui-graph
 androidx-preference-ktx = { group = "androidx.preference", name = "preference-ktx", version.ref = "preferenceKtx" }
 core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "androidxCoreKtx" }
 androidx-navigation-runtime = { group = "androidx.navigation", name = "navigation-runtime", version.ref = "navigationRuntime" }
+androidx-hilt-common = { group = "androidx.hilt", name = "hilt-common", version.ref = "hiltCommon" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

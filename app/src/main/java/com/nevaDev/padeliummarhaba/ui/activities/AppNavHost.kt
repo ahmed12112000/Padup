@@ -1,23 +1,50 @@
 package com.nevaDev.padeliummarhaba.ui.activities
 
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.net.Uri
+import android.net.http.SslError
 import android.util.Log
+import android.webkit.SslErrorHandler
+import android.webkit.WebResourceRequest
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.activity.viewModels
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.Icon
+import androidx.compose.material.IconButton
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.DrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavController
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -29,6 +56,8 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.nevaDev.padeliummarhaba.models.ReservationOption
 import com.nevaDev.padeliummarhaba.ui.views.*
+import com.nevaDev.padeliummarhaba.viewmodels.ErrorCreditViewModel
+import com.nevaDev.padeliummarhaba.viewmodels.FindTermsViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetEmailViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetManagerViewModel
@@ -40,10 +69,15 @@ import com.nevaDev.padeliummarhaba.viewmodels.PaymentGetAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPartBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
+import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dto.CreditErrorRequest
 import com.padelium.domain.dto.GetBookingResponse
+import com.padelium.domain.dto.GetPaymentRequest
 import com.padelium.domain.dto.GetReservationResponse
 import com.padelium.domain.dto.LoginRequest
+import com.padelium.domain.dto.PaymentGetAvoirRequest
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -80,6 +114,12 @@ fun AppNavHost(
         ) {
             composable("Profile_screen") {
                 ProfileScreen(
+                    navController = navController,
+                )
+            }
+
+            composable("SignUp_SuccessScreen") {
+                SignUpSuccessScreen(
                     navController = navController,
                 )
             }
@@ -233,21 +273,21 @@ fun AppNavHost(
             }
 
             composable(
-                route = "WebViewScreen1?paymentUrl={paymentUrl}&encodedAmount={encodedAmount}&encodedId={encodedId}",
+                route = "WebViewScreen1?formUrl={formUrl}&encodedAmount={encodedAmount}&encodedId={encodedId}",
                 arguments = listOf(
-                    navArgument("paymentUrl") { type = NavType.StringType },
+                    navArgument("formUrl") { type = NavType.StringType },
                     navArgument("encodedAmount") { type = NavType.StringType; defaultValue = "0" },
                     navArgument("encodedId") { type = NavType.LongType; defaultValue = 0L },
 
                     )
             ) { backStackEntry ->
-                val paymentUrl = backStackEntry.arguments?.getString("paymentUrl") ?: ""
+                val formUrl = backStackEntry.arguments?.getString("formUrl") ?: ""
                 val encodedAmount = backStackEntry.arguments?.getString("encodedAmount")?.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 val paymentGetAvoirViewModel: PaymentGetAvoirViewModel = hiltViewModel()
                 val encodedId = backStackEntry.arguments?.getLong("encodedId") ?: 0L
 
                 WebViewScreen1(
-                    formUrl = paymentUrl,
+                    formUrl = formUrl,
                     navController = navController,
                     paymentGetAvoirViewModel = paymentGetAvoirViewModel,
                     amount = encodedAmount,
@@ -573,3 +613,8 @@ fun AppNavHost(
         }
     }
 }
+
+
+
+
+

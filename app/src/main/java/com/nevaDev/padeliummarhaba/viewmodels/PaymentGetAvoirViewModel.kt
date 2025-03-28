@@ -16,19 +16,21 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class PaymentGetAvoirViewModel @Inject constructor(
-    private val paymentGetAvoirUseCase: PaymentGetAvoirUseCase
-) : ViewModel() {
+class PaymentGetAvoirViewModel @Inject constructor(private val paymentGetAvoirUseCase: PaymentGetAvoirUseCase):
+    ViewModel() {
 
-    suspend fun PaymentGetAvoir(paymentGetAvoirRequest: PaymentGetAvoirRequest, navController: NavController): Boolean {
-        return try {
-            val result = paymentGetAvoirUseCase.PaymentGetAvoir(paymentGetAvoirRequest, navController)
-            when (result) {
-                is DataResult2.Success -> result.data // Return true or false
-                else -> false // Return false on failure
-            }
-        } catch (e: Exception) {
-            false // Return false if an exception occurs
+
+    val dataResult = MutableLiveData<DataResult>()
+
+
+    /**
+     * Start getting data
+     */
+    fun PaymentGetAvoir(paymentGetAvoirRequest: PaymentGetAvoirRequest) {
+        dataResult.value = DataResult.Loading
+        viewModelScope.launch {
+            dataResult.value = paymentGetAvoirUseCase.PaymentGetAvoir(paymentGetAvoirRequest)
         }
     }
 }
+

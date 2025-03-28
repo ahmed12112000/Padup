@@ -127,7 +127,6 @@ fun PopupCredit(
 
     val balanceViewModel: BalanceViewModel = hiltViewModel()
     val balanceData by balanceViewModel.dataResult.observeAsState(DataResult.Loading)
-    val saveBookingResult by saveBookingViewModel.dataResult.observeAsState(DataResult.Loading)
 
     val totalAmountSelected = adjustedAmount + totalExtrasCost
     onTotalAmountCalculated(totalAmountSelected, "DT")
@@ -300,6 +299,7 @@ fun PopupCredit(
                     Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
                     val coroutineScope = rememberCoroutineScope()
                     val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
+                    var errorMessage by remember { mutableStateOf<String?>(null) }
 
                     Button(
                         onClick = {
@@ -315,6 +315,13 @@ fun PopupCredit(
                                         val totalAmountSelected = adjustedAmount + totalExtrasCost
 
                                         if (totalAmountSelected <= 0) {
+                                            isLoading = false
+                                            return@collectLatest
+                                        }
+                                        val orderIdValue = bookingId?.toLongOrNull()?.toString() ?: ""
+
+                                        if (orderIdValue.isEmpty() || orderIdValue == "0") {
+                                            errorMessage = "Cette réservation n'est pas disponible pour le moment. Veuillez réessayer plus tard."
                                             isLoading = false
                                             return@collectLatest
                                         }
@@ -452,6 +459,13 @@ fun PopupCredit(
                         enabled = totalAmountSelected <= balance.toDouble()
                     ) {
                         Text(text = "Payer:  $totalAmountSelected Crédits", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
+                    }
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage!!,
+                            color = Color.Red,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
                     }
                     Spacer(modifier = Modifier.height(24.dp)) // Increased spacer height
 

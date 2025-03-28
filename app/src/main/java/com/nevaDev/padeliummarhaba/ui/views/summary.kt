@@ -259,6 +259,7 @@ fun SummaryScreen(
 }
 
 
+
 @Composable
 fun ReservationCard(
     reservation: GetReservationResponse,
@@ -274,10 +275,9 @@ fun ReservationCard(
 
     ) {
     Log.d("TAG","on create")
-    // *************************************
+    // *************************************  GetReservationIDResponse
 
 
-    val privateExtrasState by viewModel3.extrasState2.observeAsState()
     val sharedList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
     val privateList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
     val bookingDate = reservation.bookingDate // Assuming this is a String like "22-01-2025"
@@ -316,9 +316,7 @@ fun ReservationCard(
         }
     }
 
-    LaunchedEffect( viewModel3) {
-        viewModel3.PrivateExtras()
-    }
+
     Card(
         shape = RoundedCornerShape(8.dp),
         modifier = Modifier
@@ -341,14 +339,26 @@ fun ReservationCard(
                 val formattedAmount = if (reservation.localAmount == 0.0) {
                     "0"
                 } else {
-                    String.format("%.2f", reservation.localAmount)
+                    // Check if it's CREDIT and format accordingly
+                    if (reservation.token.isNullOrEmpty()) {
+                        // For CREDIT, remove decimals     String.format("%.0f", reservation.localAmount)
+                        String.format("%.2f", reservation.localAmount)
+                    } else {
+                        // For other cases, keep two decimal places
+                        String.format("%.0f", reservation.localAmount)
+                    }
+                }
+                val amountText = when {
+                    reservation.token.isNullOrEmpty() -> "$formattedAmount DT"
+                    else -> "$formattedAmount CREDIT"
                 }
 
                 Text(
-                    text = "$formattedAmount ${reservation.currencyFromSymbol}",
+                    text = amountText,
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp
                 )
+
             }
             Spacer(modifier = Modifier.height(4.dp)) // Reduce spacing
 
@@ -396,7 +406,7 @@ fun ReservationCard(
                 if (reservation.activePayment) {
                     IconButton(
                         onClick = {
-                            viewModel3.PrivateExtras()
+                           // viewModel3.PrivateExtras()
                             viewModel2.fetchProfileById(reservation.id)
                             viewModel4.partnerPay(reservation.id)
                             Log.d("ASMMMMMMMMMA", "PartnerPay response updated: ${reservation.id}")
@@ -421,7 +431,7 @@ fun ReservationCard(
                             isLoading = true // Start loading
                             coroutineScope.launch {
                                 viewModel1.fetchProfileById(reservation.id)
-                                viewModel3.PrivateExtras()
+                               // viewModel3.PrivateExtras()
                                 viewModel4.partnerPay(reservation.id)
 
                                 // Wait for all operations to finish
@@ -454,7 +464,6 @@ fun ReservationCard(
     }
 
 }
-
 
 @Composable
 fun ReservationCard1(
@@ -505,48 +514,56 @@ fun ReservationCard1(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
+                        val formattedAmount = "%.0f".format(reservation.sellAmount)
+
                         Text(
-                            text = "${reservation.sellAmount} ${reservation.currencyFromSymbol}",
+                            text = "${formattedAmount } DT",
                             fontWeight = FontWeight.Bold,
                             fontSize = 24.sp,
                             color = Color.Black
                         )
 
-                        Text(
-                            text = reservation.bookingStatusName,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White,
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(when (reservation.bookingStatusCode) {
-                                    "PAY" -> Color(0xFF4CAF50) // Green for paid
-                                    "WAIT" -> Color(0xFFFBC02D) // Yellow for waiting
-                                    else -> Color(0xFF4CAF50) // Default to green for unknown
-                                })
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        )
-                    }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Text(
-                            text = formattedDate,
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Normal,
-                            color = Color.Gray
-                        )
-                        Text(
-                            text = ", ${reservation.fromStrTime} - ${reservation.toStrTime}",
-                            fontWeight = FontWeight.Normal,
-                            fontSize = 17.sp,
-                            color = Color.Gray
-                        )
+                                Text(
+                                    text = reservation.bookingStatusName,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.White,
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(12.dp))
+                                        .background(
+                                            when (reservation.bookingStatusCode) {
+                                                "PAY" -> Color(0xFF4CAF50) // Green for paid
+                                                "WAIT" -> Color(0xFFFBC02D) // Yellow for waiting
+                                                else -> Color(0xFF4CAF50) // Default to green for unknown
+                                            }
+                                        )
+                                        .padding(vertical = 4.dp, horizontal = 8.dp)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = formattedDate,
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color.Gray
+                                )
+                                Text(
+                                    text = ", ${reservation.fromStrTime} - ${reservation.toStrTime}",
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 16.sp,
+                                    color = Color.Gray
+                                )
+                            }
+                        }
                     }
                 }
-            }
-        }
+
 
         // Section for Payment Info
         item {
@@ -588,11 +605,24 @@ fun ReservationCard1(
 
                             // Right side: Amount and Payment Status
                             Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    "${user.amountstr} Crédits",
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
+                                // Check the paymentMode value
+                                if (user.paymentMode == "CREDIT") {
+                                    // If payment mode is "CREDIT", display "DT"
+                                    Text(
+                                        "${user.amountstr} DT",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                } else if (user.paymentMode == "PAIMENT EN LIGNE") {
+                                    // If payment mode is "PAIEMENT EN LIGNE", display "Crédits"
+                                    val amountWithoutDecimal = user.amountstr.toDoubleOrNull()?.toInt() // Remove decimal part
+
+                                    Text(
+                                        "${amountWithoutDecimal} Crédits",
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
                                 Spacer(modifier = Modifier.height(4.dp)) // Spacing between the amount and payment status
                                 Text(
                                     text = paymentStatus,
@@ -630,12 +660,12 @@ fun ReservationCard1(
                     TableRow(label = "Référence", value = reservation.reference, isBold = true)
                     Divider()
                     TableRow(label = "Créé le", value = formattedCreatedDate, isBold = true)
-
                 }
             }
         }
     }
 }
+
 
 
 

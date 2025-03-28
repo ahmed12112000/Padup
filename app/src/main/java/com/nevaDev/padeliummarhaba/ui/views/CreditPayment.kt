@@ -103,8 +103,9 @@ fun CreditPayment(
     LaunchedEffect(Unit) {
         viewModel2.GetCreditPay()
     }
-    val reservations = Credits.value.filter { it.userAvoirTypeName == "Réservation" }
-    val alimentations = Credits.value.filter { it.userAvoirTypeName == "Alimentation" }
+    val reservations = Credits.value.filter { it.userAvoirTypeName.equals("Réservation", ignoreCase = true) }
+    val alimentations = Credits.value.filter { it.userAvoirTypeName.equals("Alimentation", ignoreCase = true) }
+
 
     val totalReservations = reservations.sumOf { it.amount }
     val totalAlimentations = alimentations.sumOf { it.amount }
@@ -216,21 +217,24 @@ fun CreditPayment(
                     color = Color.Black,
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                reservations.forEach { credit ->
-                    CreditCard(credit)
-                }
+                val combinedCredits = alimentations + reservations
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Display Alimentation List
-
-                alimentations.forEach { credit ->
-                    CreditCard(credit)
+                if (combinedCredits.isNotEmpty()) {
+                    combinedCredits.forEach { credit ->
+                        CreditCard(credit)
+                    }
+                } else {
+                    Text(
+                        text = "Aucun crédit trouvé",
+                        fontSize = 16.sp,
+                        color = Color.Gray
+                    )
                 }
             }
         }
     }
 }
+
 
 @Composable
 fun CreditCard(credit: CreditPayResponse) {
@@ -252,9 +256,16 @@ fun CreditCard(credit: CreditPayResponse) {
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(modifier = Modifier.size(50.dp)) {
+                        // Use exact string comparison instead of `lowercase()`
+                        val iconRes = when (credit.userAvoirTypeName) {
+                            "Réservation" -> R.drawable.raquettebl
+                            "Alimentation" -> R.drawable.raquettebl
+                            else -> R.drawable.raquettebl
+                        }
+
                         Image(
-                            painter = painterResource(id = R.drawable.raquettebl),
-                            contentDescription = "Reservation Icon",
+                            painter = painterResource(id = iconRes),
+                            contentDescription = "Icon",
                             modifier = Modifier
                                 .size(30.dp)
                                 .align(Alignment.Center)
@@ -267,9 +278,9 @@ fun CreditCard(credit: CreditPayResponse) {
                         horizontalAlignment = Alignment.Start,
                         modifier = Modifier.weight(1f)
                     ) {
-                        // Dynamically adjusting text size based on available space
+                        // Display userAvoirTypeName correctly
                         Text(
-                            text = credit.userAvoirTypeName,
+                            text = credit.userAvoirTypeName, // Keep original casing
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             maxLines = 1,
@@ -279,6 +290,7 @@ fun CreditCard(credit: CreditPayResponse) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
 
+                        // Display Date
                         Text(
                             text = credit.createdStr,
                             fontWeight = FontWeight.Normal,
@@ -290,26 +302,29 @@ fun CreditCard(credit: CreditPayResponse) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically, // Align text vertically in the center
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = "Reference: ",
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 14.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                softWrap = false
-                            )
-                            Text(
-                                text = credit.bookingReference,
-                                fontWeight = FontWeight.Normal,
-                                fontSize = 14.sp,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                softWrap = false
-                            )
+                        // Show Reference only for "Réservation"
+                        if (credit.userAvoirTypeName == "Réservation") {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = "Référence: ",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false
+                                )
+                                Text(
+                                    text = credit.bookingReference,
+                                    fontWeight = FontWeight.Normal,
+                                    fontSize = 14.sp,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
                 }
@@ -322,8 +337,16 @@ fun CreditCard(credit: CreditPayResponse) {
                     val formattedAmount = if (credit.amount.compareTo(BigDecimal.ZERO) == 0) {
                         "0"
                     } else {
-                        String.format("%.2f", credit.amount)
+                        // Check if the amount has no decimal part
+                        if (credit.amount.stripTrailingZeros().scale() <= 0) {
+                            // Display without decimals if it's a whole number
+                            credit.amount.toBigInteger().toString()
+                        } else {
+                            // Otherwise, format with 2 decimal places
+                            String.format("%.2f", credit.amount)
+                        }
                     }
+
                     Text(
                         text = "$formattedAmount",
                         fontWeight = FontWeight.Bold,
@@ -342,6 +365,8 @@ fun CreditCard(credit: CreditPayResponse) {
         }
     }
 }
+
+
 
 
 

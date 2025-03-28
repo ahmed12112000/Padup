@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -41,6 +42,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -337,7 +340,8 @@ fun ReservationDetailsCard(
                                             if (!selectedPlayers.contains(selectedId)) {
                                                 selectedPlayers.add(selectedId)
                                             }
-                                        }
+                                        },
+                                        isDisabled = partners.getOrNull(i)?.second != null // Disable the field if a partner is selected
                                     )
                                 }
                             }
@@ -366,7 +370,8 @@ fun ReservationDetailsCard(
                                             if (!selectedPlayers.contains(selectedId)) {
                                                 selectedPlayers.add(selectedId)
                                             }
-                                        }
+                                        },
+                                        isDisabled = partners.getOrNull(i)?.second != null // Disable the field if a partner is selected
                                     )
                                 }
                             }
@@ -394,7 +399,8 @@ fun ReservationDetailsCard(
                                         if (!selectedPlayers.contains(selectedId)) {
                                             selectedPlayers.add(selectedId)
                                         }
-                                    }
+                                    },
+                                    isDisabled = partners.getOrNull(0)?.second != null // Disable the field if a partner is selected
                                 )
                             }
                         }
@@ -413,7 +419,8 @@ fun ReservationDetailsCard(
         }
     }
 }
-@OptIn(ExperimentalMaterialApi::class)
+
+
 @Composable
 fun PartnerField(
     label: String,
@@ -422,10 +429,12 @@ fun PartnerField(
     findTermsViewModel: FindTermsViewModel,
     selectedPlayers: MutableList<Long>,
     playerFullNames: List<String>,
-    onPlayerSelected: (String, Long) -> Unit
+    onPlayerSelected: (String, Long) -> Unit,
+    isDisabled: Boolean = false // Disable flag passed from parent
 ) {
     val playersState by findTermsViewModel.players.observeAsState(initial = DataResult.Loading)
     var showDropdown by remember { mutableStateOf(false) }
+    var isFieldDisabled by remember { mutableStateOf(isDisabled) } // Track whether the field is disabled
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
 
@@ -442,11 +451,35 @@ fun PartnerField(
         Column {
             OutlinedTextField(
                 value = value,
-                onValueChange = { text ->
-                    onValueChange(text)
-                    showDropdown = text.isNotEmpty()
-                    if (text.length >= 1) {
-                        val requestBody: RequestBody = text.toRequestBody("text/plain".toMediaType())
+                onValueChange = { newText ->
+                    if (isFieldDisabled) return@OutlinedTextField // Prevent editing when disabled
+
+                    val oldValue = value.trim() // Capture previous value
+                    val isDeleting = newText.length < oldValue.length // Detect deletion
+
+                    if (isDeleting) {
+                        val playerToRemove = findTermsViewModel.getPlayerByFullName(oldValue)
+                        playerToRemove?.let { player ->
+                            selectedPlayers.remove(player.id) // Remove the ID when deleting
+                        }
+                    }
+
+                    if (newText.isNotEmpty()) {
+                        val playerData = findTermsViewModel.getPlayerByFullName(newText)
+                        playerData?.let { player ->
+                            if (!selectedPlayers.contains(player.id)) {
+                                selectedPlayers.add(player.id)
+                                onPlayerSelected(player.fullName, player.id)
+                                isFieldDisabled = true // Disable field once player is selected
+                            }
+                        }
+                    }
+
+                    onValueChange(newText) // Update text field value
+                    showDropdown = newText.isNotEmpty()
+
+                    if (newText.length >= 1) {
+                        val requestBody: RequestBody = newText.toRequestBody("text/plain".toMediaType())
                         findTermsViewModel.findTerms(requestBody, limit = 9)
                     }
                 },
@@ -466,7 +499,8 @@ fun PartnerField(
                         keyboardController?.hide()
                         showDropdown = false
                     }
-                )
+                ),
+                enabled = !isFieldDisabled // Disable the field when a player is selected
             )
 
             // Show dropdown menu
@@ -493,8 +527,9 @@ fun PartnerField(
                                                 if (!selectedPlayers.contains(playerId)) {
                                                     selectedPlayers.add(playerId)
                                                     // Update the field with the selected player's full name
-                                                    onValueChange(player.fullName)
+                                                    onValueChange(player.fullName) // Update text field with name
                                                     onPlayerSelected(player.fullName, playerId)
+                                                    isFieldDisabled = true // Disable the field after selection
                                                 }
                                             }
                                             showDropdown = false // Hide dropdown after selection
@@ -520,6 +555,40 @@ fun PartnerField(
                     }
                 }
             }
+
+            // Display selected players below the PartnerField with close icons
+            if (selectedPlayers.isNotEmpty()) {
+                Row(modifier = Modifier.padding(top = 8.dp)) {
+                    selectedPlayers.forEach { playerId ->
+                        val playerName = findTermsViewModel.getPlayerById(playerId)?.fullName ?: ""
+                        if (playerName.isNotEmpty()) {
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = playerName,
+                                    modifier = Modifier.padding(end = 8.dp),
+                                    style = MaterialTheme.typography.body2
+                                )
+                                IconButton(
+                                    onClick = {
+                                        // Remove the player when close icon is clicked
+                                        selectedPlayers.remove(playerId)
+                                        onValueChange("") // Clear the text field (optional)
+                                        isFieldDisabled = false // Enable the field again
+                                    }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove Player"
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -533,19 +602,7 @@ fun PartnerField(
 
 
 
-/*
-        Text(
-            text = "Selected Players: ${
-                selectedPlayers.joinToString { "${it.first} (${it.second})" }
-            }",
-            modifier = Modifier.padding(top = 8.dp)
-        )
 
-
-    }
-}
-
- */
 @Composable
 fun ExtrasSection(
     onExtrasUpdate: (List<Triple<String, String, Int>>, Double) -> Unit,
