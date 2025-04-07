@@ -15,44 +15,105 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+class PaymentGetAvoirUseCase @Inject constructor(
+    private val paymentGetAvoirRepository: IPaymentGetAvoirRepository
+) {
 
-
-class PaymentGetAvoirUseCase @Inject constructor(private val paymentGetAvoirRepository: IPaymentGetAvoirRepository) {
-
-    suspend fun PaymentGetAvoir (paymentGetAvoirRequest: PaymentGetAvoirRequest): DataResult {
+    suspend fun PaymentGetAvoir(
+        paymentGetAvoirRequest: PaymentGetAvoirRequest,
+        navController: NavController
+    ): DataResult2<Boolean> {
         return try {
             val response = paymentGetAvoirRepository.PaymentGetAvoir(paymentGetAvoirRequest)
+
             if (response.isSuccessful) {
-                DataResult.Success(response)
+                val paymentSuccess = response.body() ?: false
+                Log.d("PaymentGetAvoirUseCase", "Payment success: $paymentSuccess")
+
+                // Navigate based on the result
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(5)
+                    if (paymentSuccess) {
+                        navController.navigate("PaymentSuccessScreen")
+                    } else {
+                        navController.navigate("payment_error_screen")
+                    }
+                }
+
+                DataResult2.Success(paymentSuccess)
             } else {
-                val errorMessage = response.errorBody()?.string() ?: "Unknown error occurred"
-                DataResult.Failure(null, response.code(), errorMessage)
+                val errorMessage = response.errorBody()?.string() ?: "Unknown error"
+                Log.e("PaymentGetAvoirUseCase", "Error: $errorMessage")
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(5)
+                    navController.navigate("server_error_screen")
+                }
+
+                DataResult2.Failure(null, response.code(), errorMessage)
             }
         } catch (ex: Exception) {
-            DataResult.Failure(ex, null, ex.localizedMessage ?: "An error occurred during login")
+            Log.e("PaymentGetAvoirUseCase", "Exception: ${ex.localizedMessage}")
+
+            CoroutineScope(Dispatchers.Main).launch {
+                delay(5)
+                navController.navigate("server_error_screen")
+            }
+
+            DataResult2.Failure(ex, null, ex.localizedMessage ?: "An error occurred")
         }
     }
 }
+
 
 
 
 
 class PaymentPartBookingUseCase @Inject constructor(private val paymentGetAvoirRepository: IPaymentPartBookingRepository) {
 
-    suspend fun PaymentPartBooking (paymentGetAvoirRequest: PaymentPartBookingRequest): DataResult {
+    suspend fun PaymentPartBooking (paymentGetAvoirRequest: PaymentPartBookingRequest,
+                                    navController: NavController): DataResult2<Boolean>  {
         return try {
             val response = paymentGetAvoirRepository.PaymentPartBooking(paymentGetAvoirRequest)
             if (response.isSuccessful) {
-                DataResult.Success(response)
+                val paymentSuccess = response.body() ?: false
+                Log.d("PaymentGetAvoirUseCase", "Payment success: $paymentSuccess")
+
+                // Navigate based on the result
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(5)
+                    if (paymentSuccess) {
+                        navController.navigate("PaymentSuccessScreen")
+                    } else {
+                        navController.navigate("payment_error_screen")
+                    }
+                }
+
+                DataResult2.Success(paymentSuccess)
             } else {
-                val errorMessage = response.errorBody()?.string() ?: "Unknown error occurred"
-                DataResult.Failure(null, response.code(), errorMessage)
+                val errorMessage = response.errorBody()?.string() ?: "Unknown error"
+                Log.e("PaymentGetAvoirUseCase", "Error: $errorMessage")
+
+                CoroutineScope(Dispatchers.Main).launch {
+                    delay(5)
+                    navController.navigate("server_error_screen")
+                }
+
+                DataResult2.Failure(null, response.code(), errorMessage)
             }
         } catch (ex: Exception) {
-            DataResult.Failure(ex, null, ex.localizedMessage ?: "An error occurred during login")
+            Log.e("PaymentGetAvoirUseCase", "Exception: ${ex.localizedMessage}")
+
+            CoroutineScope(Dispatchers.Main).launch {
+                delay(5)
+                navController.navigate("server_error_screen")
+            }
+
+            DataResult2.Failure(ex, null, ex.localizedMessage ?: "An error occurred")
         }
     }
 }
+
 
 
 class PaymentParCreditUseCase @Inject constructor(private val paymentParCreditRepository: IPaymentParCreditRepository) {

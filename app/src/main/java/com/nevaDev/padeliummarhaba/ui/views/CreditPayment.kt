@@ -60,6 +60,8 @@ import com.padelium.domain.dto.CreditPayResponse
 import com.padelium.domain.dto.GetPacksResponse
 import com.padelium.domain.dto.GetReservationResponse
 import java.math.BigDecimal
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 @Composable
 fun CreditPayment(
@@ -218,9 +220,10 @@ fun CreditPayment(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 val combinedCredits = alimentations + reservations
+                val sortedCredits = combinedCredits.sortedByDescending { parseDate(it.createdStr) }
 
-                if (combinedCredits.isNotEmpty()) {
-                    combinedCredits.forEach { credit ->
+                if (sortedCredits.isNotEmpty()) {
+                    sortedCredits.forEach { credit ->
                         CreditCard(credit)
                     }
                 } else {
@@ -234,7 +237,11 @@ fun CreditPayment(
         }
     }
 }
-
+fun parseDate(dateString: String): Long {
+    // Adjust the date format according to your date string format
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Example format
+    return dateFormat.parse(dateString)?.time ?: 0L
+}
 
 @Composable
 fun CreditCard(credit: CreditPayResponse) {

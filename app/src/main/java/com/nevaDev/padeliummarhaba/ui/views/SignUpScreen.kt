@@ -13,6 +13,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
@@ -45,6 +46,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -82,6 +84,7 @@ fun SignUpScreen(
     var isLoading by remember { mutableStateOf(false) }
     val focusManager = LocalFocusManager.current // Focus manager to clear focus
     val emailPattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
+    val keyboardController = LocalSoftwareKeyboardController.current
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     var showMessage by remember { mutableStateOf(false) }
@@ -191,10 +194,18 @@ fun SignUpScreen(
         ) {
             OutlinedTextField(
                 value = firstName,
-                onValueChange = { firstName = it },
+                onValueChange = {
+                    firstName = it
+
+                                },
+
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                    }
+                ),
                 label = { Text(stringResource(R.string.firstName)) },
-                leadingIcon = {
-                },
+
                 modifier = Modifier
                     .weight(1f)
                     .padding(end = 8.dp, top = 8.dp)
@@ -219,6 +230,11 @@ fun SignUpScreen(
                 value = lastName,
                 onValueChange = { lastName = it },
                 label = { Text(stringResource(R.string.lastName)) },
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboardController?.hide()
+                    }
+                ),
                 leadingIcon = {
                 },
                 modifier = Modifier
@@ -251,6 +267,11 @@ fun SignUpScreen(
                 email = it.trim()
                 isEmailError = !email.matches(emailPattern)
             },
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                }
+            ),
             label = { Text(stringResource(R.string.email)) },
             leadingIcon = {
                 Icon(
@@ -356,6 +377,11 @@ fun SignUpScreen(
             password = it.trim()
             isPasswordError = password.length < 8
         },
+        keyboardActions = KeyboardActions(
+            onDone = {
+                keyboardController?.hide()
+            }
+        ),
         label = { Text(stringResource(R.string.password)) },
         leadingIcon = {
             Icon(

@@ -26,9 +26,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.NavController
 
 @Composable
-fun ServerErrorScreen(onRetry: () -> Unit) {
+fun ServerErrorScreen(onRetry: () -> Unit, navController: NavController) {
     val infiniteTransition = rememberInfiniteTransition()
     val shakeAnimation by infiniteTransition.animateFloat(
         initialValue = 0f,
@@ -77,7 +78,7 @@ fun ServerErrorScreen(onRetry: () -> Unit) {
         Spacer(modifier = Modifier.height(24.dp))
 
         Button(
-            onClick = onRetry,
+            onClick = { navController.navigate("main_screen")},
             modifier = Modifier
                 .padding(top = 8.dp)
                 .shadow(4.dp, shape = RoundedCornerShape(12.dp)),
@@ -90,16 +91,4 @@ fun ServerErrorScreen(onRetry: () -> Unit) {
     }
 }
 
-@Preview(showBackground = true)
-@Composable
-fun ServerErrorScreenPreview() {
-    MaterialTheme {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.White)
-        ) {
-            ServerErrorScreen(onRetry = {})
-        }
-    }
-}
+

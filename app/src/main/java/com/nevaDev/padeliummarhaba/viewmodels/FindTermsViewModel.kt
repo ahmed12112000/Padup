@@ -85,6 +85,7 @@ class FindTermsViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
+
                 // Handle exception
                 _players.value = DataResult.Failure(exception = e, errorCode = null, errorMessage = e.localizedMessage)
             }

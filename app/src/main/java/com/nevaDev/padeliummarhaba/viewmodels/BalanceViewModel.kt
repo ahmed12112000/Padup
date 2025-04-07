@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.usecases.BalanceUseCase
 import com.padelium.domain.usecases.GetProfileUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,7 +16,7 @@ import javax.inject.Inject
 @HiltViewModel
 class BalanceViewModel @Inject constructor(
     private val balanceUseCase: BalanceUseCase,
-    private val getProfileUseCase: GetProfileUseCase // Inject the GetProfileUseCase
+    private val getProfileUseCase: GetProfileUseCase // Injected use case
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
@@ -28,32 +29,48 @@ class BalanceViewModel @Inject constructor(
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
             try {
-                // Get user profile using GetProfileUseCase
-                val profileResponse = getProfileUseCase.execute() // Use execute() from GetProfileUseCase
-                Log.d("GetProfile", "Profile Response: $profileResponse")  // Log the profile response
+                // Call use case and handle result
+                when (val profileResult = getProfileUseCase.execute()) {
+                    is DataResultBooking.Success -> {
+                        val profile = profileResult.data
+                        Log.d("GetProfile", "Profile Response: $profile")
 
-                // Check if the profile was fetched successfully
-                val userId = profileResponse.id
+                        val userId = profile.id
 
-                // Fetch balance and update LiveData
-                when (val result = balanceUseCase.Balance(userId)) {
-                    is DataResult.Success -> {
-                        val balance = result.data as? BigDecimal ?: BigDecimal.ZERO
-                        Log.e("BalanceViewModel", "Fetched Balance: $balance")
-                        dataResult.value = DataResult.Success(balance) // Ensure data type consistency
-                    }
-                    is DataResult.Failure -> {
-                        Log.e("BalanceViewModel", "Error fetching balance: ${result.errorMessage}")
-                        if (result.errorCode != 200) {
-                            navigationEvent.value = "server_error_screen" // Expose navigation event to UI
-                        } else {
-                            dataResult.value = DataResult.Failure(result.exception, result.errorCode, result.errorMessage)
+                        // Fetch balance using userId
+                        when (val result = balanceUseCase.Balance(userId)) {
+                            is DataResult.Success -> {
+                                val balance = result.data as? BigDecimal ?: BigDecimal.ZERO
+                                Log.e("BalanceViewModel", "Fetched Balance: $balance")
+                                dataResult.value = DataResult.Success(balance)
+                            }
+
+                            is DataResult.Failure -> {
+                                Log.e("BalanceViewModel", "Error fetching balance: ${result.errorMessage}")
+                                if (result.errorCode != 200) {
+                                    navigationEvent.value = "server_error_screen"
+                                } else {
+                                    dataResult.value = DataResult.Failure(
+                                        result.exception,
+                                        result.errorCode,
+                                        result.errorMessage
+                                    )
+                                }
+                            }
+
+                            else -> {
+                                Log.e("BalanceViewModel", "Unexpected result")
+                                dataResult.value = DataResult.Failure(null, null, "Unexpected result")
+                            }
                         }
                     }
-                    else -> {
-                        Log.e("BalanceViewModel", "Unexpected result")
-                        dataResult.value = DataResult.Failure(null, null, "Unexpected result")
+
+                    is DataResultBooking.Failure -> {
+                        Log.e("GetProfile", "Failed to fetch profile: ${profileResult.errorMessage}")
+                        navigationEvent.value = "server_error_screen"
                     }
+
+                    DataResultBooking.Loading -> TODO()
                 }
             } catch (ex: Exception) {
                 dataResult.value = DataResult.Failure(ex, null, ex.localizedMessage ?: "An error occurred")

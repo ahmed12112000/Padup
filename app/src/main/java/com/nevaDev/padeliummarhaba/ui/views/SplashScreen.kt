@@ -1,7 +1,10 @@
 package com.nevaDev.padeliummarhaba.ui.views
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.* // Imports for padding, alignment
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.* // For modern Material3
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +18,11 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import com.nevadev.padeliummarhaba.R
 
 @Composable
@@ -28,13 +36,13 @@ fun SplashScreen() {
 
     Box(
         modifier = Modifier
-            .fillMaxSize() // Make the Box fill the entire screen
+            .fillMaxSize()
             .background(Color(0xFF0054D8)),
         contentAlignment = Alignment.Center
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize() // Ensure the Column takes up the full screen
+                .fillMaxSize()
                 .offset(y = -200.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
@@ -88,7 +96,7 @@ fun SplashScreen() {
                     Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text = "v1.0.0.29",
+                        text = "v1.0.0.36",
                         fontSize = 10.sp,
                         color = Color.White
                     )
@@ -101,6 +109,35 @@ fun SplashScreen() {
 
 }
 
+
+@Composable
+fun CopyrightText() {
+    val context = LocalContext.current
+
+    val annotatedString = buildAnnotatedString {
+        append("Copyright © 2025 ")
+        pushStringAnnotation(tag = "SPOFUN", annotation = "https://spofun.tn/")
+        withStyle(style = SpanStyle(fontWeight = FontWeight.Bold, color = Color.White)) {
+            append("SPOFUN")
+        }
+        pop()
+        append(" | Tous droits réservés.")
+    }
+
+    ClickableText(
+        text = annotatedString,
+        onClick = { offset ->
+            val clickedTag = annotatedString.getStringAnnotations(offset, offset).firstOrNull()
+            clickedTag?.let {
+                if (it.tag == "SPOFUN") {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(it.item))
+                    context.startActivity(intent)
+                }
+            }
+        },
+        style = TextStyle(color = Color.White, fontSize = 10.sp)
+    )
+}
 @Preview(showBackground = true)
 @Composable
 fun SplashScreenPreview() {

@@ -172,6 +172,7 @@ fun MainApp(
 
     // Track network connection status actively
     val showDialog = remember { mutableStateOf(!isNetworkAvailable) }
+    val insets = WindowInsets
 
     LaunchedEffect(isNetworkAvailable) {
         if (!isNetworkAvailable) {
@@ -187,11 +188,13 @@ fun MainApp(
                 AnimatedBottomBar(
                     navController = navController,
                     getReservationViewModel = getReservationViewModel
+
                 )
             }
         },
         content = { innerPadding ->
-            Box(modifier = Modifier.padding(innerPadding)) {
+            Box(modifier = Modifier.padding(innerPadding)
+            ) {
                 if (isNetworkAvailable) {
                     AppNavHost(
                         navController = navController,

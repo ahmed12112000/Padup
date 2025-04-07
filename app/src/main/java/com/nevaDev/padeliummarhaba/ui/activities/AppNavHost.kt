@@ -125,12 +125,14 @@ fun AppNavHost(
             }
 
             composable("server_error_screen") {
-                ServerErrorScreen(onRetry = {}
+                ServerErrorScreen(onRetry = {},
+                    navController = navController
                 )
             }
 
             composable("payment_error_screen") {
-                PaymentErrorScreen(onRetry = {}
+                PaymentErrorScreen(onRetry = {},
+                    navController = navController,
                 )
             }
 

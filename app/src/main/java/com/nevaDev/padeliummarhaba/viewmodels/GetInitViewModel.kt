@@ -49,6 +49,7 @@ class GetInitViewModel @Inject constructor(
                 else -> {
                     // Handle any unknown state
                     DataResultBooking.Failure(
+
                         exception = null,
                         errorCode = null,
                         errorMessage = "Unknown error"

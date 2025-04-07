@@ -298,6 +298,7 @@ fun PopupCreditPartner(
                             .height(48.dp),
                         colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0054D8)),
                         shape = RoundedCornerShape(8.dp),
+                        enabled = totalPrice <= BigDecimal(balance.toString())
                     ) {
                         Text(text = "Payer:  $totalPrice Crédits", fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color.White)
 

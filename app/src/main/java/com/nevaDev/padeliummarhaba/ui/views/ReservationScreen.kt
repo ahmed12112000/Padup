@@ -7,23 +7,16 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.awaitEachGesture
-import androidx.compose.foundation.gestures.awaitFirstDown
-import androidx.compose.foundation.gestures.waitForUpOrCancellation
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -49,30 +42,14 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.KeyViewModel
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.FetchKeyRequest
-import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CalendarToday
-import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material.icons.outlined.CalendarToday
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.painter.Painter
-import androidx.compose.ui.input.pointer.PointerEventPass
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.Popup
-import androidx.navigation.compose.rememberNavController
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
 import com.nevaDev.padeliummarhaba.viewmodels.GetInitViewModel
@@ -81,25 +58,21 @@ import com.nevaDev.padeliummarhaba.viewmodels.InitBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
+import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.InitBookingRequest
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.time.DayOfWeek
-
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Calendar
-import java.util.Date
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReservationScreen(
     navController: NavController,
+
     isUserLoggedIn: Boolean = false,
     context: Context,
     sharedPreferences: SharedPreferences,
@@ -127,13 +100,15 @@ fun ReservationScreen(
     var hasFetchedInitBooking by remember { mutableStateOf(false) }
     var hasFetchedSearchList by remember { mutableStateOf(false) }
     var hasCalledInitBooking by remember { mutableStateOf(false) }
+    var hasNoData by remember { mutableStateOf(false) }
+    var hasAvailableReservations by remember { mutableStateOf(false) }
 
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     var previousSelectedDate by remember { mutableStateOf<LocalDate?>(null) }
 
-    val parsedTimeSlots by getBookingViewModel.parsedTimeSlots.collectAsState(initial = emptyList())
 
     var hasFetchedBooking by remember { mutableStateOf(false) }
+
 
     fun fetchInitBooking() {
         reservationKey.value?.let { key ->
@@ -141,7 +116,6 @@ fun ReservationScreen(
                 hasFetchedInitBooking = true
                 val initBookingRequest = InitBookingRequest(key = key)
                 viewModel4.InitBooking(initBookingRequest)
-                Log.d("Tagggg", "FETCH DATA 4********")
             }
         }
     }
@@ -151,51 +125,27 @@ fun ReservationScreen(
             if (!hasFetchedSearchList) {
                 hasFetchedSearchList = true
                 viewModel3.searchList(key)
-                Log.d("Tagggg", "FETCH KEY 2")
             }
         }
     }
+
     fun  fetchInitData() {
         reservationKey.value?.let { key ->
             if (!hasCompletedFetch) {
                 hasCompletedFetch = true
                 viewModel2.GetInit(key)
-                Log.d("Tagggg", "FETCH TERRAIN 3********")
             }
         }
     }
-    fun  fetchBookingData() {
-        reservationKey.value?.let { key ->
-                hasFetchedBooking = true
-                getBookingViewModel.getBooking(key, selectedDate.value)
-                Log.d("Tagggg", "FETCH TERRAIN 3********")
-
-        }
-    }
-
-    /*
-
     fun fetchBookingData() {
-        // Only fetch if the data has not been fetched yet
-        if (!hasFetchedBooking) {
-            hasFetchedBooking = true // Mark as fetched
-
-            fetchJob?.cancel()
-            fetchJob = CoroutineScope(Dispatchers.Main).launch {
-                reservationKey.value?.let { key ->
-                    getBookingViewModel.getBooking(key, selectedDate.value) // Use selectedDate.value here
-                    Log.d("Tagggg", "FETCH FULL DATA 5********")
-                }
-            }
+        reservationKey.value?.let { key ->
+            hasFetchedBooking = true
+            getBookingViewModel.getBooking(key, selectedDate.value)
         }
     }
 
-     */
 
-    LaunchedEffect(reservationKey.value) {
-        Log.d("Tagggg", "Reservation Key Changed: ${reservationKey.value}")
-        fetchBookingData() // Call fetchBookingData whenever reservationKey changes
-    }
+
 
     fun handleFailure(errorCode: Int?) {
         isLoading = false
@@ -205,30 +155,33 @@ fun ReservationScreen(
             }
         }
     }
-    // Function to reset all data before fetching new reservation data
     fun resetData() {
         reservationKey.value = null
         hasCompletedFetch = false
         hasFetchedInitBooking = false
         hasFetchedSearchList = false
         hasCalledInitBooking = false
+        hasFetchedBooking = false
         isLoading = false
         fetchJob?.cancel()
+
+
     }
     fun fetchReservationData(date: LocalDate) {
-        if (isLoading) return // Prevent multiple parallel requests
-        resetData() // Clear all previous data
+        if (isLoading) return
+        resetData()
 
         val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
         isLoading = true
         viewModel.getReservationKey(fetchKeyRequest, date)
-        Log.d("Tagggg", "FETCH KEY for Date: $date")
     }
 
     LaunchedEffect(selectedDate.value) {
         if (selectedDate.value != previousSelectedDate) {
+            if (selectedDate.value.dayOfMonth in 11..22) {
+            }
             fetchReservationData(selectedDate.value)
             previousSelectedDate = selectedDate.value
         }
@@ -243,6 +196,7 @@ fun ReservationScreen(
                 fetchSearchList()
             }
             is DataResultBooking.Failure -> handleFailure(result.errorCode)
+
             is DataResultBooking.Loading -> isLoading = true
         }
     }
@@ -252,9 +206,11 @@ fun ReservationScreen(
     viewModel3.dataResultBooking.observe(lifecycleOwner) { result ->
         when (result) {
             is DataResultBooking.Success -> {
-                // Call the next step in sequence: Fetch Init Data
                 fetchInitData()
-                fetchInitBooking()
+
+                viewModel2.GetInit(reservationKey.value ?: return@observe).also {
+                    fetchInitBooking()
+                }
             }
             is DataResultBooking.Failure -> handleFailure(result.errorCode)
             is DataResultBooking.Loading -> isLoading = true
@@ -267,26 +223,16 @@ fun ReservationScreen(
         }
     }
 
-/*
-    viewModel2.dataResultBooking.observe(lifecycleOwner) { result ->
-        when (result) {
-            is DataResultBooking.Success -> {
-                // Call the next step in sequence: Fetch Init Booking
-                fetchInitBooking()
-            }
-            is DataResultBooking.Failure -> handleFailure(result.errorCode)
-            is DataResultBooking.Loading -> isLoading = true
-        }
-    }
 
- */
+
+
+
 
 
 
     viewModel4.dataResult1.observe(lifecycleOwner) { result ->
         when (result) {
             is DataResult.Success -> {
-                // Call the final step in sequence: Fetch Booking Data
                 fetchBookingData()
             }
             is DataResult.Failure -> handleFailure(result.errorCode)
@@ -294,29 +240,41 @@ fun ReservationScreen(
         }
     }
 
+    LaunchedEffect(reservationKey.value) {
+        fetchBookingData()
+    }
+
+    getBookingViewModel.dataResultBooking.observe(lifecycleOwner) { result ->
+        when (result) {
+            is DataResultBooking.Success -> {
+                val bookingResponses = result.data as? List<GetBookingResponseDTO>
 
 
+                if (bookingResponses != null && bookingResponses.isNotEmpty()) {
+                    val plannings = bookingResponses.flatMap { it.plannings }
 
+                    hasAvailableReservations = plannings.isNotEmpty()
 
+                    hasNoData = !hasAvailableReservations
 
-// Ensure that when selectedDate changes, the fetchBookingData is called again
-
-
-
-
-
-
-    // Function to fetch time slots based on the selected date
-
-
-    // Trigger filtering when a new date is selected
-     /* LaunchedEffect(selectedDate.value, reservationKey.value) {
-        reservationKey.value?.let { key ->
-            filterSlotsByDate(selectedDate.value)
+                } else {
+                    hasNoData = true
+                    hasAvailableReservations = false
+                }
+            }
+            is DataResultBooking.Failure -> {
+                handleFailure(result.errorCode)
+                hasNoData = true
+                hasAvailableReservations = false
+            }
+            is DataResultBooking.Loading -> isLoading = true
         }
     }
 
-      */
+
+
+
+
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
@@ -338,7 +296,6 @@ fun ReservationScreen(
         DaySelectorWithArrows(
             selectedDate = selectedDate.value,
             onDateSelected = { newDate ->
-                Log.d("DATE_SELECTION", "Selected Date: $newDate")
                 selectedDate.value = newDate
                 resetData()
                 fetchReservationData(newDate)
@@ -347,32 +304,46 @@ fun ReservationScreen(
 
 
 
-
-
-
-
-//      ZoneId.of("GMT+1")
-
         Spacer(modifier = Modifier.height(10.dp))
-
-
+        if (hasNoData) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "Pas des heures disponibles selon vos critères de recherche",
+                    textAlign = TextAlign.Center,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
+                )
+            }
+        }
     }
+
+
 
 
     if (!showPaymentSection) {
-        ReservationOptions(
-            onReservationSelected = { selectedReservation.value = it },
-            //  isUserLoggedIn = isUserLoggedIn,
-            key = reservationKey.value,
-            viewModel = getBookingViewModel,
-            navController = navController,
-            selectedDate = selectedDate.value ,
-            selectedTimeSlot = selectedTimeSlot.value,
-            paymentPayAvoirViewModel = paymentPayAvoirViewModel,
-            getReservationViewModel = getReservationViewModel
-        )
+        Spacer(modifier = Modifier.height(10.dp))
+
+ if (hasAvailableReservations) {
+            ReservationOptions(
+                onReservationSelected = { selectedReservation.value = it },
+                key = reservationKey.value,
+                viewModel = getBookingViewModel,
+                navController = navController,
+                selectedDate = selectedDate.value,
+                selectedTimeSlot = selectedTimeSlot.value,
+                paymentPayAvoirViewModel = paymentPayAvoirViewModel,
+                getReservationViewModel = getReservationViewModel
+            )
+        }
+
     }
 }
+
 @Composable
 fun TimeSlotButton(
     timeSlots: List<TimeSlot>,

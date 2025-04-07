@@ -4,7 +4,7 @@
     <string name="password">Mot de Passe</string>
     <string name="password_error">Mot de Passe doit contenir au moins 8 caractères</string>
     <string name="forgot_password">Mot de passe oublié ?</string>
-    <string name="login_button">Login</string>
+    <string name="login_button">Se connecter</string>
     <string name="email">Email</string>
     <string name="email_error">Veuillez entrer une adresse e-mail valide</string>
     <string name="signinbutoon">"Vous n'avez pas de compte ?"</string>

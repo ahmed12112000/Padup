@@ -92,6 +92,7 @@ fun ProfileScreen(
     var showToast by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
     val keyboardController = LocalSoftwareKeyboardController.current
+    var isProfileFetched = false
 
     fun isFormValid(): Boolean {
         return firstName.isNotBlank() && lastName.isNotBlank() && phoneNumber.isNotBlank() && phoneNumber.length >= 8
@@ -124,9 +125,7 @@ fun ProfileScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
-        viewModel.fetchProfileData()
-    }
+
 
 
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
@@ -397,6 +396,7 @@ fun ProfileScreen(
                         Button(
                             onClick = {
                                 sessionManager.logout()
+
                                 navController.navigate("main_screen") {
                                     popUpTo("profile") { inclusive = true }
                                 }

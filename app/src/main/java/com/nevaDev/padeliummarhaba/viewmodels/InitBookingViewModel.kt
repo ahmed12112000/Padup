@@ -23,6 +23,7 @@ class InitBookingViewModel @Inject constructor(
 
     val dataResult1 = MutableLiveData<DataResult>()
     val navigateToErrorScreen = MutableLiveData<Boolean>() // LiveData for navigation signal
+    val navigationEvent = MutableLiveData<String>()
 
     fun InitBooking(initBookingRequest: InitBookingRequest) {
         viewModelScope.launch {

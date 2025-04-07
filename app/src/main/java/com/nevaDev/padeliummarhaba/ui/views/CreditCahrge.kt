@@ -103,6 +103,8 @@ fun CreditCharge(
     // Get context from LocalContext
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
+    var selectedPackId by remember { mutableStateOf<Int?>(null) }
+    var selectedAmount by remember { mutableStateOf<Double?>(null) }
 
     Column(
         modifier = Modifier.fillMaxSize().background(Color(0xFFE5E5E5)).verticalScroll(rememberScrollState())
@@ -149,6 +151,8 @@ fun CreditCharge(
                                     currency = "DT",
                                     orderId = "520",
                                     onPaymentClick = { userAvoirRequest ->
+                                        selectedPackId = pack.id.toInt() // Convert Long to Int
+                                        selectedAmount = pack.amount.toDouble()// Store selected amount
                                         userAvoirViewModel.PaymentAvoir(userAvoirRequest)
                                     }
                                 )
@@ -182,17 +186,15 @@ fun CreditCharge(
                 val paymentData = (paymentResponse as DataResult.Success).data as? UserAvoirResponse
                 val formUrl = paymentData?.formUrl
 
-                val packs = (packsData as? DataResult.Success)?.data as? List<GetPacksResponse>
-                val amountValue = packs?.firstOrNull()?.amount
-                val idValue = packs?.firstOrNull()?.id
-
-                if (!formUrl.isNullOrEmpty() && amountValue != null && idValue != null) {
+                if (!formUrl.isNullOrEmpty() && selectedAmount != null && selectedPackId != null) {
                     val encodedUrl = Uri.encode(formUrl)
-                    val encodedAmount = Uri.encode(amountValue.toString())
-                    val encodedId = Uri.encode(idValue.toString())
+                    val encodedAmount = Uri.encode(selectedAmount.toString())
+                    val encodedId = Uri.encode(selectedPackId.toString())
 
                     Log.d("Navigation", "Navigating to WebViewScreen1 with URL: $formUrl")
                     navController.navigate("WebViewScreen1?formUrl=$encodedUrl&encodedAmount=$encodedAmount&encodedId=$encodedId")
+                    Log.d("Navigation", "Navigating to WebViewScreen1 with URL: $encodedId")
+
                 } else {
                     isLoading = false
                     Log.e("Navigation", "Error: Missing form URL or amount.")
@@ -201,6 +203,7 @@ fun CreditCharge(
         }
     }
 }
+
 
 
 
@@ -289,13 +292,15 @@ fun WebViewScreen1(
     val amountList = amount.toPlainString().split(",").mapNotNull { it.toLongOrNull() }
     val IdValue = Id
     val scrollState = rememberScrollState()
+    val paymentStatus by paymentGetAvoirViewModel.paymentStatus.observeAsState()
 
     // Observe dataResult from the ViewModel
-    val dataResult by paymentGetAvoirViewModel.dataResult.observeAsState()
+  //  val dataResult by paymentGetAvoirViewModel.dataResult.observeAsState()
 
     // Manage the loading state
     var isLoading by remember { mutableStateOf(true) }
     val isWebViewExpanded = remember { mutableStateOf(true) }
+    val coroutineScope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier
@@ -335,11 +340,25 @@ fun WebViewScreen1(
                             paymentRef = extractpaymentRef(url),
                             orderId = orderId,
                         )
-                        paymentGetAvoirViewModel.PaymentGetAvoir(request1)
+                        coroutineScope.launch {
+                            try {
+                                val response: Boolean = paymentGetAvoirViewModel.PaymentGetAvoir(request1, navController)
+                                if (response) {
+                                    Log.d("WebViewScreen", "Payment successful, navigating to success screen.")
+                                    navController.navigate("PaymentSuccessScreen")
+                                } else {
+                                    Log.e("WebViewScreen", "Payment failed.")
+                                    navController.navigate("payment_error_screen")
+                                }
+                            } catch (e: Exception) {
+                                Log.e("WebViewScreen", "Exception during payment process: ${e.localizedMessage}")
+                                navController.navigate("payment_error_screen")
+                            }
+                        }
                     } else {
                         Log.e("WebViewScreen", "Order ID not found in URL")
+                        navController.navigate("payment_error_screen")
                     }
-                    navController.navigate("PaymentSuccessScreen")
 
                     return true
                 }
@@ -379,27 +398,7 @@ fun WebViewScreen1(
         }
     }
     // Handle ViewModel dataResult states
-    dataResult?.let { result ->
-        when (result) {
-            is DataResult.Loading -> {
-                Log.d("WebViewScreen", "Fetching payment details...")
-                isLoading = true
-            }
-            is DataResult.Success -> {
-                Toast.makeText(context, "Payment details fetched successfully!", Toast.LENGTH_LONG).show()
-                Log.d("WebViewScreen", "Payment details fetched successfully: ${result.data}")
-                navController.navigate("PaymentSuccessScreen")
-            }
-            is DataResult.Failure -> {
-                Toast.makeText(
-                    context,
-                    "Failed to fetch payment details: ${result.errorMessage} (Code: ${result.errorCode})",
-                    Toast.LENGTH_LONG
-                ).show()
-                Log.e("WebViewScreen", "Error fetching payment details", result.exception)
-            }
-        }
-    }
+
 
     // Optionally show a loading indicator
     if (isLoading) {
@@ -427,6 +426,8 @@ fun extractOrderId1(url: String): String {
     val uri = Uri.parse(url)
     return uri.getQueryParameter("orderId") ?: ""
 }
+
+
 
 
 

@@ -341,7 +341,15 @@ fun ReservationDetailsCard(
                                                 selectedPlayers.add(selectedId)
                                             }
                                         },
-                                        isDisabled = partners.getOrNull(i)?.second != null // Disable the field if a partner is selected
+                                        isDisabled = partners.getOrNull(i)?.second != null, // Disable the field if a partner is selected
+                                        selectedPlayerId = partners.getOrNull(i)?.second, // Pass the selected player ID
+                                        onRemovePlayer = {
+                                            // Clear the name from the field and remove the player
+                                            if (partners.size > i) {
+                                                partners[i] = Pair("", null) // Clear the name and ID
+                                            }
+                                            selectedPlayers.remove(partners.getOrNull(i)?.second) // Remove from selected players
+                                        }
                                     )
                                 }
                             }
@@ -371,7 +379,15 @@ fun ReservationDetailsCard(
                                                 selectedPlayers.add(selectedId)
                                             }
                                         },
-                                        isDisabled = partners.getOrNull(i)?.second != null // Disable the field if a partner is selected
+                                        isDisabled = partners.getOrNull(i)?.second != null, // Disable the field if a partner is selected
+                                        selectedPlayerId = partners.getOrNull(i)?.second, // Pass the selected player ID
+                                        onRemovePlayer = {
+                                            // Clear the name from the field and remove the player
+                                            if (partners.size > i) {
+                                                partners[i] = Pair("", null) // Clear the name and ID
+                                            }
+                                            selectedPlayers.remove(partners.getOrNull(i)?.second) // Remove from selected players
+                                        }
                                     )
                                 }
                             }
@@ -400,7 +416,15 @@ fun ReservationDetailsCard(
                                             selectedPlayers.add(selectedId)
                                         }
                                     },
-                                    isDisabled = partners.getOrNull(0)?.second != null // Disable the field if a partner is selected
+                                    isDisabled = partners.getOrNull(0)?.second != null, // Disable the field if a partner is selected
+                                    selectedPlayerId = partners.getOrNull(0)?.second, // Pass the selected player ID
+                                    onRemovePlayer = {
+                                        // Clear the name from the field and remove the player
+                                        if (partners.isNotEmpty()) {
+                                            partners[0] = Pair("", null) // Clear the name and ID
+                                        }
+                                        selectedPlayers.remove(partners.getOrNull(0)?.second) // Remove from selected players
+                                    }
                                 )
                             }
                         }
@@ -430,7 +454,9 @@ fun PartnerField(
     selectedPlayers: MutableList<Long>,
     playerFullNames: List<String>,
     onPlayerSelected: (String, Long) -> Unit,
-    isDisabled: Boolean = false // Disable flag passed from parent
+    onRemovePlayer: () -> Unit,
+    isDisabled: Boolean = false, // Disable flag passed from parent
+    selectedPlayerId: Long? // New parameter for selected player ID
 ) {
     val playersState by findTermsViewModel.players.observeAsState(initial = DataResult.Loading)
     var showDropdown by remember { mutableStateOf(false) }
@@ -556,36 +582,33 @@ fun PartnerField(
                 }
             }
 
-            // Display selected players below the PartnerField with close icons
-            if (selectedPlayers.isNotEmpty()) {
-                Row(modifier = Modifier.padding(top = 8.dp)) {
-                    selectedPlayers.forEach { playerId ->
-                        val playerName = findTermsViewModel.getPlayerById(playerId)?.fullName ?: ""
-                        if (playerName.isNotEmpty()) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = playerName,
-                                    modifier = Modifier.padding(end = 8.dp),
-                                    style = MaterialTheme.typography.body2
-                                )
-                                IconButton(
-                                    onClick = {
-                                        // Remove the player when close icon is clicked
-                                        selectedPlayers.remove(playerId)
-                                        onValueChange("") // Clear the text field (optional)
-                                        isFieldDisabled = false // Enable the field again
-                                    }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "Remove Player"
-                                    )
-                                }
-                            }
+            // Display selected player name below the PartnerField
+            selectedPlayerId?.let { id ->
+                val playerName = findTermsViewModel.getPlayerById(id)?.fullName ?: ""
+                if (playerName.isNotEmpty()) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                    Text(
+                        text = playerName,
+                        modifier = Modifier.padding(top = 8.dp),
+                        style = MaterialTheme.typography.body2
+                    )
+                    IconButton(
+                        onClick = {
+                            // Remove the player when close icon is clicked
+                            selectedPlayers.remove(id)
+                            onValueChange("") // Clear the text field (optional)
+                            isFieldDisabled = false // Enable the field again
+                            onRemovePlayer()
                         }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Remove Player"
+                        )
+                    }
                     }
                 }
             }
