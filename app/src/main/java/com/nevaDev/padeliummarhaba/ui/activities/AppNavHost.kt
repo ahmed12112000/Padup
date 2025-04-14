@@ -81,6 +81,13 @@ fun AppNavHost(
                 ServerErrorScreen(navController = navController)
             }
 
+            composable("reset_password") {
+                ResetPassword(
+                    navController = navController,
+                    loginRequest = LoginRequest("", ""),
+                )
+            }
+
             composable("payment_error_screen") {
                 PaymentErrorScreen(navController = navController,
                 )

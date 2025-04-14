@@ -87,6 +87,14 @@ interface PadeliumEndPoint {
     @POST("/api/account")
     suspend fun Profile(@Part("account")  accountJson: RequestBody, @Part file: MultipartBody.Part?): Response<Void>
 
+    @Headers("Content-Type: application/json")
+    @POST("api/account/from/social/media/all")
+    suspend fun GetPassword(@Body email: RequestBody): Response<Boolean>
+
+    @Headers("Content-Type: application/json")
+    @POST("api/account/reset-password/init")
+    suspend fun ResetPassword(@Body email: RequestBody): Response<Void>
+
     @Headers("Accept: application/json" )
     @GET("api/packs/online")
     suspend fun GetPacks(): Response<List<GetPacksResponseDTO>>

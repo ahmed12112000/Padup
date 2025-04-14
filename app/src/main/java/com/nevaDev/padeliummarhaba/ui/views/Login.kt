@@ -285,7 +285,10 @@ fun LoginScreen(
                         color = Color(0xFF0054D8),
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
-                        modifier = Modifier.clickable { }
+                        modifier = Modifier.clickable {
+                            navController.navigate("reset_password")
+
+                        }
                     )
                 }
 
