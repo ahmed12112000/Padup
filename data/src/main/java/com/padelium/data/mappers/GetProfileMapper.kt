@@ -6,9 +6,6 @@ import javax.inject.Inject
 
 
 class GetProfileMapper @Inject constructor(){
-
-
-
         fun GetProfileResponseDTOToGetProfileResponse(getPacksResponseList: GetProfileResponseDTO): GetProfileResponse {
                 return GetProfileResponse(
                         activated = getPacksResponseList.activated ?: false,
@@ -32,7 +29,6 @@ class GetProfileMapper @Inject constructor(){
                         phone = getPacksResponseList.phone ?: "",
                         socialMediaId = getPacksResponseList.socialMediaId ?: ""
                 )
-
     }
 }
 
