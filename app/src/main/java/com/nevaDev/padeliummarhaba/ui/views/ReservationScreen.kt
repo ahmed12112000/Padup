@@ -2,9 +2,7 @@ package com.nevaDev.padeliummarhaba.ui.views
 
 import android.content.Context
 import android.content.SharedPreferences
-import android.content.res.Configuration
 import android.os.Build
-import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -14,7 +12,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
@@ -30,11 +27,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.nevaDev.padeliummarhaba.models.ReservationOption
+import com.padelium.data.dto.ReservationOption
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Button
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -45,10 +40,8 @@ import com.padelium.domain.dto.FetchKeyRequest
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import com.nevadev.padeliummarhaba.R
 import java.util.Locale
@@ -57,10 +50,8 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.InitBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SearchListViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.InitBookingRequest
 import kotlinx.coroutines.Job
 import java.time.DayOfWeek
@@ -72,7 +63,6 @@ import java.util.Calendar
 @Composable
 fun ReservationScreen(
     navController: NavController,
-
     isUserLoggedIn: Boolean = false,
     context: Context,
     sharedPreferences: SharedPreferences,
@@ -86,27 +76,20 @@ fun ReservationScreen(
     getReservationViewModel: GetReservationViewModel
 ) {
     var fetchJob by remember { mutableStateOf<Job?>(null) }
-
     val reservationKey = remember { mutableStateOf<String?>(null) }
     var showPaymentSection by remember { mutableStateOf(false) }
     val selectedReservation = remember { mutableStateOf<ReservationOption?>(null) }
     val selectedDate = remember { mutableStateOf(LocalDate.now()) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
     var isLoading by remember { mutableStateOf(false) }
     val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
-
-    // Flags to prevent repeated fetches
     var hasCompletedFetch by remember { mutableStateOf(false) }
     var hasFetchedInitBooking by remember { mutableStateOf(false) }
     var hasFetchedSearchList by remember { mutableStateOf(false) }
     var hasCalledInitBooking by remember { mutableStateOf(false) }
     var hasNoData by remember { mutableStateOf(false) }
     var hasAvailableReservations by remember { mutableStateOf(false) }
-
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     var previousSelectedDate by remember { mutableStateOf<LocalDate?>(null) }
-
-
     var hasFetchedBooking by remember { mutableStateOf(false) }
 
 
@@ -143,10 +126,6 @@ fun ReservationScreen(
             getBookingViewModel.getBooking(key, selectedDate.value)
         }
     }
-
-
-
-
     fun handleFailure(errorCode: Int?) {
         isLoading = false
         errorCode?.let {
@@ -164,7 +143,6 @@ fun ReservationScreen(
         hasFetchedBooking = false
         isLoading = false
         fetchJob?.cancel()
-
 
     }
     fun fetchReservationData(date: LocalDate) {
@@ -201,8 +179,6 @@ fun ReservationScreen(
         }
     }
 
-
-
     viewModel3.dataResultBooking.observe(lifecycleOwner) { result ->
         when (result) {
             is DataResultBooking.Success -> {
@@ -222,14 +198,6 @@ fun ReservationScreen(
             navController.navigate("server_error_screen")
         }
     }
-
-
-
-
-
-
-
-
     viewModel4.dataResult1.observe(lifecycleOwner) { result ->
         when (result) {
             is DataResult.Success -> {
@@ -270,8 +238,6 @@ fun ReservationScreen(
             is DataResultBooking.Loading -> isLoading = true
         }
     }
-
-
 
 
 
@@ -323,8 +289,6 @@ fun ReservationScreen(
     }
 
 
-
-
     if (!showPaymentSection) {
         Spacer(modifier = Modifier.height(10.dp))
 
@@ -345,48 +309,6 @@ fun ReservationScreen(
 }
 
 @Composable
-fun TimeSlotButton(
-    timeSlots: List<TimeSlot>,
-    onTimeSlotSelected: (String) -> Unit,
-    selectedTimeSlot: String?
-) {
-    val uniqueTimeSlots = timeSlots.distinctBy { it.time } // Deduplicate time slots
-
-    // Use Box or set a fixed height for LazyVerticalGrid to avoid infinite height constraints
-    Box(modifier = Modifier.fillMaxSize()) {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(4), // Four buttons per row
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp)
-                .heightIn(max = 400.dp), // Limit the height to avoid infinite height constraints
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(uniqueTimeSlots) { timeSlot ->
-                val formattedTime = timeSlot.time.format(DateTimeFormatter.ofPattern("H:mm"))
-
-                Button(
-                    onClick = { onTimeSlotSelected(formattedTime) },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0054D8)),
-                    modifier = Modifier.fillMaxWidth() // Ensures proper spacing
-                ) {
-                    Text(
-                        text = formattedTime,
-                        color = if (selectedTimeSlot == formattedTime) Color.White else Color.Black,
-                        fontWeight = FontWeight.Bold
-                    )
-                }
-            }
-        }
-    }
-}
-
-
-
-
-@Composable
 fun TabItem(
     isSelected: Boolean,
     title: String,
@@ -404,12 +326,10 @@ fun TabItem(
             )
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
-        // Row for back arrow, icon, and text
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.fillMaxWidth()
         ) {
-            // Back arrow icon (clickable)
             IconButton(
                 onClick = {
                     navController.navigate("main_screen")
@@ -465,13 +385,11 @@ fun ReservationSummary(
     adjustedAmount: Double,
     adjustedSharedExtrasAmount: Double,
     totalSharedExtrasCost: Double,
-    totalExtrasCost: Double // Use the passed totalExtrasCost
+    totalExtrasCost: Double
 ) {
 
-    // Calculate total cost including extras
 
     val totalAmountSelected = adjustedAmount + totalExtrasCost
-
     onTotalAmountCalculated(totalAmountSelected)
 
     Column(
@@ -483,8 +401,6 @@ fun ReservationSummary(
             fontWeight = FontWeight.Bold,
             modifier = Modifier.padding(bottom = 16.dp)
         )
-
-        // Display reservation details...
         ReservationDetailRow(label = "Espace", value = selectedReservation.name)
         ReservationDetailRow(label = "Prix", value = "${selectedReservation.price} DT"  )
         ReservationDetailRow(
@@ -507,13 +423,10 @@ fun ReservationSummary(
         )
 
         ReservationDetailRow(label = "Prix de Réservation", value = "${String.format("%.2f", adjustedAmount)} DT")
-
         selectedExtras.forEach { (name, price, _) ->
             ReservationDetailRow(label = "Extra: $name", value = price)
         }
-
         ReservationDetailRow(label = "Total", value = "${String.format("%.2f", totalAmountSelected)} DT")
-        Log.d("ReservationSummary", "Total Amount after extras: $totalAmountSelected")
     }
 }
 
@@ -551,7 +464,6 @@ fun DatePickerModal(
 }
 
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomDatePickerModal(
@@ -566,32 +478,25 @@ fun CustomDatePickerModal(
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
-    val maxSelectableDate = today + (21 * 24 * 60 * 60 * 1000) // 21 days ahead
-
+    val maxSelectableDate = today + (21 * 24 * 60 * 60 * 1000)
     val calendar = Calendar.getInstance()
     var currentMonth by remember { mutableStateOf(calendar.get(Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(calendar.get(Calendar.YEAR)) }
-
     calendar.set(Calendar.MONTH, currentMonth)
     calendar.set(Calendar.YEAR, currentYear)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
-
     val startDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
     val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-    // French abbreviated month names
     val frenchMonths =
         listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            color = Color.White, // Ensuring entire dialog is white
+            color = Color.White,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color(0xFFE0E0E0)), // Light grayish border
+            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
             modifier = Modifier
-               // .fillMaxWidth()
-                .heightIn(min = 10.dp, max = 600.dp) // Control min/max height
-
+                .heightIn(min = 10.dp, max = 600.dp)
                 .padding(16.dp)
         ) {
             Column(
@@ -599,12 +504,10 @@ fun CustomDatePickerModal(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 10.dp, max = 500.dp) // Control min/max height
-
-                    .background(Color.White) // Ensuring white background
+                    .heightIn(min = 10.dp, max = 500.dp)
+                    .background(Color.White)
                     .padding(16.dp)
             ) {
-                // Month and Year Header with Arrows
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -646,8 +549,6 @@ fun CustomDatePickerModal(
                     }
                 }
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // Days of the week
                 Row(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     modifier = Modifier.fillMaxWidth()
@@ -662,17 +563,14 @@ fun CustomDatePickerModal(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Calendar Grid
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
-                    // Empty cells before the first day
                     items(startDayOfWeek - 1) {
                         Box(modifier = Modifier.size(40.dp))
                     }
 
-                    // Days of the month
                     items(totalDaysInMonth) { day ->
                         val normalizedCalendar = Calendar.getInstance().apply {
                             set(Calendar.YEAR, calendar.get(Calendar.YEAR))
@@ -707,7 +605,7 @@ fun CustomDatePickerModal(
                                 .size(40.dp)
                                 .background(
                                     when {
-                                        isSelected -> Color(0xFF0054D8) // Blue for selected date
+                                        isSelected -> Color(0xFF0054D8)
                                         else -> Color.Transparent
                                     },
                                     shape = CircleShape
@@ -721,7 +619,7 @@ fun CustomDatePickerModal(
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     color = when {
                                         isSelected -> Color.White
-                                        isDisabled -> Color.Gray // Gray color for disabled days
+                                        isDisabled -> Color.Gray
                                         else -> Color.Black
                                     },
                                     fontWeight = FontWeight.Bold
@@ -732,8 +630,6 @@ fun CustomDatePickerModal(
                 }
 
                 Spacer(modifier = Modifier.height(4.dp))
-
-                // Buttons Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -742,7 +638,7 @@ fun CustomDatePickerModal(
                 ) {
                     TextButton(
                         onClick = onDismiss,
-                        modifier = Modifier.background(Color.White) // Ensuring button background is white
+                        modifier = Modifier.background(Color.White)
                     ) {
                         Text("Annuler", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
                     }
@@ -751,7 +647,7 @@ fun CustomDatePickerModal(
                             onDateSelected(selectedDate)
                             onDismiss()
                         },
-                        modifier = Modifier.background(Color.White) // Ensuring button background is white
+                        modifier = Modifier.background(Color.White)
                     ) {
                         Text("OK", color = Color(0xFF0054D8), fontWeight = FontWeight.Bold)
                     }
@@ -762,67 +658,6 @@ fun CustomDatePickerModal(
 }
 
 
-
-
-
-
-@Composable
-fun MonthSelectionDialog(onMonthSelected: (Int) -> Unit) {
-    val months = listOf(
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    )
-
-    AlertDialog(
-        onDismissRequest = {},
-        title = {
-            Text("Select Month")
-        },
-        text = {
-            Column {
-                months.forEachIndexed { index, month ->
-                    TextButton(onClick = { onMonthSelected(index) }) {
-                        Text(month)
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(onClick = {}) {
-                Text("Cancel")
-            }
-        }
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewCustomDatePickerModal() {
-    CustomDatePickerModal(
-        onDateSelected = { selectedDate ->
-            // Handle the selected date here
-            Log.d("Selected Date", "Date selected: $selectedDate")
-        },
-        onDismiss = {
-            // Handle dismiss action here
-            Log.d("DatePicker", "Date Picker dismissed")
-        }
-    )
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview(uiMode = Configuration.UI_MODE_NIGHT_YES)
-@Composable
-fun DatePickerModalDarkPreview() {
-    MaterialTheme {
-        DatePickerModal(
-            onDateSelected = { /* Handle date selection */ },
-            onDismiss = { /* Handle dismiss */ }
-        )
-    }
-}
-
 @Composable
 fun DaySelectorWithArrows(
     selectedDate: LocalDate?,
@@ -831,23 +666,17 @@ fun DaySelectorWithArrows(
     val dayFormatter = DateTimeFormatter.ofPattern("EEE", Locale.FRENCH)
     val dateFormatter = DateTimeFormatter.ofPattern("d", Locale.FRENCH)
     val monthFormatter = DateTimeFormatter.ofPattern("MMM", Locale.FRENCH)
-
     val currentDate = ZonedDateTime.now(ZoneId.of("Africa/Tunis")).toLocalDate()
     val finalSelectedDate = selectedDate ?: currentDate
     val startOfWeek = finalSelectedDate.with(DayOfWeek.MONDAY)
     val daysInWeek = List(7) { startOfWeek.plusDays(it.toLong()) }
-
     val maxFutureDate = currentDate.plusWeeks(3)
     val minPastDate = currentDate
-
     val monthYearFormatter = DateTimeFormatter.ofPattern("MMMM yyyy", Locale.FRENCH)
     val listState = rememberLazyListState()
-
-    // State for popup visibility and selected date
     var showCalendarDialog by remember { mutableStateOf(false) }
 
     Column(modifier = Modifier.fillMaxWidth()) {
-        // Month-Year Header
         Text(
             text = monthYearFormatter.format(finalSelectedDate).uppercase(Locale.FRENCH),
             color = Color(0xFF0054D8),
@@ -859,7 +688,6 @@ fun DaySelectorWithArrows(
                 .padding(vertical = 2.dp)
         )
 
-        // Navigation Row with Arrows and "AUJOURD'HUI"
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -902,7 +730,6 @@ fun DaySelectorWithArrows(
                         .clickable { showCalendarDialog = true }
                 )
             }
-
             IconButton(
                 onClick = {
                     val newDate = finalSelectedDate.plusWeeks(1)
@@ -916,18 +743,15 @@ fun DaySelectorWithArrows(
             }
         }
 
-        // Show the CustomDatePickerModal when clicked
         if (showCalendarDialog) {
             CustomDatePickerModal(
                 onDateSelected = { millis ->
                     millis?.let { onDateSelected(LocalDate.ofEpochDay(it / 86400000)) }
-                    showCalendarDialog = false // Close dialog after selecting a date
+                    showCalendarDialog = false
                 },
                 onDismiss = { showCalendarDialog = false }
             )
         }
-
-        // Days of the Week
         LazyRow(
             state = listState,
             modifier = Modifier.fillMaxWidth(),
@@ -980,13 +804,3 @@ fun DaySelectorWithArrows(
 
 
 
-
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewDaySelectorWithArrows() {
-    DaySelectorWithArrows(
-        selectedDate = LocalDate.now(), // Set the selected date to today for the preview
-        onDateSelected = {}
-    )
-}

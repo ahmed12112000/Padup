@@ -17,7 +17,6 @@ data class happyHoursBasicDTO(
 
     ) : Serializable
 
-
 data class PlanningBasicDTO(
 
     val from:String,
@@ -34,7 +33,6 @@ data class EstablishmentBasicDTO(
     val email: String?,
 
     )
-
 
 data class EstablishmentDTO(
     val name: String?,
@@ -106,7 +104,6 @@ data class currency (
 
     ): Serializable
 
-
 data class bookingAnnulationDTOSet(
     val id: Long,
     val label: String,
@@ -154,6 +151,7 @@ data class EstablishmentPacksDTO(
     val showPosition: Int,
     var id: Long
 ): Serializable
+
 data class EstablishmentPictureDTO(
     val created: String?,
     val createdBy: String?,
@@ -173,7 +171,6 @@ data class EstablishmentPictureDTO(
 
 data class HappyHourss (
     val secondAmount: BigDecimal,
-    // val happyHours: List<happyHoursDTO>,
     val withSecondPrice: Boolean,
     val reductionAmount: BigDecimal,
     val reductionSecondAmount: BigDecimal,
@@ -192,34 +189,7 @@ data class HappyHourss (
     val users: List<Long>,
     private val plannings: List<PlanningDTO> = mutableListOf()
 ): Serializable
-/*
-data class PlanningDTO(
-    val annulationDate: String = "" ,
-    val available: Boolean,
-    val availableBol: Boolean ,
-    val closeTime: Instant = Instant.now(),
-    val bookings: List<bookingDTO> = emptyList(),
-    val currencySymbol: String = "DT",
-    val dayWithBooking: Boolean = false,
-    val feeTransaction: BigDecimal = BigDecimal.ZERO,
-    val from:String,
-    val fromStr: String,
-    val isHappyHours: Boolean = false,
-    val openTime: Instant = Instant.now(),
-    val position: Int,
-    val price: BigDecimal = BigDecimal.ZERO,
-    val reductionPrice: BigDecimal = BigDecimal.ZERO,
-    val reductionPriceBol: Boolean = false,
-    val rfeeTransaction: BigDecimal = BigDecimal.ZERO,
-    val name: String,
-    val secondPrice: Boolean = false,
-    val to: String,
-    val toStr: String,
 
-) : Serializable
-
-
- */
 data class PlanningDTO(
     val name: String,
     val fromStr: String,
@@ -228,19 +198,6 @@ data class PlanningDTO(
     val to: String,
     val available: Int,
     val reductionPrice: BigDecimal = BigDecimal.ZERO,
-    /* val openTime: Instant = Instant.now(),
-     val closeTime: Instant = Instant.now(),
-     val bookings: List<bookingDTO> = emptyList(),
-     val availableBol: Boolean ,
-     val dayWithBooking: Boolean = false, // Default value
-     val price: BigDecimal = BigDecimal.ZERO, // Default value
-     val feeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
-     val rfeeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
-     val currencySymbol: String = "", // Default value
-     val reductionPriceBol: Boolean = false, // Default value
-     val secondPrice: Boolean = false, // Default value
-     val isHappyHours: Boolean = false, // Default value
-     val annulationDate: String = "" */ // Default value
 ) : Serializable
 
 data class PlanningDTOo(
@@ -251,20 +208,19 @@ data class PlanningDTOo(
     val to: String,
     val available: Int,
     val reductionPrice: BigDecimal = BigDecimal.ZERO,
-
      val openTime: Instant = Instant.now(),
      val closeTime: Instant = Instant.now(),
      val bookings: List<bookingDTO> = emptyList(),
      val availableBol: Boolean ,
-     val dayWithBooking: Boolean = false, // Default value
-     val price: BigDecimal = BigDecimal.ZERO, // Default value
-     val feeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
-     val rfeeTransaction: BigDecimal = BigDecimal.ZERO, // Default value
-     val currencySymbol: String = "", // Default value
-     val reductionPriceBol: Boolean = false, // Default value
-     val secondPrice: Boolean = false, // Default value
-     val isHappyHours: Boolean = false, // Default value
-     val annulationDate: String = ""  // Default value
+     val dayWithBooking: Boolean = false,
+     val price: BigDecimal = BigDecimal.ZERO,
+     val feeTransaction: BigDecimal = BigDecimal.ZERO,
+     val rfeeTransaction: BigDecimal = BigDecimal.ZERO,
+     val currencySymbol: String = "",
+     val reductionPriceBol: Boolean = false,
+     val secondPrice: Boolean = false,
+     val isHappyHours: Boolean = false,
+     val annulationDate: String = ""
 ) : Serializable
 
 data class establishmentFeatureDTO(
@@ -426,7 +382,6 @@ data class bookingUsersPaymentDTO(
     val amount: BigDecimal,
     val amountstr:String,
     val bookingId: Long,
-    //val bookingDate: Instant,
     val bookingDateStr:String,
     val bookingEstablishmentName:String,
     val bookingCreatedFirstName:String,
@@ -489,9 +444,6 @@ data class establishmentSearchDTO(
     val moyFeed: Double
 ) : Serializable
 
-
-
-
 data class test(
     val aamount: BigDecimal,
     val amount: BigDecimal,
@@ -508,6 +460,7 @@ data class test(
     val users: List<Long>,
     val start: String
     )
+
 data class EstablishmentDTOoo(
     val id:Long,
     val name: String,

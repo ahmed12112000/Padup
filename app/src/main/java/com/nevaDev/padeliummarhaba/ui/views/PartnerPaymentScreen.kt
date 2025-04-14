@@ -5,10 +5,8 @@ import android.net.http.SslError
 import android.util.Log
 import android.webkit.SslErrorHandler
 import android.webkit.WebResourceRequest
-import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -35,8 +33,6 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.nevaDev.padeliummarhaba.viewmodels.ConfirmBookingViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.ErrorCreditViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.FindTermsViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PartnerPayViewModel
@@ -45,8 +41,6 @@ import com.nevaDev.padeliummarhaba.viewmodels.PaymentPartBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPartViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PrivateExtrasViewModel
 import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dto.CreditErrorRequest
-import com.padelium.domain.dto.PaymentParCreditRequest
 import com.padelium.domain.dto.PaymentPartBookingRequest
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.domain.dto.PaymentResponse
@@ -73,7 +67,6 @@ fun PartnerPaymentScreen(
     val partnerPayResponse by viewModel4.partnerPayResponse.observeAsState()
     var selectedExtras by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
     var totalExtrasCost by remember { mutableStateOf(0.0) }
-    val context = LocalContext.current
     val privateList = remember { mutableStateOf<MutableList<Long>>(mutableListOf()) }
 
     LaunchedEffect(partnerPayId) {
@@ -97,7 +90,6 @@ fun PartnerPaymentScreen(
             .background(Color.White),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        // Extras Section
         androidx.compose.material3.Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -107,35 +99,30 @@ fun PartnerPaymentScreen(
             ExtrasSection2(onExtrasUpdate = ::updateExtras, privateList = privateList)
         }
 
-        // Reservation Summary Section
         androidx.compose.material3.Card(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
             colors = CardDefaults.cardColors(Color.White),
             elevation = CardDefaults.cardElevation(4.dp)
         ) {
-            // Call ReservationSummary2 to display it in the card
             partnerPayResponse?.let { response ->
                 ReservationSummary2(
                     viewModel4 = viewModel4,
                     selectedExtras = selectedExtras,
                     totalExtrasCost = totalExtrasCost,
                     onTotalPriceCalculated = { newTotalPrice ->
-                        handleTotalPriceCalculated(newTotalPrice) // Handle the updated total price
+                        handleTotalPriceCalculated(newTotalPrice)
                     }
                 )
 
             } ?: run {
-                // Optionally show a placeholder or loading state if no reservation is selected
                 Text(
                     text = "No reservation selected",
                     modifier = Modifier.padding(16.dp),
-                    //  style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
 
-        // Purchase Credits Section
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
@@ -148,11 +135,9 @@ fun PartnerPaymentScreen(
             )
         }
 
-        // Buttons for Payment
         Row(
             modifier = Modifier
                 .fillMaxWidth(),
-                //.offset(x = 10.dp, ),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Row(
@@ -186,13 +171,9 @@ fun PartnerPaymentScreen(
                                     viewModel3.dataResult.observeForever { paymentResult ->
                                         when (paymentResult) {
                                             is DataResult.Loading -> {
-                                                Log.d("Payment", "Processing payment...")
-                                                errorMessage =
-                                                    "" // Reset error message when loading
-                                            }
+                                                errorMessage = "" }
 
                                             is DataResult.Success -> {
-                                                Log.d("Payment", "Payment processed successfully!")
 
                                                 val paymentResponse =
                                                     paymentResult.data as? PaymentResponse
@@ -213,30 +194,16 @@ fun PartnerPaymentScreen(
                                                     val navigationRoutee =
                                                         "WebViewScreen2?formUrl=$encodedUrl&orderId=$orderId&BookingId=$encodedBookingId&privateList=$encodedPrivateList&encodedPartnerPayId=$encodedPartnerPayId"
 
-                                                    Log.d(
-                                                        "NavigationDebug",
-                                                        "Navigating to: $navigationRoutee"
-                                                    )
                                                     navController.navigate(navigationRoutee)
-                                                    errorMessage =
-                                                        "" // Clear error message when successful
+                                                    errorMessage = ""
                                                 } else {
-                                                    Log.e(
-                                                        "Payment",
-                                                        "No form URL found in the response."
-                                                    )
-                                                    errorMessage =
-                                                        "Cette réservation n'est pas disponible pour le moment."
+
+                                                    errorMessage = "Cette réservation n'est pas disponible pour le moment."
                                                 }
                                             }
 
                                             is DataResult.Failure -> {
-                                                Log.e(
-                                                    "Payment",
-                                                    "Payment failed: ${paymentResult.errorMessage}"
-                                                )
-                                                errorMessage =
-                                                    "Payment failed: ${paymentResult.errorMessage}"
+                                                errorMessage = "Payment failed: ${paymentResult.errorMessage}"
                                             }
                                         }
                                     }
@@ -308,14 +275,13 @@ fun PartnerPaymentScreen(
 
                     if (showPopup) {
                         PopupCreditPartner(
-                            navController = navController, // Pass the NavController
-                            showPopup = showPopup, // Toggle state correctly
-                            onDismiss = { showPopup = false }, // Handle dismissal
-                            viewModel4 = viewModel4, // Pass shared view model
-                            //  bookingId = bookingId,
+                            navController = navController,
+                            showPopup = showPopup,
+                            onDismiss = { showPopup = false },
+                            viewModel4 = viewModel4,
                             partnerPayId = partnerPayId,
                             viewModel = viewModel,
-                            totalPrice = totalPrice, // Pass the updated totalPricee to the popup
+                            totalPrice = totalPrice,
 
                         )
                     }
@@ -330,19 +296,19 @@ fun ExtrasSection2(
     onExtrasUpdate: (List<Triple<String, String, Int>>, Double) -> Unit,
     viewModel4: PrivateExtrasViewModel = hiltViewModel(),
     findTermsViewModel: FindTermsViewModel = hiltViewModel(),
-    privateList: MutableState<MutableList<Long>>, // Pass privateList from Parent
+    privateList: MutableState<MutableList<Long>>,
 
 ) {
     var additionalExtrasEnabled by remember { mutableStateOf(false) }
     val privateExtrasState by viewModel4.extrasState2.observeAsState()
     var selectedExtras by remember { mutableStateOf<List<Triple<String, String, Int>>>(emptyList()) }
+    val totalExtrasCost by remember { derivedStateOf { selectedExtras.sumOf { it.second.toDouble() } } }
 
 
     LaunchedEffect(viewModel4) {
         viewModel4.PrivateExtras()
     }
 
-    val totalExtrasCost by remember { derivedStateOf { selectedExtras.sumOf { it.second.toDouble() } } }
 
     Row(
         modifier = Modifier.fillMaxWidth().offset(y = (-8).dp),
@@ -433,7 +399,7 @@ fun ReservationSummary2(
     viewModel4: PartnerPayViewModel = hiltViewModel(),
     selectedExtras: List<Triple<String, String, Int>>,
     totalExtrasCost: Double,
-    onTotalPriceCalculated: (BigDecimal) -> Unit // Callback to pass totalPrice
+    onTotalPriceCalculated: (BigDecimal) -> Unit
 
     ) {
     val storedPartnerPayResponse by viewModel4.partnerPayResponse.observeAsState()
@@ -442,7 +408,6 @@ fun ReservationSummary2(
 
     LaunchedEffect(storedPartnerPayResponse) {
         storedPartnerPayResponse?.let { response ->
-            Log.d("ReservationCarddddd", "PartnerPay response updated: $response")
         }
     }
 
@@ -503,192 +468,7 @@ fun ReservationSummary2(
 }
 
 
-@Composable
-fun WebViewScreen2(
-    navController: NavController,
-    viewmodel: PaymentPartBookingViewModel,
-    formUrl: String,
-    onReservationClicked: (LocalDate) -> Unit,
 
-    ) {
-    val backStackEntry = navController.currentBackStackEntry
-    val context = LocalContext.current
-    val BookingId = backStackEntry?.arguments?.getString("BookingId")?.toLongOrNull() ?: 0L
-    val encodedPartnerPayId = backStackEntry?.arguments?.getString("encodedPartnerPayId")?.toLongOrNull() ?: 0L
-
-    val navBackStackEntry = remember { navController.currentBackStackEntry }
-    val privateListString = navBackStackEntry?.arguments?.getString("privateList") ?: ""
-    val privateList = privateListString.split(",").mapNotNull { it.toLongOrNull() }.toMutableList()
-    val isWebViewExpanded = remember { mutableStateOf(true) }
-
-    // Observe dataResult from the ViewModel    BookingId
-    val dataResult by viewmodel.dataResult.observeAsState()
-    val coroutineScope = rememberCoroutineScope()
-    var isButtonClicked by remember { mutableStateOf(false) }
-
-    // Manage the loading state
-    var isLoading by remember { mutableStateOf(true) }
-    val scrollState = rememberScrollState()
-    val bookingIdsString = backStackEntry?.arguments?.getString("BookingId") ?: ""
-    val bookingIdsList = bookingIdsString.split(",").mapNotNull { it.toLongOrNull() }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp)
-                .border(2.dp, Color.Gray, RoundedCornerShape(12.dp))
-        ) {
-    // AndroidView to embed the WebView
-    AndroidView(factory = {
-        WebView(context).apply {
-            settings.javaScriptEnabled = true
-            settings.domStorageEnabled = true
-
-
-            webViewClient = object : WebViewClient() {
-                override fun shouldOverrideUrlLoading(view: WebView?, url: String?): Boolean {
-                    Log.d("WebViewScreen", "Loading URL: $url")
-                    return super.shouldOverrideUrlLoading(view, url)
-                }
-
-                override fun shouldOverrideUrlLoading(
-                    view: WebView?,
-                    request: WebResourceRequest
-                ): Boolean {
-                    val url = request.url.toString()
-                    val orderId = extractOrderId2(url)
-
-                    if (orderId.isNotEmpty()) {
-                        // Extract other parameters (e.g., booking IDs, user IDs)
-                        val request1 = PaymentPartBookingRequest(
-                            privateExtrasIds = privateList,
-                            id = BookingId,
-                            bookingId = encodedPartnerPayId,
-                            orderId = orderId,
-                        )
-                        coroutineScope.launch {
-                            try {
-                                val response: Boolean = viewmodel.PaymentPartBooking(request1, navController)
-                                if (response) {
-                                    Log.d("WebViewScreen", "Payment successful, navigating to success screen.")
-                                    navController.navigate("PaymentSuccessScreen")
-                                } else {
-                                    Log.e("WebViewScreen", "Payment failed.")
-                                    navController.navigate("payment_error_screen")
-                                }
-                            } catch (e: Exception) {
-                                Log.e("WebViewScreen", "Exception during payment process: ${e.localizedMessage}")
-                                navController.navigate("payment_error_screen")
-                            }
-                        }
-                    } else {
-                        Log.e("WebViewScreen", "Order ID not found in URL")
-                        navController.navigate("payment_error_screen")
-                    }
-
-                    return true
-                }
-
-                override fun onReceivedSslError(
-                    view: WebView?,
-                    handler: SslErrorHandler?,
-                    error: SslError?
-                ) {
-                    // Ignore SSL certificate errors (for testing only)
-                    handler?.proceed()
-                }
-
-                override fun onPageFinished(view: WebView?, url: String?) {
-                    super.onPageFinished(view, url)
-                    Log.d("WebView", "Page finished loading: $url")
-                    isLoading = false
-                }
-            }
-
-            // Load the initial URL
-            loadUrl(formUrl)
-        }
-    }, modifier = Modifier.fillMaxSize()
-    )
-            IconButton(
-                onClick = {
-                    val creditErrorRequest = CreditErrorRequest(
-                        amount = BigDecimal.ZERO,
-                        bookingIds = listOf(encodedPartnerPayId),
-                        buyerId = 0L,
-                        payFromAvoir = false,
-                        status = true,
-                        token = "",
-                        transactionId = 0L
-                    )
-
-                    val selectedDate = LocalDate.now()
-
-                    if (!isButtonClicked) {
-                        isButtonClicked = true
-
-                        navController.navigate("main_screen")
-                    }
-
-                    isWebViewExpanded.value = false
-                },
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .background(Color.White, shape = CircleShape)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Close,
-                    contentDescription = "Close WebView",
-                    tint = Color.Black
-                )
-            }
-        }
-    }
-    dataResult?.let { result ->
-        when (result) {
-            is DataResult.Loading -> {
-                Log.d("WebViewScreen", "Fetching payment details...")
-            }
-
-            is DataResult.Success -> {
-
-                navController.navigate("PaymentSuccessScreen")
-            }
-
-            is DataResult.Failure -> {
-
-                Log.e("WebViewScreen", "Error fetching payment details", result.exception)
-            }
-        }
-    }
-}
-
-
-
-// Utility functions with improvements
-fun extractamount1(url: String): String {
-    val uri = Uri.parse(url)
-    return uri.getQueryParameter("amount") ?: ""
-}
-fun extractpaymentRef1(url: String): String {
-    val uri = Uri.parse(url)
-    return uri.getQueryParameter("paymentRef") ?: ""
-}
-fun extractPackId1(url: String): Long {
-    val uri = Uri.parse(url)
-    val packIdString = uri.getQueryParameter("packId")
-    return packIdString?.toLongOrNull() ?: 0L
-}
-fun extractOrderId2(url: String): String {
-    val uri = Uri.parse(url)
-    return uri.getQueryParameter("orderId") ?: ""
-}
 
 
 

@@ -5,12 +5,10 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -29,15 +27,12 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,14 +41,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import coil.compose.rememberAsyncImagePainter
 import coil.compose.rememberImagePainter
 import com.nevaDev.padeliummarhaba.di.SessionManager
-import com.nevaDev.padeliummarhaba.ui.activities.SharedViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ProfileViewModel
 import com.nevadev.padeliummarhaba.R
@@ -67,10 +57,10 @@ import java.io.InputStream
 
 @Composable
 fun ProfileScreen(
-    viewModel2: ProfileViewModel = hiltViewModel(),
-    viewModel: GetProfileViewModel = hiltViewModel(),
     navController: NavController,
-    sessionManager: SessionManager = SessionManager.getInstance(LocalContext.current) // Ensure single instance
+    viewModel: GetProfileViewModel = hiltViewModel(),
+    viewModel2: ProfileViewModel = hiltViewModel(),
+    sessionManager: SessionManager = SessionManager.getInstance(LocalContext.current)
 
 ) {
     var activated by remember { mutableStateOf(false) }
@@ -85,22 +75,17 @@ fun ProfileScreen(
     var phoneNumber by remember { mutableStateOf("") }
     val context = LocalContext.current
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
-    val isLoggedIn by sessionManager.isLoggedInFlow.collectAsStateWithLifecycle()
-    Log.e("ProfileScreen", "$isLoggedIn") // Debugging log
-    val currentLoginState = rememberUpdatedState(isLoggedIn)
-    val coroutineScope = rememberCoroutineScope()
     var showToast by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
-    val keyboardController = LocalSoftwareKeyboardController.current
-    var isProfileFetched = false
+
 
     fun isFormValid(): Boolean {
         return firstName.isNotBlank() && lastName.isNotBlank() && phoneNumber.isNotBlank() && phoneNumber.length >= 8
     }
 
-    if (showToast) {
-        Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
-        LaunchedEffect(Unit) {
+    LaunchedEffect(showToast) {
+        if (showToast) {
+            Toast.makeText(context, toastMessage, Toast.LENGTH_SHORT).show()
             delay(3000)
             showToast = false
         }
@@ -121,19 +106,10 @@ fun ProfileScreen(
         if (uri != null) {
             profileImageUri = uri
         } else {
-            //  Toast.makeText(context, "Image selection cancelled", Toast.LENGTH_SHORT).show()
         }
     }
-
-
-
-
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
     val sessionManager = remember { SessionManager(context) }
-    val isLoggedInState by rememberUpdatedState(sessionManager.isLoggedIn())
-    val scrollState = rememberScrollState()
-
-
 
 
     when (val result = profileData) {
@@ -157,11 +133,9 @@ fun ProfileScreen(
         }
 
         is DataResult.Loading -> {
-            //  Text(text = "Loading profile data...")
         }
 
         is DataResult.Failure -> {
-            //  Text(text = "Error: ${result.errorMessage}")
         }
     }
     val focusManager = LocalFocusManager.current
@@ -174,7 +148,6 @@ fun ProfileScreen(
             .padding(16.dp)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
-                    // Dismiss the keyboard when tapped outside
                     focusManager.clearFocus()
                 })
             }
@@ -199,9 +172,8 @@ fun ProfileScreen(
                     .padding(16.dp)
             ) {
                 Column {
-                    // Display Email as Text
                     Text(
-                        text = "${email}", // Display email
+                        text = "${email}",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -285,7 +257,7 @@ fun ProfileScreen(
                                 .fillMaxSize()
                                 .clip(CircleShape)
                                 .clickable {
-                                    launcher.launch("image/*") // Opens gallery to select a new image
+                                    launcher.launch("image/*")
                                 },
                             contentScale = ContentScale.Crop
                         )
@@ -297,12 +269,11 @@ fun ProfileScreen(
                                 .fillMaxSize()
                                 .clip(CircleShape)
                                 .clickable {
-                                    launcher.launch("image/*") // Opens gallery to select a new image
+                                    launcher.launch("image/*")
                                 },
                             contentScale = ContentScale.Crop
                         )
                     } else {
-                        // Fallback image if both profileImageUri and bitmap are null
                         Image(
                             painter = painterResource(id = R.drawable.a9),
                             contentDescription = "Fallback Avatar",
@@ -310,7 +281,7 @@ fun ProfileScreen(
                                 .size(90.dp)
                                 .clip(CircleShape)
                                 .clickable {
-                                    launcher.launch("image/*") // Opens gallery to select a new image
+                                    launcher.launch("image/*")
                                 }
                                 .align(Alignment.Center),
                             contentScale = ContentScale.Crop
@@ -328,7 +299,7 @@ fun ProfileScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .align(Alignment.TopCenter), // Keeps the rest of the content at the top
+                        .align(Alignment.TopCenter),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
 
@@ -355,7 +326,7 @@ fun ProfileScreen(
                                 )
                                 val accountJson = JSONObject(accountData).toString()
                                 viewModel2.Profile(accountJson, profileImageUri)
-                                toastMessage = "Photo de Profil changée avec succès"
+                                toastMessage = "Votre profil a été sauvegardé !"
                                 showToast = true
                             }
                         },
@@ -363,7 +334,7 @@ fun ProfileScreen(
                             backgroundColor = Color(0xFF0066CC),
                             contentColor = Color.White
                         ),
-                        enabled = isFormValid(), // Disable the button if the form is not valid
+                        enabled = isFormValid(),
 
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
@@ -379,13 +350,7 @@ fun ProfileScreen(
                             textAlign = TextAlign.Center
                         )
                     }
-                    if (showToast) {
-                        Toast.makeText(context, "Photo de Profil changée avec succès", Toast.LENGTH_SHORT).show()
-                        LaunchedEffect(Unit) {
-                            delay(3000) // Wait for 3 seconds before resetting the toast state
-                            showToast = false
-                        }
-                    }
+
 
                     LaunchedEffect(Unit) {
                         viewModel.fetchProfileData()
@@ -396,7 +361,6 @@ fun ProfileScreen(
                         Button(
                             onClick = {
                                 sessionManager.logout()
-
                                 navController.navigate("main_screen") {
                                     popUpTo("profile") { inclusive = true }
                                 }
@@ -404,9 +368,7 @@ fun ProfileScreen(
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                //.offset(y = 120.dp)
                                 .border(1.dp, Color.Black, RoundedCornerShape(13.dp)),
-                            //  shape = RoundedCornerShape(13.dp),
                             colors = ButtonDefaults.buttonColors(
                                 backgroundColor = Color.Transparent
                             ),

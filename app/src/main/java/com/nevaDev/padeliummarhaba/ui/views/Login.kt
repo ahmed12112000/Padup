@@ -3,10 +3,7 @@ package com.nevaDev.padeliummarhaba.ui.views
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -20,13 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -38,10 +33,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import androidx.navigation.compose.currentBackStackEntryAsState
 import com.nevaDev.padeliummarhaba.di.SessionManager
-import com.nevaDev.padeliummarhaba.ui.activities.MainActivity
-import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.padelium.domain.dto.LoginRequest
 import com.nevaDev.padeliummarhaba.viewmodels.UserViewModel
@@ -49,7 +41,6 @@ import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dataresult.Resulta
 import com.padelium.domain.dto.GetProfileResponse
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 sealed interface LoginState {
@@ -68,28 +59,20 @@ fun LoginScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val balanceViewModel: BalanceViewModel = hiltViewModel()
     val emailPattern = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$".toRegex()
     var email by remember { mutableStateOf(loginRequest.username) }
     var password by remember { mutableStateOf(loginRequest.password) }
     var passwordVisible by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
-
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val focusManager = LocalFocusManager.current
     val sessionManager = remember { SessionManager.getInstance(context) }
-    val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val backStackEntry = navController.currentBackStackEntry
     val destinationRoute = backStackEntry?.arguments?.getString("destination") ?: "main_screen"
     val redirectUrl = backStackEntry?.arguments?.getString("redirectUrl")
-
-    val profileData by getProfileViewModel.profileData.observeAsState()
     val profileResult = getProfileViewModel.profileData.observeAsState()
     val keyboardController = LocalSoftwareKeyboardController.current
-
-    var isProfileFetched by remember { mutableStateOf(false) }
-    var isLoginSuccessful by remember { mutableStateOf(false) } // Flag to track login success
     var loginState by remember { mutableStateOf<LoginState>(LoginState.Idle) }
     var pendingToken: String? by remember { mutableStateOf(null) }
 
@@ -101,7 +84,6 @@ fun LoginScreen(
                 result.data?.let { tokenResponse ->
                     pendingToken = tokenResponse.toString()
                     loginState = LoginState.Success
-                    Log.d("LoginFlow", "Token received, waiting for profile check...")
                 }
             }
             is Resulta.Failure -> {
@@ -139,7 +121,6 @@ fun LoginScreen(
                         pendingToken?.let {
                             val expiresIn = 1800000L
                             sessionManager.saveAuthToken(it, expiresIn)
-                            Log.d("SessionToken", "Saved token: $it")
                         }
 
                         navController.navigate(redirectUrl ?: destinationRoute) {
@@ -163,9 +144,6 @@ fun LoginScreen(
     }
 
 
-
-
-//      ahmedmghaieth9@gmail.com       HibA98821607
 
         Box(
             modifier = Modifier
@@ -221,7 +199,7 @@ fun LoginScreen(
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            keyboardController?.hide() // Hide keyboard on Done action
+                            keyboardController?.hide()
                         }
                     ),
                     label = { Text(stringResource(R.string.email)) },
@@ -257,7 +235,7 @@ fun LoginScreen(
                     keyboardOptions = KeyboardOptions.Default.copy(imeAction = ImeAction.Done),
                     keyboardActions = KeyboardActions(
                         onDone = {
-                            keyboardController?.hide() // ✅ Now resolved
+                            keyboardController?.hide()
                         }
                     ),
                     label = { Text(stringResource(R.string.password)) },

@@ -32,7 +32,7 @@ class NetworkUtil(private val context: Context) {
 
     fun registerNetworkCallback(callback: (Boolean) -> Unit) {
         onNetworkChange = callback
-        callback(isConnected) // Initialize with current status
+        callback(isConnected)
     }
 
     fun unregister() {

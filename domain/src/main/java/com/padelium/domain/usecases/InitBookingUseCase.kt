@@ -19,7 +19,6 @@ class InitBookingUseCase @Inject constructor(
             val response = initBookingRepository.InitBooking(initBookingRequest)
 
             if (response.isSuccessful) {
-                Log.d("InitBookingResponse", "InitBooking successful: ${response.body()}")
                 DataResult.Success(response.body() ?: "No data available")
             } else {
                 val errorMessage = response.errorBody()?.string() ?: "Unknown error occurred"

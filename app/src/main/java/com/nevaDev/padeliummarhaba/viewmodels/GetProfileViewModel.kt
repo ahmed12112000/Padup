@@ -1,6 +1,5 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -19,7 +18,6 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
     private val _profileData = MutableLiveData<DataResult>()
     val profileData: LiveData<DataResult> get() = _profileData
 
-    // LiveData for first name, last name, and image URL
     private val _firstName = MutableLiveData<String>()
     val firstName: LiveData<String> get() = _firstName
 
@@ -29,7 +27,6 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
     private val _image = MutableLiveData<String>()
     val image: LiveData<String> get() = _image
 
-    // LiveData to capture if the user has the role 'ROLE_USER'
     private val _hasUserRole = MutableLiveData<Boolean>()
 
     private val _activated = MutableLiveData<Boolean>()
@@ -47,33 +44,24 @@ class GetProfileViewModel @Inject constructor(private val repository: IGetProfil
     private val _langkey = MutableLiveData<String>()
     val langkey: LiveData<String> get() = _langkey
 
-    // Method to get profile data
     fun fetchProfileData() {
         _profileData.postValue(DataResult.Loading)
 
         viewModelScope.launch {
             try {
-                // Call the repository to fetch the profile data
                 val profile = repository.GetProfile()
-                Log.d("GetProfile", "profile: $profile")  // Log the response
 
-                // Assuming profile is of type GetProfileResponseDTO
                 _profileData.postValue(DataResult.Success(profile))
 
-                // Update first name, last name, and image URL LiveData
                 _firstName.postValue(profile.firstName)
                 _lastName.postValue(profile.lastName)
                 _image.postValue(profile.image)
 
-                // Check if the profile contains 'ROLE_USER' in the authorities
                 _hasUserRole.postValue(profile.authorities.contains("ROLE_USER"))
 
             } catch (e: Exception) {
                 _profileData.postValue(
-                    DataResult.Failure(
-                        e,
-                        null,
-                        "Exception occurred: ${e.message}"
+                    DataResult.Failure(e, null, "Exception occurred: ${e.message}"
                     )
                 )
             }

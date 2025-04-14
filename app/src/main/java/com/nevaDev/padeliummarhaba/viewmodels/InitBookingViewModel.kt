@@ -22,7 +22,7 @@ class InitBookingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResult1 = MutableLiveData<DataResult>()
-    val navigateToErrorScreen = MutableLiveData<Boolean>() // LiveData for navigation signal
+    val navigateToErrorScreen = MutableLiveData<Boolean>()
     val navigationEvent = MutableLiveData<String>()
 
     fun InitBooking(initBookingRequest: InitBookingRequest) {
@@ -30,10 +30,7 @@ class InitBookingViewModel @Inject constructor(
             dataResult1.postValue(DataResult.Loading)
 
             val result = initBookingUseCase.InitBooking(initBookingRequest)
-
-            // Handle the result and check errorCode
             if (result is DataResult.Failure && result.errorCode != 200) {
-                // Trigger navigation to error screen if errorCode is not 200
                 navigateToErrorScreen.postValue(true)
             }
 

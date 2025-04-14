@@ -5,5 +5,4 @@ import retrofit2.Response
 
 interface IErrorCreditRepository {
     suspend fun ErrorCredit(creditErrorRequest: CreditErrorRequest): Response<Void>
-
 }

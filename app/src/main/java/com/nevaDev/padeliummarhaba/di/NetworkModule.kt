@@ -2,7 +2,6 @@ package com.nevaDev.padeliummarhaba.di
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.nevaDev.padeliummarhaba.repository.Constant
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -50,7 +49,7 @@ object NetworkModule {
             .readTimeout(60, TimeUnit.SECONDS)
             .writeTimeout(60, TimeUnit.SECONDS)
             .addInterceptor(loggingInterceptor)
-            .addInterceptor(jSessionInterceptor) // ✅ Add the session interceptor here
+            .addInterceptor(jSessionInterceptor)
             .build()
     }
 

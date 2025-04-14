@@ -17,7 +17,7 @@ class ConfirmBookingViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
-    val navigationEvent = MutableLiveData<String>() // Used for navigation event
+    val navigationEvent = MutableLiveData<String>()
 
     /**
      * Start getting data
@@ -26,16 +26,13 @@ class ConfirmBookingViewModel @Inject constructor(
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
             val result = confirmBookingUseCase.ConfirmBooking(confirmBookingRequest)
-
-            // Check the result and handle navigation logic
             when (result) {
                 is DataResult.Success -> {
-                    dataResult.value = result // Successfully fetched data
+                    dataResult.value = result
                 }
                 is DataResult.Failure -> {
                     dataResult.value = result // Handle failure
                     if (result.errorCode != 200) {
-                        // Trigger navigation to error screen if errorCode is not 200
                         navigationEvent.value = "server_error_screen"
                     }
                 }

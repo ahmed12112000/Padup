@@ -1,7 +1,6 @@
 package com.padelium.domain.repositories
 
 import com.padelium.domain.dto.GetPaymentRequest
-import com.padelium.domain.dto.GetPaymentResponse
 import retrofit2.Response
 
 

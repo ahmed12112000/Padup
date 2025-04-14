@@ -14,7 +14,7 @@ android {
 
     defaultConfig {
         applicationId = "com.spofun.padeliummarhaba"
-        versionCode = 36
+        versionCode = 40
         versionName = "2.0.8"
         minSdk = 28
         targetSdk = 34
@@ -54,14 +54,13 @@ android {
     }
 
     composeOptions {
-        // Use a version of Compose compatible with Kotlin 1.8
-        kotlinCompilerExtensionVersion = "1.5.1" // Adjust this version as necessary
+        kotlinCompilerExtensionVersion = "1.5.1"
     }
 
     packaging {
         resources {
             excludes += listOf(
-                "/META-INF/versions/9/OSGI-INF/MANIFEST.MF",  // Exclude specific MANIFEST.MF files
+                "/META-INF/versions/9/OSGI-INF/MANIFEST.MF",
                 "/META-INF/AL2.0",
                 "/META-INF/LGPL2.1"
             )

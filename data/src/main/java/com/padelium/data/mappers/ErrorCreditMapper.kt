@@ -5,8 +5,6 @@ import com.padelium.domain.dto.CreditErrorRequest
 import javax.inject.Inject
 
 class ErrorCreditMapper @Inject constructor() {
-
-
     fun CreditErrorRequestToCreditErrorRequestDto(creditErrorRequest: CreditErrorRequest): CreditErrorRequestDTO {
         return CreditErrorRequestDTO(
             amount = creditErrorRequest.amount,

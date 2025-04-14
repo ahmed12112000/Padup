@@ -1,6 +1,5 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -11,6 +10,7 @@ import com.padelium.domain.repositories.ICreditPayRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+
 @HiltViewModel
 class CreditPayViewModel @Inject constructor(
     private val repository: ICreditPayRepository
@@ -18,8 +18,6 @@ class CreditPayViewModel @Inject constructor(
 
     private val _CreditsData = MutableLiveData<DataResultBooking<List<CreditPayResponse>>>()
     val CreditsData: LiveData<DataResultBooking<List<CreditPayResponse>>> get() = _CreditsData
-
-    // Add a MutableLiveData to handle navigation events
     val navigationEvent = MutableLiveData<String>()
 
     fun GetCreditPay() {
@@ -28,7 +26,6 @@ class CreditPayViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val response = repository.GetCreditPay()
-                Log.d("CreditsData", "Fetched Credits: $response")
 
                 if (response.isNotEmpty()) {
                     _CreditsData.postValue(DataResultBooking.Success(response))
@@ -42,7 +39,6 @@ class CreditPayViewModel @Inject constructor(
                     )
                 }
             } catch (e: Exception) {
-                // Handle exception and post failure data
                 _CreditsData.postValue(
                     DataResultBooking.Failure(
                         exception = e,
@@ -50,10 +46,7 @@ class CreditPayViewModel @Inject constructor(
                         errorMessage = "Exception occurred: ${e.message}"
                     )
                 )
-                Log.e("CreditsData", "Error fetching Credits", e)
             }
-
-            // Check if the errorCode is not 200 and navigate to the error screen
             when (val result = _CreditsData.value) {
                 is DataResultBooking.Failure -> {
                     if (result.errorCode != 200) {
@@ -61,7 +54,6 @@ class CreditPayViewModel @Inject constructor(
                     }
                 }
                 else -> {
-                    // No action required for other cases
                 }
             }
         }

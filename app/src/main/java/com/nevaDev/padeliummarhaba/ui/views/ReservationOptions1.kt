@@ -1,13 +1,7 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
-import android.app.Activity
 import android.content.Context
-import android.content.Intent
-import android.graphics.Color.RED
-import android.graphics.Color.WHITE
 import android.net.Uri
-import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -31,7 +25,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.CircularProgressIndicator
-import androidx.compose.material.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -53,13 +46,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
 import com.google.gson.Gson
-import com.nevaDev.padeliummarhaba.models.ReservationOption
+import com.padelium.data.dto.ReservationOption
 import com.nevaDev.padeliummarhaba.viewmodels.ExtrasViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
@@ -68,32 +58,15 @@ import com.nevaDev.padeliummarhaba.viewmodels.TimeSlot
 import com.nevadev.padeliummarhaba.R
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.domain.dataresult.DataResultBooking
-import com.padelium.domain.dto.LoginRequest
 import com.padelium.domain.dto.PlanningDTO
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.State
 import androidx.compose.ui.platform.LocalContext
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.ViewModel
-import com.google.android.material.snackbar.Snackbar
-import android.view.View
-import android.widget.TextView
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.collectAsState
-import com.android.identity.util.AndroidAttestationExtensionParser
 import com.nevaDev.padeliummarhaba.di.SessionManager
-import com.nevaDev.padeliummarhaba.ui.activities.AnimatedBottomBar
 import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
-import com.padelium.domain.dto.PlanningDTOo
-import androidx.compose.ui.Alignment as ComposeAlignment
 import androidx.compose.ui.Alignment
 
 @Composable
@@ -159,14 +132,9 @@ fun TimeSlotSelector(
 
 
 
-
-
-
-
 @Composable
 fun ReservationOptions(
     onReservationSelected: (ReservationOption) -> Unit,
-    // isUserLoggedIn: Boolean,
     key: String?,
     navController: NavController,
     viewModel: GetBookingViewModel = hiltViewModel(),
@@ -176,21 +144,16 @@ fun ReservationOptions(
     viewModel2: SaveBookingViewModel = hiltViewModel(),
     bookingViewModel: GetBookingViewModel = hiltViewModel(),
     paymentPayAvoirViewModel : PaymentPayAvoirViewModel,
-    getReservationViewModel: GetReservationViewModel // Pass your reservation view model here
+    getReservationViewModel: GetReservationViewModel
 
 ) {
-    Log.e("SelectedDateeeeeeee", "Failed to save booking: ${selectedDate}")
     val context = LocalContext.current
-
     val sessionManager = remember { SessionManager(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
-
     var amountSelected by remember { mutableStateOf<Double?>(null) }
     var currencySymbol by remember { mutableStateOf<String?>(null) }
     var errorMessage by remember { mutableStateOf<String?>(null) }
     var showLoginPopup by remember { mutableStateOf(false) }
-
-    val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val dataResultBooking by viewModel.dataResultBooking.observeAsState(initial = DataResultBooking.Loading)
     val filteredTimeSlots by viewModel.filteredTimeSlots.observeAsState(emptyList())
     var selectedTimeSlot by remember { mutableStateOf<String?>(null) }
@@ -219,12 +182,8 @@ fun ReservationOptions(
                 result.errorMessage,
                 setErrorMessage = { errorMessage = it })
         }
-
         if (showLoginPopup) {
         }
-
-
-
         errorMessage?.let {
             Text(text = it, color = Color.Red, modifier = Modifier.padding(16.dp))
         }
@@ -288,10 +247,6 @@ fun SuccessState(
     }
 }
 
-
-
-
-
 @Composable
 private fun EstablishmentCard(
     getBookingResponseDTO: GetBookingResponseDTO,
@@ -310,11 +265,9 @@ private fun EstablishmentCard(
     val context = LocalContext.current
     val sessionManager = remember { SessionManager.getInstance(context) }
     val isUserLoggedIn by sessionManager.isLoggedInFlow.collectAsState()
-
     val availablePlannings = getBookingResponseDTO.plannings.filter { planning ->
         planning.fromStr == selectedTimeSlot
     }
-
     availablePlannings.forEach { planning ->
         val amountToShow = if (planning.reductionPrice != null && planning.reductionPrice != BigDecimal.ZERO) {
             planning.reductionPrice
@@ -351,7 +304,6 @@ private fun EstablishmentCard(
         }
     }
 }
-
 
 
 @Composable
@@ -445,8 +397,6 @@ private fun EstablishmentCardContent(getBookingResponseDTO: GetBookingResponseDT
 }
 
 
-
-
 @Composable
 fun FailureState(errorMessage: String?, setErrorMessage: (String) -> Unit) {
     setErrorMessage(errorMessage ?: "An unexpected error occurred.")
@@ -466,16 +416,10 @@ fun handleCardClick(
     isUserLoggedIn: Boolean,
     sessionmanager: SessionManager
 ) {
-    val formattedAmount = String.format("%.2f", amountToShow)
-    val price = " $formattedAmount"
-
     val establishmentName = selectedBooking.establishmentDTO?.name ?: "Unknown"
     val selectedTimeSlot = "${planning.fromStr} - ${planning.toStr}"
-
     val updatedBooking = selectedBooking.copy(plannings = listOf(planning))
     val encodedDate = Uri.encode(selectedDate.toString())
-   // bookingViewModel.updateBookings(listOf(updatedBooking))
-
     val mappedBookingsJson = Uri.encode(Gson().toJson(listOf(updatedBooking).toDomain()))
     val reservationOption = ReservationOption(
         name = establishmentName,
@@ -483,29 +427,18 @@ fun handleCardClick(
         price = amountToShow.toString(),
         mappedBookings = mappedBookingsJson
     )
-
     val destinationUrl = "payment_section1/${Uri.encode(reservationOption.name)}/" +
             "${Uri.encode(reservationOption.time)}/" +
             "${Uri.encode(reservationOption.price)}/" +
             "$mappedBookingsJson/$encodedDate"
-    val encodedDestination = Uri.encode(destinationUrl)
 
     if (!sessionmanager.isLoggedIn()) {
-        Log.d("handleCardClick", "User is NOT logged in. Navigating to login screen.")
-
         onReservationSelected(reservationOption)
-
         val loginDestination = "login_screen?redirectUrl=${Uri.encode(destinationUrl)}"
-
         navController.navigate(loginDestination) {
             popUpTo("main_screen") { inclusive = false }
         }
-        Log.d("OOOOOOOOOOOO", "Navigating to $destinationUrl")
-
     } else {
-        Log.d("handleCardClick", "User is logged in. Navigating directly to payment section.")
-        Log.d("OOOOOOOOOOOO", "Navigatinggggg $destinationUrl")
-
         navController.navigate(destinationUrl) {
             popUpTo("main_screen") { inclusive = false }
         }

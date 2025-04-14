@@ -2,7 +2,6 @@ package com.nevaDev.padeliummarhaba.viewmodels
 
 import com.padelium.data.mappers.GetBookingMapper
 import com.padelium.data.mappers.GetInitMapper
-import com.padelium.data.mappers.InitBookingMapper
 import com.padelium.data.mappers.KeyMapper
 import com.padelium.data.mappers.SearchListMapper
 import com.padelium.domain.usecase.KeyUseCase

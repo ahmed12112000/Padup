@@ -1,11 +1,12 @@
 package com.nevaDev.padeliummarhaba.ui.views
+
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.* // Imports for padding, alignment
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.ClickableText
-import androidx.compose.material3.* // For modern Material3
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -96,7 +97,7 @@ fun SplashScreen() {
                     Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text = "v1.0.0.36",
+                        text = "v1.0.0.40",
                         fontSize = 10.sp,
                         color = Color.White
                     )
@@ -138,6 +139,7 @@ fun CopyrightText() {
         style = TextStyle(color = Color.White, fontSize = 10.sp)
     )
 }
+
 @Preview(showBackground = true)
 @Composable
 fun SplashScreenPreview() {

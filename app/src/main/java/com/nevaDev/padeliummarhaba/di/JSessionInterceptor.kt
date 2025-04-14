@@ -28,7 +28,6 @@ class JSessionInterceptor(private val sharedPreferences: SharedPreferences) : In
 
         val response = chain.proceed(modifiedRequest)
 
-        // Save JSESSIONID from the response if it exists
         response.headers("Set-Cookie").forEach { cookie ->
             if (cookie.startsWith("JSESSIONID=")) {
                 val sessionId = cookie.substringAfter("JSESSIONID=").substringBefore(";")

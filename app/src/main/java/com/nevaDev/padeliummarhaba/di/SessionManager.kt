@@ -73,6 +73,6 @@ class SessionManager(private val context: Context) {
     }
 
     fun invalidateToken() {
-        prefs.edit().remove(KEY_AUTH_TOKEN).apply() // Remove the token when invalidated
+        prefs.edit().remove(KEY_AUTH_TOKEN).apply()
     }
 }

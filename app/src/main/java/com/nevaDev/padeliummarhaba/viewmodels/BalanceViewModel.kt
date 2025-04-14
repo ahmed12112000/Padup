@@ -1,6 +1,5 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,11 +15,11 @@ import javax.inject.Inject
 @HiltViewModel
 class BalanceViewModel @Inject constructor(
     private val balanceUseCase: BalanceUseCase,
-    private val getProfileUseCase: GetProfileUseCase // Injected use case
+    private val getProfileUseCase: GetProfileUseCase
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
-    val navigationEvent = MutableLiveData<String>() // Used for navigation event
+    val navigationEvent = MutableLiveData<String>()
 
     /**
      * Start processing balance after fetching the profile
@@ -29,24 +28,16 @@ class BalanceViewModel @Inject constructor(
         dataResult.value = DataResult.Loading
         viewModelScope.launch {
             try {
-                // Call use case and handle result
                 when (val profileResult = getProfileUseCase.execute()) {
                     is DataResultBooking.Success -> {
                         val profile = profileResult.data
-                        Log.d("GetProfile", "Profile Response: $profile")
-
                         val userId = profile.id
-
-                        // Fetch balance using userId
                         when (val result = balanceUseCase.Balance(userId)) {
                             is DataResult.Success -> {
                                 val balance = result.data as? BigDecimal ?: BigDecimal.ZERO
-                                Log.e("BalanceViewModel", "Fetched Balance: $balance")
                                 dataResult.value = DataResult.Success(balance)
                             }
-
                             is DataResult.Failure -> {
-                                Log.e("BalanceViewModel", "Error fetching balance: ${result.errorMessage}")
                                 if (result.errorCode != 200) {
                                     navigationEvent.value = "server_error_screen"
                                 } else {
@@ -57,19 +48,14 @@ class BalanceViewModel @Inject constructor(
                                     )
                                 }
                             }
-
                             else -> {
-                                Log.e("BalanceViewModel", "Unexpected result")
                                 dataResult.value = DataResult.Failure(null, null, "Unexpected result")
                             }
                         }
                     }
-
                     is DataResultBooking.Failure -> {
-                        Log.e("GetProfile", "Failed to fetch profile: ${profileResult.errorMessage}")
                         navigationEvent.value = "server_error_screen"
                     }
-
                     DataResultBooking.Loading -> TODO()
                 }
             } catch (ex: Exception) {

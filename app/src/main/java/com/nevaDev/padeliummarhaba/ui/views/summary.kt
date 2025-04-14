@@ -1,10 +1,10 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
-import android.util.Log
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.*
 import androidx.compose.material.icons.Icons
@@ -19,7 +20,9 @@ import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.AttachMoney
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -34,8 +37,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
@@ -44,7 +50,6 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetReservationViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetStatusesViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PartnerPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PrivateExtrasViewModel
-import com.nevaDev.padeliummarhaba.viewmodels.SharedExtrasViewModel
 import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetReservationIDResponse
@@ -74,16 +79,12 @@ fun SummaryScreen(
     var selectedDate by remember { mutableStateOf<Long?>(null) }
     var filterByName by remember { mutableStateOf(false) }
     var nameFilterText by remember { mutableStateOf("") }
-
     val reservations = remember { mutableStateOf<List<GetReservationResponse>>(emptyList()) }
     val statuses = remember { mutableStateOf<List<GetStatusesResponse>>(emptyList()) }
-
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
     var selectedReservationProfile by remember { mutableStateOf<GetReservationIDResponse?>(null) }
-
     val sheetState = rememberModalBottomSheetState(ModalBottomSheetValue.Hidden)
     val coroutineScope = rememberCoroutineScope()
-
     val reservationData by viewModel.ReservationsData.observeAsState()
     val profilesData by viewModel1.profilesData.observeAsState()
     val reservationStatuses by viewModel2.ReservationsData1.observeAsState()
@@ -91,8 +92,14 @@ fun SummaryScreen(
     var filterByType by remember { mutableStateOf(false) }
     var selectedStatusType by remember { mutableStateOf("") }
     var showTypeFilterPopup by remember { mutableStateOf(false) }
-
     val isLoading = reservationData == null || reservationData is DataResultBooking.Loading
+    var sortByReference by remember { mutableStateOf(false) }
+    var showSortPopup by remember { mutableStateOf(false) }
+    var filterByDate by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
+    val focusManager = LocalFocusManager.current
+    var referenceFilterText by remember { mutableStateOf("") }
+    var filterByReference by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
         viewModel.GetReservation()
@@ -127,7 +134,10 @@ fun SummaryScreen(
         filterByName,
         nameFilterText,
         filterByType,
-        selectedStatusType
+        selectedStatusType,
+        sortByReference,
+        filterByReference,
+        referenceFilterText
     ) {
         var filteredList = reservations.value
 
@@ -151,13 +161,15 @@ fun SummaryScreen(
                 it.bookingStatusName.equals(selectedStatusType, ignoreCase = true)
             }
         }
+
+        if (filterByReference) {
+            filteredList = filteredList.filter {
+                it.reference?.contains(referenceFilterText, ignoreCase = true) ?: false
+            }
+        }
+
         filteredList
     }
-    Log.d("FilteredReservations", "Filtered List: ${filteredReservations.size}")
-
-
-
-
 
 
     ModalBottomSheetLayout(
@@ -192,9 +204,10 @@ fun SummaryScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(50.dp)
-                    .border(1.dp, Color.LightGray, RoundedCornerShape(16.dp))
-                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                    .height(56.dp)
+                    .background(Color(0xFFF5F7F9), RoundedCornerShape(16.dp))
+                    .border(1.dp, Color(0xFFE0E3E7), RoundedCornerShape(16.dp))
+                    .padding(horizontal = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
@@ -206,16 +219,39 @@ fun SummaryScreen(
                     }
                     DropdownMenu(expanded = showFilterMenu, onDismissRequest = { showFilterMenu = false }) {
                         DropdownMenuItem(onClick = {
+                            filterByName = false
+                            nameFilterText = ""
+                            filterByType = false
+                            selectedStatusType = ""
+                            filterByReference = false
+                            referenceFilterText = ""
+                            selectedDate = null
+
                             showFilterMenu = false
                             showDatePicker = true
                         }) {
                             Text("Par Date")
                         }
+
                         DropdownMenuItem(onClick = {
+                            filterByType = false
+                            selectedStatusType = ""
+                            filterByReference = false
+                            referenceFilterText = ""
+                            selectedDate = null
+
+                            filterByName = true
                             showFilterMenu = false
                             showNameFilterPopup = true
                         }) { Text("Par Nom ") }
                         DropdownMenuItem(onClick = {
+                            filterByName = false
+                            nameFilterText = ""
+                            filterByReference = false
+                            referenceFilterText = ""
+                            selectedDate = null
+
+                            filterByType = true
                             showFilterMenu = false
                             showTypeFilterPopup = true
                         }) {
@@ -223,24 +259,163 @@ fun SummaryScreen(
                         }
                     }
                 }
+                Spacer(modifier = Modifier.weight(0.1f))
 
                 Divider(color = Color.LightGray, modifier = Modifier.height(24.dp).width(1.dp))
 
-                OutlinedButton(onClick = {
-                    reservations.value = reservations.value.reversed()
-                    coroutineScope.launch {
-                        sheetState.hide()
-                        selectedReservation = null
-                        selectedReservationProfile = null
+                Spacer(modifier = Modifier.weight(0.09f))
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.White)
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            focusManager.clearFocus()
+                        }
+                ) {
+                    if (referenceFilterText.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "Référence de réservation",
+                                fontSize = 12.sp,
+                                color = Color.Gray
+                            )
+                        }
                     }
-                }) {
-                    Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = "Sort", tint = Color.Gray)
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Sort", color = Color.Gray)
+
+                    BasicTextField(
+                        value = referenceFilterText,
+                        onValueChange = {
+                            referenceFilterText = it
+                            filterByReference = it.isNotEmpty()
+                        },
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 12.sp,
+                            color = Color.Black
+                        ),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 12.dp)
+                            .wrapContentHeight(Alignment.CenterVertically),
+                        singleLine = true,
+                        decorationBox = { innerTextField ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    Icons.Default.Search,
+                                    contentDescription = "Search",
+                                    tint = Color.Gray,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .offset(x = -11.dp)
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .fillMaxHeight()
+                                        .padding(start = 5.dp),
+
+                                    contentAlignment = Alignment.CenterStart
+                                ) {
+                                    innerTextField()
+                                }
+                            }
+                        }
+                    )
                 }
+
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
+
+            if (showSortPopup) {
+                Column(
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .background(Color.White, shape = RoundedCornerShape(8.dp))
+                        .shadow(4.dp)
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(onClick = {
+                            referenceFilterText = ""
+                            showSortPopup = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Fermer",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+
+                    Text(
+                        text = "Filtrer par référence",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 18.sp,
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .shadow(4.dp, shape = RoundedCornerShape(8.dp))
+                            .background(Color.White, shape = RoundedCornerShape(8.dp))
+                    ) {
+                        TextField(
+                            value = referenceFilterText,
+                            onValueChange = { referenceFilterText = it },
+                            label = { Text("Référence de réservation") },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(Color.Transparent),
+                            colors = TextFieldDefaults.textFieldColors(
+                                backgroundColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Gray,
+                                unfocusedIndicatorColor = Color.LightGray,
+                                focusedLabelColor = Color.LightGray,
+                                unfocusedLabelColor = Color.LightGray,
+                                cursorColor = Color.Black,
+                                textColor = Color.Black
+                            )
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    Button(
+                        onClick = {
+                            filterByReference = referenceFilterText.isNotEmpty()
+                            showSortPopup = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFF0066CC), shape = RoundedCornerShape(8.dp)),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFF0066CC))
+                    ) {
+                        Text(
+                            text = "Filtrer",
+                            color = Color.White,
+                            fontSize = 18.sp
+                        )
+                    }
+                }
+            }
 
             if (showDatePicker) {
                 CustomDatePickerModal1(
@@ -260,6 +435,22 @@ fun SummaryScreen(
                         .shadow(4.dp)
                         .padding(16.dp)
                 ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(onClick = {
+                            nameFilterText = ""
+                            showNameFilterPopup = false
+                        }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Fermer",
+                                tint = Color.Gray
+                            )
+                        }
+                    }
+
                     Text(
                         text = "Filtrer par nom d'espace",
                         fontWeight = FontWeight.Bold,
@@ -283,7 +474,11 @@ fun SummaryScreen(
                             colors = TextFieldDefaults.textFieldColors(
                                 backgroundColor = Color.Transparent,
                                 focusedIndicatorColor = Color.Gray,
-                                unfocusedIndicatorColor = Color.LightGray
+                                unfocusedIndicatorColor = Color.LightGray,
+                                focusedLabelColor = Color.LightGray,
+                                unfocusedLabelColor = Color.LightGray,
+                                cursorColor = Color.Black,
+                                textColor = Color.Black
                             )
                         )
                     }
@@ -294,7 +489,6 @@ fun SummaryScreen(
                         onClick = {
                             filterByName = nameFilterText.isNotEmpty()
                             showNameFilterPopup = false
-                            Log.d("FilterState", "filterByName: $filterByName, nameFilterText: $nameFilterText")
                         },
                         modifier = Modifier
                             .fillMaxWidth()
@@ -309,6 +503,7 @@ fun SummaryScreen(
                     }
                 }
             }
+
 
             if (showTypeFilterPopup) {
                 val statusOptions = listOf("Toutes Réservations", "Confirmée", "En attente de paiement")
@@ -372,7 +567,6 @@ fun SummaryScreen(
             }
 
 
-
             if (isLoading) {
                 Box(
                     modifier = Modifier
@@ -398,9 +592,6 @@ fun SummaryScreen(
                     )
                     Spacer(modifier = Modifier.height(8.dp))
                 }
-
-                Log.d("FilteredReservations", "Filtered List: ${filteredReservations.size}, Names: ${filteredReservations.map { it.establishmentName }}")
-
             }
         }
     }
@@ -411,7 +602,6 @@ fun SummaryScreen(
                 Dialog(onDismissRequest = { showDialog = false }) {
                     val screenHeight = LocalConfiguration.current.screenHeightDp.dp
                     val dialogHeight = (screenHeight * 0.85f)
-
                     Surface(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -425,11 +615,6 @@ fun SummaryScreen(
         }
     }
 }
-
-
-
-
-
 
 @Composable
 fun ReservationCard(
@@ -452,13 +637,10 @@ fun ReservationCard(
     var selectedReservation by remember { mutableStateOf<GetReservationResponse?>(null) }
     val coroutineScope = rememberCoroutineScope()
     var isLoading by remember { mutableStateOf(false) }
-
     var selectedReservation1 by remember { mutableStateOf<GetReservationIDResponse?>(null) }
     val date = LocalDate.parse(bookingDate, formatter)
-
     val dayOfWeek = date.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.FRANCE).replaceFirstChar { it.uppercaseChar() }
     val month = date.month.getDisplayName(TextStyle.SHORT, Locale.FRANCE).replaceFirstChar { it.uppercaseChar() }
-
     val formattedDate = "$dayOfWeek ${date.dayOfMonth} $month ${date.year}"
     val sheetState = rememberModalBottomSheetState(initialValue = ModalBottomSheetValue.Hidden)
     val profilesData by viewModel1.profilesData.observeAsState()
@@ -466,10 +648,8 @@ fun ReservationCard(
 
     LaunchedEffect(partnerPayResponse) {
         partnerPayResponse?.let { response ->
-            Log.d("ReservationCard", "PartnerPay response updated: $response")
         }
     }
-
 
     LaunchedEffect(profilesData) {
         if (profilesData is DataResultBooking.Success) {
@@ -533,9 +713,14 @@ fun ReservationCard(
                     fontWeight = FontWeight.Normal,
                     fontSize = 12.sp
                 )
+                Spacer(modifier = Modifier.height(7.dp))
+                Text(
+                    text = "${reservation.reference} ",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 12.sp
+                )
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(7.dp))
 
             Text(
                 text = if (reservation.bookingStatusName == "erreur de paiement") "en attente de paiement" else reservation.bookingStatusName,
@@ -568,9 +753,6 @@ fun ReservationCard(
                             viewModel2.fetchProfileById(reservation.id)
                             viewModel4.partnerPay(reservation.id)
                             navController.navigate("PartnerPaymentScreen/${reservation.id}")
-
-
-
                         },
                         modifier = Modifier.size(24.dp)
                     ) {
@@ -589,9 +771,7 @@ fun ReservationCard(
                             coroutineScope.launch {
                                 viewModel1.fetchProfileById(reservation.id)
                                 viewModel4.partnerPay(reservation.id)
-
                                 delay(500)
-
                                 isLoading = false
                                 onClick()
                                 sheetState.hide()
@@ -811,9 +991,6 @@ fun ReservationCard1(
     }
 }
 
-
-
-
 @Composable
 fun TableRow(label: String, value: String, isBold: Boolean = false) {
     Row(
@@ -826,8 +1003,6 @@ fun TableRow(label: String, value: String, isBold: Boolean = false) {
             color = Color.LightGray)
     }
 }
-
-
 
 
 
@@ -996,7 +1171,6 @@ fun PreviewReservationCard1() {
 }
 
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CustomDatePickerModal1(
@@ -1011,29 +1185,24 @@ fun CustomDatePickerModal1(
         set(Calendar.SECOND, 0)
         set(Calendar.MILLISECOND, 0)
     }.timeInMillis
-
-    // Get the current month and year
     val calendar = Calendar.getInstance()
     var currentMonth by remember { mutableStateOf(calendar.get(Calendar.MONTH)) }
     var currentYear by remember { mutableStateOf(calendar.get(Calendar.YEAR)) }
-
     calendar.set(Calendar.MONTH, currentMonth)
     calendar.set(Calendar.YEAR, currentYear)
     calendar.set(Calendar.DAY_OF_MONTH, 1)
 
     val startDayOfWeek = calendar.get(Calendar.DAY_OF_WEEK)
     val totalDaysInMonth = calendar.getActualMaximum(Calendar.DAY_OF_MONTH)
-
-    // French abbreviated month names
     val frenchMonths = listOf("Jan", "Fév", "Mar", "Avr", "Mai", "Juin", "Juil", "Aoû", "Sep", "Oct", "Nov", "Déc")
 
     Dialog(onDismissRequest = onDismiss) {
         androidx.compose.material3.Surface(
-            color = Color.White, // Ensuring entire dialog is white
+            color = Color.White,
             shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, Color(0xFFE0E0E0)), // Light grayish border
+            border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
             modifier = Modifier
-                .heightIn(min = 10.dp, max = 600.dp) // Control min/max height
+                .heightIn(min = 10.dp, max = 600.dp)
                 .padding(16.dp)
         ) {
             Column(
@@ -1041,11 +1210,10 @@ fun CustomDatePickerModal1(
                 verticalArrangement = Arrangement.Center,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .heightIn(min = 10.dp, max = 500.dp) // Control min/max height
-                    .background(Color.White) // Ensuring white background
+                    .heightIn(min = 10.dp, max = 500.dp)
+                    .background(Color.White)
                     .padding(16.dp)
             ) {
-                // Month and Year Header with Arrows
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -1088,7 +1256,6 @@ fun CustomDatePickerModal1(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Days of the week
                 Row(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     modifier = Modifier.fillMaxWidth()
@@ -1103,17 +1270,14 @@ fun CustomDatePickerModal1(
                 }
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Calendar Grid
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(7),
                     modifier = Modifier.fillMaxWidth(0.9f)
                 ) {
-                    // Empty cells before the first day
                     items(startDayOfWeek - 1) {
                         Box(modifier = Modifier.size(40.dp))
                     }
 
-                    // Days of the month
                     items(totalDaysInMonth) { day ->
                         val normalizedCalendar = Calendar.getInstance().apply {
                             set(Calendar.YEAR, calendar.get(Calendar.YEAR))
@@ -1140,15 +1304,13 @@ fun CustomDatePickerModal1(
                             )
                         } ?: false
 
-                     //   val isDisabled = dateMillis < today // Disable days before today
-
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier
                                 .size(40.dp)
                                 .background(
                                     when {
-                                        isSelected -> Color(0xFF0054D8) // Blue for selected date
+                                        isSelected -> Color(0xFF0054D8)
                                         else -> Color.Transparent
                                     },
                                     shape = CircleShape
@@ -1162,7 +1324,6 @@ fun CustomDatePickerModal1(
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     color = when {
                                         isSelected -> Color.White
-                                       // isDisabled -> Color.Gray // Gray color for disabled days
                                         else -> Color.Black
                                     },
                                     fontWeight = FontWeight.Bold
@@ -1174,7 +1335,6 @@ fun CustomDatePickerModal1(
 
                 Spacer(modifier = Modifier.height(4.dp))
 
-                // Buttons Row
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -1183,7 +1343,7 @@ fun CustomDatePickerModal1(
                 ) {
                     androidx.compose.material3.TextButton(
                         onClick = onDismiss,
-                        modifier = Modifier.background(Color.White) // Ensuring button background is white
+                        modifier = Modifier.background(Color.White)
                     ) {
                         androidx.compose.material3.Text(
                             "Annuler",
@@ -1196,7 +1356,7 @@ fun CustomDatePickerModal1(
                             onDateSelected(selectedDate)
                             onDismiss()
                         },
-                        modifier = Modifier.background(Color.White) // Ensuring button background is white
+                        modifier = Modifier.background(Color.White)
                     ) {
                         androidx.compose.material3.Text(
                             "OK",

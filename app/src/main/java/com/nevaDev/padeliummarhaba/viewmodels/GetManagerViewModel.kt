@@ -1,6 +1,5 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -19,7 +18,6 @@ class GetManagerViewModel @Inject constructor(
     private val _dataResult = MutableLiveData<DataResult>()
     val dataResult: LiveData<DataResult> = _dataResult
 
-    // MutableLiveData to handle navigation events
     val navigationEvent = MutableLiveData<String>()
 
     /**
@@ -33,20 +31,13 @@ class GetManagerViewModel @Inject constructor(
 
             when (result) {
                 is DataResult.Success -> {
-                    Log.d("GetManagerViewModel", "GetManager successful with no body expected.")
                 }
                 is DataResult.Failure -> {
-                    Log.e(
-                        "GetManagerViewModel",
-                        "GetManager failed: Code = ${result.errorCode}, Message = ${result.errorMessage}"
-                    )
-                    // Check for errorCode and navigate to the error screen if needed
                     if (result.errorCode != 200) {
                         navigationEvent.value = "server_error_screen"
                     }
                 }
                 else -> {
-                    Log.e("GetManagerViewModel", "GetManager encountered an unknown state")
                 }
             }
         }

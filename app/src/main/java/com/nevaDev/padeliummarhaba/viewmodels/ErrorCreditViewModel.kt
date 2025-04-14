@@ -21,9 +21,7 @@ class ErrorCreditViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResult = MutableLiveData<DataResult>()
-
     private val _dataResult1 = MutableLiveData<Resulta>()
-    val dataResult1: LiveData<Resulta> get() = _dataResult1
 
     fun ErrorCredit(creditErrorRequest: CreditErrorRequest) {
         dataResult.value = DataResult.Loading

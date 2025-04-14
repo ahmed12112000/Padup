@@ -1,6 +1,5 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
-import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -18,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Button
 import androidx.compose.material.ButtonDefaults
@@ -49,20 +47,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
-
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
-import com.nevaDev.padeliummarhaba.models.ReservationOption
+import com.padelium.data.dto.ReservationOption
 import com.nevaDev.padeliummarhaba.viewmodels.BalanceViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ConfirmBookingViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ErrorCreditViewModel
@@ -72,21 +66,17 @@ import com.nevaDev.padeliummarhaba.viewmodels.PaymentPayAvoirViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.PaymentViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.SaveBookingViewModel
 import com.padelium.domain.dataresult.DataResult
-import com.padelium.domain.dto.BalanceResponse
 import com.padelium.domain.dto.ConfirmBookingRequest
 import com.padelium.domain.dto.CreditErrorRequest
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetProfileResponse
 import com.padelium.domain.dto.PaymentRequest
-import com.padelium.domain.dto.SaveBookingResponse
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.format.DateTimeFormatter
+
 
 @Composable
 fun PopupCredit(
@@ -118,40 +108,30 @@ fun PopupCredit(
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     val paymentViewModel: PaymentViewModel = hiltViewModel()
     val mappedBookings: List<GetBookingResponse> = Gson().fromJson(mappedBookingsJson, type)
-    val selectedBooking = mappedBookings.firstOrNull()
-
     val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var balance by remember { mutableStateOf(BigDecimal.ZERO) }
-
     val balanceViewModel: BalanceViewModel = hiltViewModel()
     val balanceData by balanceViewModel.dataResult.observeAsState(DataResult.Loading)
-
     val totalAmountSelected = adjustedAmount + totalExtrasCost
     onTotalAmountCalculated(totalAmountSelected, "DT")
-    var bookingId1 by remember { mutableStateOf<Long?>(null) }
-    LaunchedEffect(bookingId) {
-        bookingId?.toLongOrNull()?.let { id ->
-            Log.d("PopupCredit", "Received booking ID: $id")
-        }
-    }
+
     var elapsedTime by remember { mutableStateOf(0f) }
     val totalTime = 240f
-    val timeLeft = (totalTime - elapsedTime).toInt() // Calculate time left dynamically
-    val progress = timeLeft / 180f
+    val timeLeft = (totalTime - elapsedTime).toInt()
 
     val animatedColor by animateColorAsState(
         targetValue = when {
-            timeLeft > 60 -> Color(0xFF4CAF50) // Green
-            timeLeft > 30 -> Color(0xFFFFC107) // Yellow
-            else -> Color(0xFFF44336) // Red
+            timeLeft > 60 -> Color(0xFF4CAF50)
+            timeLeft > 30 -> Color(0xFFFFC107)
+            else -> Color(0xFFF44336)
         },
         animationSpec = tween(durationMillis = 500)
     )
 
     val animatedProgress by animateFloatAsState(
-        targetValue = elapsedTime / totalTime, // Progress grows from 0 to 1
+        targetValue = elapsedTime / totalTime,
         animationSpec = tween(durationMillis = 500)
     )
 
@@ -167,13 +147,17 @@ fun PopupCredit(
         )
     } ?: CreditErrorRequest(
         amount = BigDecimal.ZERO,
-        bookingIds = emptyList(), // Default empty list
+        bookingIds = emptyList(),
         buyerId = 0L,
         payFromAvoir = false,
         status = false,
         token = "",
         transactionId = 0L
     )
+    LaunchedEffect(bookingId) {
+        bookingId?.toLongOrNull()?.let { id ->
+        }
+    }
     LaunchedEffect(bookingId) {
         bookingId?.toLongOrNull()?.let { id ->
             viewModel.fetchProfileData()
@@ -184,7 +168,6 @@ fun PopupCredit(
                 elapsedTime += 1f
             }
 
-            Log.d("POPUP_CREDIT", "Calling ErrorCredit with bookingId: $id")
             val request = CreditErrorRequest(
                 amount = BigDecimal.ZERO,
                 bookingIds = listOf(id),
@@ -207,13 +190,13 @@ fun PopupCredit(
                 lastName = profile.lastName
             }
         }
-        is DataResult.Failure -> Log.e("ProfileError", "Error fetching profile data")
+        is DataResult.Failure ->{}
         else -> Unit
     }
 
     when (val result = balanceData) {
         is DataResult.Success -> balance = result.data as? BigDecimal ?: BigDecimal.ZERO
-        is DataResult.Failure -> Log.e("BalanceError", "Error fetching balance: ${result.errorMessage}")
+        is DataResult.Failure ->{}
         else -> Unit
     }
 
@@ -231,15 +214,15 @@ fun PopupCredit(
             modifier = Modifier
                 .fillMaxSize()
                 .background(Color.Black.copy(alpha = 0.5f)),
-            contentAlignment = Alignment.BottomCenter // Align popup from bottom
+            contentAlignment = Alignment.BottomCenter
         ) {
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .fillMaxHeight(0.75f) // Take half the screen
+                    .fillMaxHeight(0.75f)
                     .padding(16.dp)
                     .animateContentSize(),
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp), // Rounded top corners
+                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
                 elevation = 8.dp
             ) {
                 Column(
@@ -277,14 +260,14 @@ fun PopupCredit(
                         textAlign = TextAlign.Center,
                         modifier = Modifier.padding(bottom = 8.dp)
                     )
-                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
+                    Spacer(modifier = Modifier.height(16.dp))
                     Column(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(text = "$firstName $lastName", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                     }
-                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -296,7 +279,7 @@ fun PopupCredit(
                             fontWeight = FontWeight.Bold
                         )
                     }
-                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
+                    Spacer(modifier = Modifier.height(16.dp))
                     val coroutineScope = rememberCoroutineScope()
                     val selectedPlayers by findTermsViewModel.selectedPlayers.observeAsState(initial = mutableListOf())
                     var errorMessage by remember { mutableStateOf<String?>(null) }
@@ -336,30 +319,18 @@ fun PopupCredit(
                                             totalAmountBigDecimal.toInt().toDouble(), currency
                                         )
 
-                                        // Trigger PaymentPayAvoir with rounded amount
                                         paymentPayAvoirViewModel.PaymentPayAvoir(
                                             totalAmountBigDecimal
                                         )
 
                                         paymentPayAvoirViewModel.dataResult.observe(lifecycleOwner) { paymentResult ->
                                             when (paymentResult) {
-                                                is DataResult.Loading -> {
-                                                    Log.d(
-                                                        "PAYMENT",
-                                                        "Processing PaymentPayAvoir..."
-                                                    )
-                                                }
+                                                is DataResult.Loading -> {}
 
                                                 is DataResult.Success -> {
                                                     isLoading = false
                                                     val payFromAvoirResponse = true
-                                                    Log.d(
-                                                        "PAYMENT",
-                                                        "PaymentPayAvoir successful: $payFromAvoirResponse"
-                                                    )
-
                                                     balanceViewModel.fetchAndBalance()
-
                                                     val paymentRequest = PaymentRequest(
                                                         amount = totalAmountSelected.toString(),
                                                         currency =  "DT",
@@ -369,7 +340,6 @@ fun PopupCredit(
 
                                                     paymentViewModel.Payment(paymentRequest)
 
-                                                    // Observe payment result to ensure success before confirming booking
                                                     paymentViewModel.dataResult.observe(
                                                         lifecycleOwner
                                                     ) { paymentResult ->
@@ -382,15 +352,11 @@ fun PopupCredit(
                                                                         amount = totalAmountBigDecimal,
                                                                         numberOfPart = currentSelectedParts,
                                                                         payFromAvoir = payFromAvoirResponse,
-                                                                        privateExtrasIds = mappedBookings.first().privateExtrasIds
-                                                                            ?: emptyList(),
-                                                                        bookingIds = listOfNotNull(
-                                                                            bookingId?.toLongOrNull()
-                                                                        ),
+                                                                        privateExtrasIds = mappedBookings.first().privateExtrasIds ?: emptyList(),
+                                                                        bookingIds = listOfNotNull(bookingId?.toLongOrNull()),
                                                                         buyerId = "",
                                                                         couponIds = emptyMap(),
-                                                                        sharedExtrasIds = mappedBookings.first().sharedExtrasIds
-                                                                            ?: emptyList(),
+                                                                        sharedExtrasIds = mappedBookings.first().sharedExtrasIds ?: emptyList(),
                                                                         status = true,
                                                                         token = "",
                                                                         transactionId = "",
@@ -400,7 +366,6 @@ fun PopupCredit(
                                                                     confirmBookingRequest
                                                                 )
 
-                                                                // Observe confirmBookingViewModel result
                                                                 confirmBookingViewModel.dataResult.observe(
                                                                     lifecycleOwner
                                                                 ) { confirmResult ->
@@ -415,10 +380,6 @@ fun PopupCredit(
                                                                         }
 
                                                                         is DataResult.Loading -> {
-                                                                            Log.d(
-                                                                                "BOOKING",
-                                                                                "Confirming booking..."
-                                                                            )
                                                                         }
                                                                     }
                                                                 }
@@ -429,10 +390,6 @@ fun PopupCredit(
                                                             }
 
                                                             is DataResult.Loading -> {
-                                                                Log.d(
-                                                                    "PAYMENT",
-                                                                    "Processing payment..."
-                                                                )
                                                             }
                                                         }
                                                     }
@@ -440,10 +397,6 @@ fun PopupCredit(
 
                                                 is DataResult.Failure -> {
                                                     isLoading = false
-                                                    Log.e(
-                                                        "PAYMENT",
-                                                        "PaymentPayAvoir failed: ${paymentResult.errorMessage}"
-                                                    )
                                                 }
                                             }
                                         }
@@ -467,7 +420,7 @@ fun PopupCredit(
                             modifier = Modifier.padding(top = 8.dp)
                         )
                     }
-                    Spacer(modifier = Modifier.height(24.dp)) // Increased spacer height
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     TextButton(
                         onClick = {
@@ -485,7 +438,7 @@ fun PopupCredit(
                             fontSize = 12.sp,
                         )
                     }
-                    Spacer(modifier = Modifier.height(24.dp)) // Increased spacer height
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -494,12 +447,12 @@ fun PopupCredit(
                             horizontalArrangement = Arrangement.Center
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Lock, // Confidentiality icon
+                                imageVector = Icons.Default.Lock,
                                 contentDescription = "Confidentialité",
                                 tint = Color(0xFF0054D8),
-                                modifier = Modifier.size(16.dp) // Adjust size as needed
+                                modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Le paiement par compte Padelium est géré par la société DevoPro",
                                 fontSize = 10.sp,
@@ -508,18 +461,18 @@ fun PopupCredit(
                             )
                         }
 
-                        Spacer(modifier = Modifier.height(4.dp)) // Space between the two rows
+                        Spacer(modifier = Modifier.height(4.dp))
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Icon(
-                                imageVector = Icons.Default.AttachMoney, // Icon representing payment (you can replace with a more suitable one)
+                                imageVector = Icons.Default.AttachMoney,
                                 contentDescription = "Paiement sécurisé",
                                 tint = Color(0xFF0054D8),
                                 modifier = Modifier.size(16.dp)
                             )
-                            Spacer(modifier = Modifier.width(4.dp)) // Space between icon and text
+                            Spacer(modifier = Modifier.width(4.dp))
                             Text(
                                 text = "Ce mode de paiement n'engendre pas de frais supplémentaires",
                                 fontSize = 10.sp,
@@ -528,7 +481,7 @@ fun PopupCredit(
                             )
                         }
                     }
-                    Spacer(modifier = Modifier.height(16.dp)) // Increased spacer height
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -552,7 +505,7 @@ fun PopupCredit(
                         progress = animatedProgress,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(top = 16.dp), // Adjusted padding for better visibility
+                            .padding(top = 16.dp),
                         color = animatedColor
                     )
                 }

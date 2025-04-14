@@ -1,13 +1,10 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
-import android.util.Log
-import androidx.compose.runtime.State
-import androidx.compose.runtime.mutableStateOf
+
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.google.gson.Gson
 import com.padelium.data.dto.GetBookingResponseDTO
 import com.padelium.data.mappers.GetBookingMapper
 import com.padelium.domain.dataresult.DataResultBooking
@@ -17,12 +14,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
-import java.time.format.DateTimeParseException
 import javax.inject.Inject
 
 
@@ -43,7 +38,6 @@ class GetBookingViewModel @Inject constructor(
 
     private val _selectedBookings = MutableLiveData<List<GetBookingResponseDTO>>(emptyList())
 
-    // New navigation event to trigger navigation in UI
     val navigationEvent = MutableLiveData<String>()
 
     fun updateBookings(newBookings: List<GetBookingResponseDTO>) {
@@ -83,7 +77,6 @@ class GetBookingViewModel @Inject constructor(
                     }
 
                     is DataResultBooking.Failure -> {
-                        // Handle failure based on error code
                         if (result.errorCode != 200) {
                             // Trigger the navigation event if errorCode is not 200
                             navigationEvent.value = "server_error_screen"
@@ -93,7 +86,6 @@ class GetBookingViewModel @Inject constructor(
                     }
 
                     else -> {
-                        // Handle other cases (if needed)
                         DataResultBooking.Failure(exception = null, errorCode = null, errorMessage = "")
                     }
                 }
@@ -106,8 +98,6 @@ class GetBookingViewModel @Inject constructor(
             }
         }
     }
-
-
     private fun isAvailable(timeSlot: TimeSlot): Boolean {
         val bookedSlots = _selectedBookings.value?.flatMap { booking ->
             booking.plannings.mapNotNull { planning ->
@@ -117,10 +107,6 @@ class GetBookingViewModel @Inject constructor(
 
         return bookedSlots.none { it.date == timeSlot.date && it.time == timeSlot.time }
     }
-
-
-
-
     private fun parseTimeSlot(fromStr: String, date: LocalDate): TimeSlot? {
         return try {
             val localTime =
@@ -158,10 +144,7 @@ class GetBookingViewModel @Inject constructor(
             }
         }
     }
-    fun resetTimeSlots() {
-        _filteredTimeSlots.value = emptyList()
-        _parsedTimeSlotss.value = emptyList()
-    }
+
 }
 
 data class TimeSlot(

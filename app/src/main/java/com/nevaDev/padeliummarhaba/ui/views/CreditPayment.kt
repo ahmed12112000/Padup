@@ -1,7 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
-import android.util.Log
-import androidx.compose.foundation.BorderStroke
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -19,7 +18,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.Button
@@ -27,10 +25,7 @@ import androidx.compose.material.ButtonDefaults
 import androidx.compose.material.Card
 import androidx.compose.material.CircularProgressIndicator
 import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
 import androidx.compose.material.Text
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -39,26 +34,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.nevaDev.padeliummarhaba.viewmodels.CreditPayViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetPacksViewModel
 import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.CreditPayResponse
-import com.padelium.domain.dto.GetPacksResponse
-import com.padelium.domain.dto.GetReservationResponse
 import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Locale
@@ -71,15 +61,31 @@ fun CreditPayment(
 
 ) {
     val packsData by viewModel.packsData.observeAsState(DataResult.Loading)
+    val CreditsData by viewModel2.CreditsData.observeAsState()
+    val Credits = remember { mutableStateOf<List<CreditPayResponse>>(emptyList()) }
+    val reservations = Credits.value.filter { it.userAvoirTypeName.equals("Réservation", ignoreCase = true) }
+    val alimentations = Credits.value.filter { it.userAvoirTypeName.equals("Alimentation", ignoreCase = true) }
+    val totalReservations = reservations.sumOf { it.amount }
+    val totalAlimentations = alimentations.sumOf { it.amount }
+    val balance = totalAlimentations + totalReservations
 
+
+
+    LaunchedEffect(CreditsData) {
+        if (CreditsData is DataResultBooking.Success) {
+            Credits.value = (CreditsData as DataResultBooking.Success<List<CreditPayResponse>>).data
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel2.GetCreditPay()
+    }
     when (val result = packsData) {
         is DataResult.Loading -> {
             CircularProgressIndicator()
         }
 
         is DataResult.Success -> {
-            // Show the data (e.g., packs)
-            val packs = result.data as List<GetPacksResponse>
 
         }
 
@@ -89,31 +95,6 @@ fun CreditPayment(
             }
         }
     }
-
-    val CreditsData by viewModel2.CreditsData.observeAsState()
-    val Credits = remember { mutableStateOf<List<CreditPayResponse>>(emptyList()) }
-
-
-    // On data change, update reservations list
-    LaunchedEffect(CreditsData) {
-        if (CreditsData is DataResultBooking.Success) {
-            Credits.value = (CreditsData as DataResultBooking.Success<List<CreditPayResponse>>).data
-        }
-    }
-
-    // Fetch reservations when screen is launched
-    LaunchedEffect(Unit) {
-        viewModel2.GetCreditPay()
-    }
-    val reservations = Credits.value.filter { it.userAvoirTypeName.equals("Réservation", ignoreCase = true) }
-    val alimentations = Credits.value.filter { it.userAvoirTypeName.equals("Alimentation", ignoreCase = true) }
-
-
-    val totalReservations = reservations.sumOf { it.amount }
-    val totalAlimentations = alimentations.sumOf { it.amount }
-    val balance = totalAlimentations + totalReservations
-
-
     Column(modifier = Modifier.fillMaxSize()) {
         Box(
             modifier = Modifier
@@ -194,7 +175,7 @@ fun CreditPayment(
                         modifier = Modifier
                             .padding(start = 3.dp)
                             .height(50.dp)
-                            .fillMaxWidth(0.8f) // Increased width to prevent text cut-off
+                            .fillMaxWidth(0.8f)
                             .border(1.dp, Color(0xFF0054D8), RoundedCornerShape(13.dp)),
                         shape = RoundedCornerShape(15.dp)
                     ) {
@@ -202,7 +183,7 @@ fun CreditPayment(
                             text = "Charger votre compte",
                             fontSize = 15.sp,
                             fontWeight = FontWeight.Bold,
-                            modifier = Modifier.wrapContentWidth(), // Ensures text is fully displayed
+                            modifier = Modifier.wrapContentWidth(),
                             textAlign = TextAlign.Center
                         )
                     }
@@ -211,7 +192,6 @@ fun CreditPayment(
                 Spacer(modifier = Modifier.height(16.dp))
 
 
-                // Display Reservation List
                 Text(
                     text = "Historiques",
                     fontSize = 24.sp,
@@ -238,8 +218,7 @@ fun CreditPayment(
     }
 }
 fun parseDate(dateString: String): Long {
-    // Adjust the date format according to your date string format
-    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) // Example format
+    val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
     return dateFormat.parse(dateString)?.time ?: 0L
 }
 
@@ -263,7 +242,6 @@ fun CreditCard(credit: CreditPayResponse) {
                     modifier = Modifier.weight(1f)
                 ) {
                     Box(modifier = Modifier.size(50.dp)) {
-                        // Use exact string comparison instead of `lowercase()`
                         val iconRes = when (credit.userAvoirTypeName) {
                             "Réservation" -> R.drawable.raquettebl
                             "Alimentation" -> R.drawable.raquettebl
@@ -285,9 +263,8 @@ fun CreditCard(credit: CreditPayResponse) {
                         horizontalAlignment = Alignment.Start,
                         modifier = Modifier.weight(1f)
                     ) {
-                        // Display userAvoirTypeName correctly
                         Text(
-                            text = credit.userAvoirTypeName, // Keep original casing
+                            text = credit.userAvoirTypeName,
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp,
                             maxLines = 1,
@@ -297,7 +274,6 @@ fun CreditCard(credit: CreditPayResponse) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Display Date
                         Text(
                             text = credit.createdStr,
                             fontWeight = FontWeight.Normal,
@@ -309,7 +285,6 @@ fun CreditCard(credit: CreditPayResponse) {
                         )
                         Spacer(modifier = Modifier.height(4.dp))
 
-                        // Show Reference only for "Réservation"
                         if (credit.userAvoirTypeName == "Réservation") {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -336,7 +311,7 @@ fun CreditCard(credit: CreditPayResponse) {
                     }
                 }
 
-                Spacer(modifier = Modifier.width(16.dp)) // Reduce extra space
+                Spacer(modifier = Modifier.width(16.dp))
 
                 Column(
                     horizontalAlignment = Alignment.End
@@ -344,12 +319,9 @@ fun CreditCard(credit: CreditPayResponse) {
                     val formattedAmount = if (credit.amount.compareTo(BigDecimal.ZERO) == 0) {
                         "0"
                     } else {
-                        // Check if the amount has no decimal part
                         if (credit.amount.stripTrailingZeros().scale() <= 0) {
-                            // Display without decimals if it's a whole number
                             credit.amount.toBigInteger().toString()
                         } else {
-                            // Otherwise, format with 2 decimal places
                             String.format("%.2f", credit.amount)
                         }
                     }

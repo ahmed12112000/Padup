@@ -1,22 +1,17 @@
 package com.nevaDev.padeliummarhaba.viewmodels
 
-import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nevaDev.padeliummarhaba.models.EstablishmentDTO
 import com.padelium.data.dto.SearchListResponseDTO
 import com.padelium.data.mappers.SearchListMapper
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.usecases.SearchListUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.ZonedDateTime
 import javax.inject.Inject
+
+
 @HiltViewModel
 class SearchListViewModel @Inject constructor(
     private val searchListUseCase: SearchListUseCase,
@@ -24,7 +19,7 @@ class SearchListViewModel @Inject constructor(
 ) : ViewModel() {
 
     val dataResultBooking = MutableLiveData<DataResultBooking<List<SearchListResponseDTO>>>()
-    val navigateToErrorScreen = MutableLiveData<Boolean>() // LiveData for navigation signal
+    val navigateToErrorScreen = MutableLiveData<Boolean>()
 
     fun searchList(key: String) {
         dataResultBooking.value = DataResultBooking.Loading
@@ -39,10 +34,8 @@ class SearchListViewModel @Inject constructor(
                 }
 
                 is DataResultBooking.Failure -> {
-                    // Check errorCode and navigate if necessary
                     result.errorCode?.let { errorCode ->
                         if (errorCode != 200) {
-                            // Trigger the navigation signal
                             navigateToErrorScreen.value = true
                         }
                     }

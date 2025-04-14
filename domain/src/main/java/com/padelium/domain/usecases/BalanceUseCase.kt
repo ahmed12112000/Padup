@@ -1,6 +1,5 @@
 package com.padelium.domain.usecases
 
-import android.util.Log
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.repositories.IBalanceRepository
 import javax.inject.Inject
@@ -12,10 +11,9 @@ class BalanceUseCase @Inject constructor(private val balanceRepository: IBalance
         return try {
             val response = balanceRepository.Balance(Id)
             if (response.isSuccessful) {
-                val balance = response.body() // Directly get BigDecimal value
+                val balance = response.body()
                 if (balance != null) {
-                    Log.e("TAG", "Balance result: $balance") // Log actual balance
-                    DataResult.Success(balance) // Return BigDecimal directly
+                    DataResult.Success(balance)
                 } else {
                     DataResult.Failure(null, response.code(), "Balance response is null")
                 }
