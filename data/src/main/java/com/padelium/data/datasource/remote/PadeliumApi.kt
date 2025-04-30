@@ -126,6 +126,10 @@ class PadeliumApi @Inject constructor(
         val requestBody = email.toRequestBody("application/json".toMediaTypeOrNull())
         return endPoint.GetPassword(requestBody)
     }
+    suspend fun DeleteAccount(email: String): Response<Void> {
+        val requestBody = email.toRequestBody("application/json".toMediaTypeOrNull())
+        return endPoint.DeleteAccount(requestBody)
+    }
     suspend fun ResetPassword(email: String): Response<Void> {
         val requestBody = email.toRequestBody("application/json".toMediaTypeOrNull())
         return endPoint.ResetPassword(requestBody)

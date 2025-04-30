@@ -60,6 +60,10 @@ interface PadeliumEndPoint {
     suspend fun signup(@Body request: SignupRequestDTO): Response<Void>
 
     @Headers("Content-Type: application/json")
+    @POST("/api/account/dis/delete")
+    suspend fun DeleteAccount(@Body email: RequestBody): Response<Void>
+
+    @Headers("Content-Type: application/json")
     @POST("/api/logout")
     suspend fun logoutUser(@Body request: logoutRequestDTO): Response<ResponseBody>
 

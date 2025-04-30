@@ -97,7 +97,7 @@ fun SplashScreen() {
                     Spacer(modifier = Modifier.height(3.dp))
 
                     Text(
-                        text = "v1.0.0.40",
+                        text = "v1.0.0.41",
                         fontSize = 10.sp,
                         color = Color.White
                     )

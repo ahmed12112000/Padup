@@ -1,6 +1,7 @@
 package com.padelium.data.repositoriesImp.RepositoryImp
 
 import com.padelium.data.datasource.remote.PadeliumApi
+import com.padelium.domain.repositories.IDeleteAccountRepository
 import com.padelium.domain.repositories.IGetPasswordRepository
 import com.padelium.domain.repositories.IResetPasswordRepository
 import retrofit2.Response
@@ -22,5 +23,14 @@ class ResetPasswordRepositoryImp @Inject constructor(
         return api.ResetPassword(email)
     }
 }
+
+class DeleteAccountRepositoryImp @Inject constructor(
+    private val api: PadeliumApi
+) : IDeleteAccountRepository {
+    override suspend fun DeleteAccount(email: String): Response<Void> {
+        return api.DeleteAccount(email)
+    }
+}
+
 
 

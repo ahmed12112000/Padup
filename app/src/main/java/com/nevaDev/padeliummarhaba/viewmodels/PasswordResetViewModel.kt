@@ -5,6 +5,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.usecases.DeleteAccountUseCase
 import com.padelium.domain.usecases.GetPasswordUseCase
 import com.padelium.domain.usecases.ResetPasswordUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -60,3 +61,26 @@ class ResetPasswordViewModel @Inject constructor(
     }
 }
 
+@HiltViewModel
+class DeleteAccountViewModel @Inject constructor(
+    private val deleteAccountUseCase: DeleteAccountUseCase
+) : ViewModel() {
+
+    val dataResult = MutableLiveData<DataResult>()
+
+    /**
+     * Start processing payment
+     */
+    fun DeleteAccount(email: String) {
+        dataResult.value = DataResult.Loading
+        viewModelScope.launch {
+            val result = deleteAccountUseCase.DeleteAccount(email)
+            dataResult.value = result
+            when (result) {
+                is DataResult.Success ->{}
+                is DataResult.Failure -> {}
+                else -> {}
+            }
+        }
+    }
+}

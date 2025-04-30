@@ -44,6 +44,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import coil.compose.rememberImagePainter
 import com.nevaDev.padeliummarhaba.di.SessionManager
+import com.nevaDev.padeliummarhaba.viewmodels.DeleteAccountViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ProfileViewModel
 import com.nevadev.padeliummarhaba.R
@@ -60,8 +61,8 @@ fun ProfileScreen(
     navController: NavController,
     viewModel: GetProfileViewModel = hiltViewModel(),
     viewModel2: ProfileViewModel = hiltViewModel(),
-    sessionManager: SessionManager = SessionManager.getInstance(LocalContext.current)
-
+    sessionManager: SessionManager = SessionManager.getInstance(LocalContext.current),
+    viewModel3: DeleteAccountViewModel = hiltViewModel(),
 ) {
     var activated by remember { mutableStateOf(false) }
     var authorities by remember { mutableStateOf("") }
@@ -77,6 +78,7 @@ fun ProfileScreen(
     var profileImageUri by remember { mutableStateOf<Uri?>(null) }
     var showToast by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
 
     fun isFormValid(): Boolean {
@@ -388,6 +390,79 @@ fun ProfileScreen(
                             )
 
                     }
+                    Spacer(modifier = Modifier.height(20.dp))
+
+
+                    Button(
+                        onClick = {
+                            showDeleteDialog = true
+
+
+
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                           ,
+                        colors = ButtonDefaults.buttonColors(
+                            backgroundColor = Color.Red
+                        ),
+                        elevation = ButtonDefaults.elevation(0.dp)
+
+
+                    ) {
+                        Text(
+                            text = "Supprimer Compte",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            color = Color.White
+
+                        )
+                    }
+                    if (showDeleteDialog) {
+                        AlertDialog(
+                            onDismissRequest = {
+                                showDeleteDialog = false
+                            },
+                            title = {
+                                Text(text = "Suppression du Compte", fontWeight = FontWeight.Bold)
+                            },
+                            text = {
+                                Text("Voulez-vous vraiment supprimer votre compte !!")
+                            },
+                            confirmButton = {
+                                Button(
+                                    onClick = {
+                                        viewModel3.DeleteAccount(email)
+                                        sessionManager.logout()
+                                        navController.navigate("main_screen") {
+                                            popUpTo("profile") { inclusive = true }
+                                        }
+                                        toastMessage = "Compte supprimé avec succès."
+                                        showToast = true
+                                        showDeleteDialog = false
+
+                                    },
+                                    colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
+                                ) {
+                                    Text("Supprimer", color = Color.White)
+                                }
+                            },
+                            dismissButton = {
+                                OutlinedButton(
+                                    onClick = {
+                                        showDeleteDialog = false
+                                    }
+                                ) {
+                                    Text("Annuler", color = Color.Black)
+                                }
+                            }
+                        )
+                    }
+
                 }
             }
         }
