@@ -103,6 +103,8 @@ fun AppNavHost(
                 val bookingId = backStackEntry.arguments?.getString("bookingId")
                 val playerIds = backStackEntry.arguments?.getString("playerIds")
                 val playerIdList: List<Long> = playerIds?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
+                val sharedExtras: List<Long> = playerIds?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
+                val privateExtras: List<Long> = playerIds?.split(",")?.mapNotNull { it.toLongOrNull() } ?: emptyList()
 
                 if (showPopup) {
                     PopupCredit(
@@ -129,7 +131,9 @@ fun AppNavHost(
                         selectedReservation = ReservationOption(name, time, price, mappedBookingsJson),
                         saveBookingViewModel = hiltViewModel(),
                         bookingId= bookingId,
-                        playerIds = playerIdList
+                        playerIds = playerIdList,
+                        sharedExtrass = sharedExtras,
+                        privateExtrass = privateExtras,
                     )
                 }
             }

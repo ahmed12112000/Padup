@@ -6,7 +6,7 @@ import java.time.Instant
 import java.time.LocalDate
 
 data class InitBookingResponse(
-
+    val establishmentDTO: EstablishmentDTO,
     val establishmentPictureDTO: List<EstablishmentPictureDTO>,
     val amount: BigDecimal,
     val decimalNumber: Int,
@@ -26,7 +26,7 @@ data class InitBookingResponse(
     val bookingAnnulationDTOSet: List<bookingAnnulationDTOSet>,
     val secondAmount: BigDecimal,
     val secondAamount: BigDecimal,
-    val happyHours: String,
+    val happyHours: List<HappyHourss>?,
     val withSecondPrice: Boolean,
     val reductionAmount: BigDecimal,
     val reductionSecondAmount: BigDecimal,
@@ -45,7 +45,7 @@ data class InitBookingResponse(
     val establishmentPacksId: Long,
     val plannings: List<PlanningDTOo>,
     val users: List<Long>,
-    val Client:Boolean,
+    val client:Boolean,
     val secondReduction: BigDecimal,
     val aamount: BigDecimal,
 

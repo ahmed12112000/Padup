@@ -3,6 +3,7 @@ package com.nevaDev.padeliummarhaba.ui.views
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
+import android.util.Log
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -59,6 +60,17 @@ import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.util.Calendar
 
+data class ApiChainState(
+    val hasStarted: Boolean = false,
+    val keyFetched: Boolean = false,
+    val searchListFetched: Boolean = false,
+    val initDataFetched: Boolean = false,
+    val initBookingFetched: Boolean = false,
+    val bookingDataFetched: Boolean = false,
+    val currentStep: Int = 0,
+    val currentDate: LocalDate? = null // Track which date this state is for
+)
+
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun ReservationScreen(
@@ -82,165 +94,261 @@ fun ReservationScreen(
     val selectedDate = remember { mutableStateOf(LocalDate.now()) }
     var isLoading by remember { mutableStateOf(false) }
     val selectedTimeSlot = remember { mutableStateOf<String?>(null) }
-    var hasCompletedFetch by remember { mutableStateOf(false) }
-    var hasFetchedInitBooking by remember { mutableStateOf(false) }
-    var hasFetchedSearchList by remember { mutableStateOf(false) }
-    var hasCalledInitBooking by remember { mutableStateOf(false) }
+
+    // API call tracking states
+    var hasStartedApiChain by remember { mutableStateOf(false) }
+    var keyFetched by remember { mutableStateOf(false) }
+    var searchListFetched by remember { mutableStateOf(false) }
+    var initDataFetched by remember { mutableStateOf(false) }
+    var initBookingFetched by remember { mutableStateOf(false) }
+    var bookingDataFetched by remember { mutableStateOf(false) }
+
+    // UI states
     var hasNoData by remember { mutableStateOf(false) }
     var hasAvailableReservations by remember { mutableStateOf(false) }
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     var previousSelectedDate by remember { mutableStateOf<LocalDate?>(null) }
-    var hasFetchedBooking by remember { mutableStateOf(false) }
 
-
-    fun fetchInitBooking() {
-        reservationKey.value?.let { key ->
-            if (!hasFetchedInitBooking) {
-                hasFetchedInitBooking = true
-                val initBookingRequest = InitBookingRequest(key = key)
-                viewModel4.InitBooking(initBookingRequest)
-            }
-        }
+    var apiState by remember {
+        mutableStateOf(
+            ApiChainState(
+                hasStarted = false,
+                keyFetched = false,
+                searchListFetched = false,
+                initDataFetched = false,
+                initBookingFetched = false,
+                bookingDataFetched = false,
+                currentStep = 0,
+                currentDate = null
+            )
+        )
     }
 
-    fun fetchSearchList() {
-        reservationKey.value?.let { key ->
-            if (!hasFetchedSearchList) {
-                hasFetchedSearchList = true
-                viewModel3.searchList(key)
-            }
-        }
-    }
-
-    fun  fetchInitData() {
-        reservationKey.value?.let { key ->
-            if (!hasCompletedFetch) {
-                hasCompletedFetch = true
-                viewModel2.GetInit(key)
-            }
-        }
-    }
-    fun fetchBookingData() {
-        reservationKey.value?.let { key ->
-            hasFetchedBooking = true
-            getBookingViewModel.getBooking(key, selectedDate.value)
-        }
-    }
-    fun handleFailure(errorCode: Int?) {
+    fun resetApiStates() {
+        apiState = ApiChainState(
+            hasStarted = false,
+            keyFetched = false,
+            searchListFetched = false,
+            initDataFetched = false,
+            initBookingFetched = false,
+            bookingDataFetched = false,
+            currentStep = 0,
+            currentDate = null
+        )
+        reservationKey.value = null
+        hasNoData = false
+        hasAvailableReservations = false
+        fetchJob?.cancel()
         isLoading = false
+
+
+    }
+
+    fun handleFailure(errorCode: Int?, step: String) {
+        Log.e("ReservationScreen", "$step - Error occurred with code: $errorCode")
+        isLoading = false
+        resetApiStates()
+
+        // Navigate to error screen for any non-successful HTTP status codes
         errorCode?.let {
-            if (it != 200) {
+            if (it !in 200..299) {  // Any non-2xx status code is an error
+                Log.e("ReservationScreen", "$step - Navigating to error screen due to error code: $it")
                 navController.navigate("server_error_screen")
             }
         }
     }
-    fun resetData() {
-        reservationKey.value = null
-        hasCompletedFetch = false
-        hasFetchedInitBooking = false
-        hasFetchedSearchList = false
-        hasCalledInitBooking = false
-        hasFetchedBooking = false
-        isLoading = false
-        fetchJob?.cancel()
 
-    }
-    fun fetchReservationData(date: LocalDate) {
-        if (isLoading) return
-        resetData()
+    fun startApiChain(date: LocalDate) {
+        Log.d("ReservationScreen", "Starting API chain for date: $date")
+
+        // Always reset when starting a new chain
+        resetApiStates()
+
+        apiState = apiState.copy(
+            hasStarted = true,
+            currentStep = 1,
+            currentDate = date
+        )
+        isLoading = true
 
         val formattedDate = date.format(DateTimeFormatter.ISO_LOCAL_DATE) + " 00:00"
         val fetchKeyRequest = FetchKeyRequest(dateTime = formattedDate)
 
-        isLoading = true
+        // Step 1: Get reservation key
         viewModel.getReservationKey(fetchKeyRequest, date)
     }
 
+    // Handle date selection
     LaunchedEffect(selectedDate.value) {
         if (selectedDate.value != previousSelectedDate) {
-            if (selectedDate.value.dayOfMonth in 11..22) {
-            }
-            fetchReservationData(selectedDate.value)
+            Log.d("ReservationScreen", "Date changed from $previousSelectedDate to ${selectedDate.value}")
+            startApiChain(selectedDate.value)
             previousSelectedDate = selectedDate.value
         }
     }
 
+    // Step 1: KeyViewModel observer - triggers SearchList
     viewModel.dataResultBooking.observe(lifecycleOwner) { result ->
-        when (result) {
-            is DataResultBooking.Success -> {
-                reservationKey.value = result.data.key
-                isLoading = false
-                onFetchSuccess()
-                fetchSearchList()
-            }
-            is DataResultBooking.Failure -> handleFailure(result.errorCode)
+        Log.d("ReservationScreen", "Step 1 - KeyViewModel observer triggered - currentStep: ${apiState.currentStep}, currentDate: ${apiState.currentDate}")
 
-            is DataResultBooking.Loading -> isLoading = true
+        // Only process if this is for the current date being processed
+        if (apiState.currentDate != selectedDate.value) {
+            Log.d("ReservationScreen", "Step 1 - Ignoring result for old date: ${apiState.currentDate}, current: ${selectedDate.value}")
+            return@observe
         }
-    }
 
-    viewModel3.dataResultBooking.observe(lifecycleOwner) { result ->
         when (result) {
             is DataResultBooking.Success -> {
-                fetchInitData()
+                if (apiState.currentStep == 1 && !apiState.keyFetched) {
+                    Log.d("ReservationScreen", "Step 1 - KeyViewModel SUCCESS")
+                    apiState = apiState.copy(keyFetched = true, currentStep = 2)
+                    reservationKey.value = result.data.key
+                    onFetchSuccess()
 
-                viewModel2.GetInit(reservationKey.value ?: return@observe).also {
-                    fetchInitBooking()
+                    // Step 2: Call SearchList
+                    reservationKey.value?.let { key ->
+                        Log.d("ReservationScreen", "Step 1 - Calling SearchList with key: $key")
+                        viewModel3.searchList(key)
+                    }
                 }
             }
-            is DataResultBooking.Failure -> handleFailure(result.errorCode)
-            is DataResultBooking.Loading -> isLoading = true
-        }
-    }
-
-    viewModel3.navigateToErrorScreen.observe(lifecycleOwner) { shouldNavigate ->
-        if (shouldNavigate) {
-            navController.navigate("server_error_screen")
-        }
-    }
-    viewModel4.dataResult1.observe(lifecycleOwner) { result ->
-        when (result) {
-            is DataResult.Success -> {
-                fetchBookingData()
+            is DataResultBooking.Failure -> {
+                if (apiState.currentStep == 1) {
+                    handleFailure(result.errorCode, "Step 1 - KeyViewModel")
+                }
             }
-            is DataResult.Failure -> handleFailure(result.errorCode)
-            is DataResult.Loading -> isLoading = true
+            is DataResultBooking.Loading -> {
+                if (apiState.currentStep == 1) {
+                    isLoading = true
+                }
+            }
         }
     }
 
-    LaunchedEffect(reservationKey.value) {
-        fetchBookingData()
-    }
+    // Step 2: SearchListViewModel observer - triggers InitBooking
+    viewModel3.dataResultBooking.observe(lifecycleOwner) { result ->
+        Log.d("ReservationScreen", "Step 2 - SearchListViewModel observer triggered - currentStep: ${apiState.currentStep}, currentDate: ${apiState.currentDate}")
 
-    getBookingViewModel.dataResultBooking.observe(lifecycleOwner) { result ->
+        // Only process if this is for the current date being processed
+        if (apiState.currentDate != selectedDate.value) {
+            Log.d("ReservationScreen", "Step 2 - Ignoring result for old date: ${apiState.currentDate}, current: ${selectedDate.value}")
+            return@observe
+        }
+
         when (result) {
             is DataResultBooking.Success -> {
-                val bookingResponses = result.data as? List<GetBookingResponseDTO>
+                if (apiState.currentStep == 2 && !apiState.searchListFetched) {
+                    Log.d("ReservationScreen", "Step 2 - SearchListViewModel SUCCESS")
+                    apiState = apiState.copy(searchListFetched = true, currentStep = 3) // ← Step 3 now
 
+                    // Step 3: Call InitBooking directly (skipping GetInit)
+                    reservationKey.value?.let { key ->
+                        Log.d("ReservationScreen", "Step 3 - Calling InitBooking with key: $key")
+                        val initBookingRequest = InitBookingRequest(key = key)
 
-                if (bookingResponses != null && bookingResponses.isNotEmpty()) {
-                    val plannings = bookingResponses.flatMap { it.plannings }
+                        // Update to step 4 BEFORE calling InitBooking
+                        apiState = apiState.copy(currentStep = 4)
 
-                    hasAvailableReservations = plannings.isNotEmpty()
+                        viewModel4.InitBooking(initBookingRequest)
+                    }
+                }
+            }
+            is DataResultBooking.Failure -> {
+                if (apiState.currentStep == 2) {
+                    handleFailure(result.errorCode, "Step 2 - SearchListViewModel")
+                }
+            }
+            is DataResultBooking.Loading -> {
+                if (apiState.currentStep == 2) {
+                    isLoading = true
+                }
+            }
+        }
+    }
 
-                    hasNoData = !hasAvailableReservations
+    // Step 4: InitBookingViewModel observer - triggers GetBooking
+    viewModel4.dataResult.observe(lifecycleOwner) { result ->
+        Log.d("ReservationScreen", "Step 4 - InitBookingViewModel observer triggered - currentStep: ${apiState.currentStep}, currentDate: ${apiState.currentDate}")
 
-                } else {
+        // Only process if this is for the current date being processed
+        if (apiState.currentDate != selectedDate.value) {
+            Log.d("ReservationScreen", "Step 4 - Ignoring result for old date: ${apiState.currentDate}, current: ${selectedDate.value}")
+            return@observe
+        }
+
+        when (result) {
+            is DataResultBooking.Success -> {
+                if (apiState.currentStep == 4 && !apiState.initBookingFetched) {
+                    Log.d("ReservationScreen", "Step 4 - InitBookingViewModel SUCCESS")
+                    apiState = apiState.copy(initBookingFetched = true, currentStep = 5)
+
+                    // Step 5: Call GetBooking
+                    reservationKey.value?.let { key ->
+                        Log.d("ReservationScreen", "Step 5 - Calling GetBooking with key: $key, date: ${selectedDate.value}")
+                        getBookingViewModel.getBooking(key, selectedDate.value)
+                    } ?: Log.e("ReservationScreen", "Step 5 - reservationKey is null!")
+                }
+            }
+            is DataResultBooking.Failure -> {
+                if (apiState.currentStep == 4) {
+                    Log.e("ReservationScreen", "Step 4 - InitBookingViewModel FAILURE: ${result.errorCode}")
+                    handleFailure(result.errorCode, "Step 4 - InitBookingViewModel")
+                }
+            }
+            is DataResultBooking.Loading -> {
+                if (apiState.currentStep == 4) {
+                    isLoading = true
+                }
+            }
+        }
+    }
+
+    // Step 5: GetBookingViewModel observer - final step
+    getBookingViewModel.dataResultBooking.observe(lifecycleOwner) { result ->
+        Log.d("ReservationScreen", "Step 5 - GetBookingViewModel observer triggered - currentStep: ${apiState.currentStep}, currentDate: ${apiState.currentDate}")
+
+        // Only process if this is for the current date being processed
+        if (apiState.currentDate != selectedDate.value) {
+            Log.d("ReservationScreen", "Step 5 - Ignoring result for old date: ${apiState.currentDate}, current: ${selectedDate.value}")
+            return@observe
+        }
+
+        when (result) {
+            is DataResultBooking.Success -> {
+                if (apiState.currentStep == 5 && !apiState.bookingDataFetched) {
+                    Log.d("ReservationScreen", "Step 5 - GetBookingViewModel SUCCESS")
+                    apiState = apiState.copy(bookingDataFetched = true, currentStep = 6)
+                    isLoading = false
+
+                    val bookingResponses = result.data as? List<GetBookingResponseDTO>
+
+                    if (bookingResponses != null && bookingResponses.isNotEmpty()) {
+                        val plannings = bookingResponses.flatMap { it.plannings }
+                        hasAvailableReservations = plannings.isNotEmpty()
+                        hasNoData = !hasAvailableReservations
+                        Log.d("ReservationScreen", "Step 5 - Found ${plannings.size} plannings for date: ${selectedDate.value}")
+                    } else {
+                        hasNoData = true
+                        hasAvailableReservations = false
+                        Log.d("ReservationScreen", "Step 5 - No booking responses found for date: ${selectedDate.value}")
+                    }
+                }
+            }
+            is DataResultBooking.Failure -> {
+                if (apiState.currentStep == 5) {
+                    Log.e("ReservationScreen", "Step 5 - GetBookingViewModel FAILURE: ${result.errorCode}")
+                    handleFailure(result.errorCode, "Step 5 - GetBookingViewModel")
                     hasNoData = true
                     hasAvailableReservations = false
                 }
             }
-            is DataResultBooking.Failure -> {
-                handleFailure(result.errorCode)
-                hasNoData = true
-                hasAvailableReservations = false
+            is DataResultBooking.Loading -> {
+                if (apiState.currentStep == 5) {
+                    isLoading = true
+                }
             }
-            is DataResultBooking.Loading -> isLoading = true
         }
     }
-
-
-
 
     Column(modifier = Modifier.fillMaxSize().padding(8.dp)) {
         Row(
@@ -263,14 +371,11 @@ fun ReservationScreen(
             selectedDate = selectedDate.value,
             onDateSelected = { newDate ->
                 selectedDate.value = newDate
-                resetData()
-                fetchReservationData(newDate)
             }
         )
 
-
-
         Spacer(modifier = Modifier.height(10.dp))
+
         if (hasNoData) {
             Box(
                 modifier = Modifier
@@ -288,11 +393,10 @@ fun ReservationScreen(
         }
     }
 
-
     if (!showPaymentSection) {
         Spacer(modifier = Modifier.height(10.dp))
 
- if (hasAvailableReservations) {
+        if (hasAvailableReservations) {
             ReservationOptions(
                 onReservationSelected = { selectedReservation.value = it },
                 key = reservationKey.value,
@@ -304,7 +408,6 @@ fun ReservationScreen(
                 getReservationViewModel = getReservationViewModel
             )
         }
-
     }
 }
 
@@ -388,6 +491,7 @@ fun ReservationSummary(
     totalExtrasCost: Double
 ) {
 
+    Log.d("totalExtrCost","$totalExtrasCost")
 
     val totalAmountSelected = adjustedAmount + totalExtrasCost
     onTotalAmountCalculated(totalAmountSelected)

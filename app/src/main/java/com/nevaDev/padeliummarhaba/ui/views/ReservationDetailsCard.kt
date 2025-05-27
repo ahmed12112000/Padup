@@ -638,15 +638,18 @@ fun ExtrasSection(
                                     privateExtra.amount.toString(),
                                     privateExtra.currencyId.toInt()
                                 )
-                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() } * 4
                                 onExtrasUpdate(selectedExtras, totalExtrasCost)
+                                Log.d("ahmed","$totalExtrasCost")
+                                Log.d("money","$totalExtrasCost")
+
                             },
                             onRemoveClick = { extraPrice ->
                                 privateList.value.remove(privateExtra.id)
                                 findTermsViewModel.updatePrivateExtras(privateList.value)
                                 selectedExtras =
                                     selectedExtras.filterNot { it.first == privateExtra.name }
-                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }
+                                val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() } * 4
                                 onExtrasUpdate(selectedExtras, totalExtrasCost)
                             }
                         )
@@ -684,10 +687,10 @@ fun ExtrasSection(
                                     4 -> (extraPrice / 1.0).toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
                                     else -> extraPrice.toBigDecimal().setScale(2, RoundingMode.HALF_UP).toDouble()
                                 }
-
+                            val sharedamountt = sharedAmount * 4
                                 selectedExtras += Triple(
                                     sharedExtra.name,
-                                    sharedAmount.toString(),
+                                    sharedamountt.toString(),
                                     sharedExtra.currencyId.toInt()
                                 )
                                 val totalExtrasCost = selectedExtras.sumOf { it.second.toDouble() }

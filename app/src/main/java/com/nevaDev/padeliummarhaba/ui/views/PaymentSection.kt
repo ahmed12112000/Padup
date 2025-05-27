@@ -72,6 +72,7 @@ import com.nevaDev.padeliummarhaba.viewmodels.UpdatePhoneViewModel
 import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dto.PaymentRequest
 import com.padelium.data.dto.GetBookingResponseDTO
+import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetProfileResponse
 import com.padelium.domain.dto.PaymentResponse
@@ -189,6 +190,8 @@ fun  PaymentSection1(
     updatePhoneViewModel: UpdatePhoneViewModel = hiltViewModel(),
     getProfileViewModel: GetProfileViewModel = hiltViewModel()
 ) {
+    val profileData by getProfileViewModel.profileData.observeAsState()
+
     var firstName by remember { mutableStateOf("") }
     var lastName by remember { mutableStateOf("") }
     var phoneNumber by remember { mutableStateOf("") }
@@ -230,22 +233,41 @@ fun  PaymentSection1(
     }
 
 
-    val profileData by getProfileViewModel.profileData.observeAsState(DataResult.Loading)
-    when (val result = profileData) {
-        is DataResult.Success -> {
-            val profile = result.data as? GetProfileResponse
-            if (profile != null && !firstName.isNotEmpty()) {
-                firstName = profile.firstName
-                lastName = profile.lastName
-                phoneNumber = profile.phone
+    LaunchedEffect(profileData) {
+        Log.d("ProfileScreen", "Profile data changed: $profileData")
 
-            } else {
-                androidx.compose.material.Text(text = "")
+        when (val result = profileData) {
+            is DataResultBooking.Success -> {
+                Log.d("ProfileScreen", "Success state received")
+                try {
+                    val profile = result.data
+                    Log.d("ProfileScreen", "Profile data: $profile")
+
+                    if (profile != null) {
+                        firstName = profile.firstName ?: ""
+                        lastName = profile.lastName ?: ""
+                        phoneNumber = profile.phone ?: ""
+
+
+                    } else {
+
+                    }
+                } catch (e: Exception) {
+
+                }
+                isLoading = false
             }
-        }
-        is DataResult.Loading -> {
-        }
-        is DataResult.Failure -> {
+            is DataResultBooking.Loading -> {
+                Log.d("ProfileScreen", "Loading state")
+                isLoading = true
+            }
+            is DataResultBooking.Failure -> {
+
+            }
+            null -> {
+                Log.d("ProfileScreen", "Profile data is null")
+                isLoading = true
+            }
         }
     }
 
@@ -486,7 +508,7 @@ fun  PaymentSection1(
                 colors = CardDefaults.cardColors(Color.White),
                 elevation = CardDefaults.cardElevation(4.dp)
             ) {
-
+Log.d("fffffffffff","$totalSharedExtrasCost")
                 ReservationSummary(
                     selectedDate = selectedDate,
                     selectedTimeSlot = selectedTimeSlot.toString(),
@@ -981,6 +1003,8 @@ fun  PaymentSection1(
                         selectedReservation = selectedReservation,
                         saveBookingViewModel = hiltViewModel(),
                         bookingId = bookingId,
+                        sharedExtrass = sharedExtras,
+                        privateExtrass = privateExtras,
                         playerIds = playerIds
                     )
                 }

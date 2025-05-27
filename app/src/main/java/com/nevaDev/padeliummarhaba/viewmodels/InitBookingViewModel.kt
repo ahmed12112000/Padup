@@ -9,6 +9,7 @@ import com.padelium.domain.dataresult.DataResult
 import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dataresult.Resulta
 import com.padelium.domain.dto.InitBookingRequest
+import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.usecases.InitBookingUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
@@ -21,21 +22,23 @@ class InitBookingViewModel @Inject constructor(
     private val initBookingUseCase: InitBookingUseCase,
 ) : ViewModel() {
 
-    val dataResult1 = MutableLiveData<DataResult>()
+    val dataResult = MutableLiveData<DataResultBooking<List<InitBookingResponse>>>()
     val navigateToErrorScreen = MutableLiveData<Boolean>()
     val navigationEvent = MutableLiveData<String>()
 
     fun InitBooking(initBookingRequest: InitBookingRequest) {
         viewModelScope.launch {
-            dataResult1.postValue(DataResult.Loading)
+            dataResult.postValue(DataResultBooking.Loading)
 
             val result = initBookingUseCase.InitBooking(initBookingRequest)
-            if (result is DataResult.Failure && result.errorCode != 200) {
+
+            if (result is DataResultBooking.Failure && result.errorCode != 200) {
                 navigateToErrorScreen.postValue(true)
             }
 
-            dataResult1.postValue(result)
+            dataResult.postValue(result)
         }
     }
 }
+
 

@@ -14,7 +14,7 @@ class InitBookingRepositorylmp @Inject constructor(
     private val mapper: InitBookingMapper,
     ) : IInitBookingRepository {
     override suspend fun InitBooking(initBookingRequest: InitBookingRequest): Response<List<InitBookingResponse>> {
-        return api.InitBooking(mapper.initBookingRequestToInitBookingRequestDto(initBookingRequest))
+        return api.InitBooking(initBookingRequest)
     }
 
 

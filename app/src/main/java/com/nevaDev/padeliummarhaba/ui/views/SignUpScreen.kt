@@ -36,6 +36,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
 import androidx.compose.material.TextFieldDefaults
+import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
@@ -76,27 +77,34 @@ fun SignUpScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val lifecycleOwner: LifecycleOwner = LocalLifecycleOwner.current
     var showMessage by remember { mutableStateOf(false) }
+    val result by viewModel.dataResult.observeAsState()
 
-    viewModel.dataResult.observe(lifecycleOwner) { result ->
-        isLoading = false
+    LaunchedEffect(result) {
         when (result) {
             is DataResult.Loading -> {
+                isLoading = true
             }
 
             is DataResult.Success -> {
+                isLoading = false
                 message = "Inscription réussie"
                 isSuccess = true
                 navController.navigate("SignUp_SuccessScreen")
-
-                coroutineScope.launch {
-                    delay(5000)
-                    message = ""
-                }
+                delay(5000)
+                message = ""
             }
 
             is DataResult.Failure -> {
-
+                isLoading = false
+                message = "Compte déjà existe"
+                showMessage = true
+                Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                delay(3000)
+                message = ""
+                showMessage = false
             }
+
+            else -> {}
         }
     }
 

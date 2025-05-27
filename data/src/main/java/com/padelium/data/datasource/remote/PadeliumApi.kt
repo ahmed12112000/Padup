@@ -28,6 +28,8 @@ import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.FindTermsResponse
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetInitResponse
+import com.padelium.domain.dto.GetProfileResponse
+import com.padelium.domain.dto.InitBookingRequest
 import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.dto.PartnerPayResponse
 import com.padelium.domain.dto.PaymentResponse
@@ -95,7 +97,7 @@ class PadeliumApi @Inject constructor(
     suspend fun GetProfileById(id: Long): Response<GetReservationIDResponseDTO> {
         return endPoint.GetProfileById(id)
     }
-    suspend fun GetProfile(): Response<GetProfileResponseDTO> {
+    suspend fun GetProfile(): Response<GetProfileResponse> {
         return endPoint.GetProfile()
     }
     suspend fun  signup(signupRequest: SignupRequestDTO): Response<Void>{
@@ -115,7 +117,7 @@ class PadeliumApi @Inject constructor(
         val requestBody = key.toRequestBody("application/json".toMediaTypeOrNull())
         return endPoint.SearchList(requestBody)
     }
-    suspend fun InitBooking (initBookingRequest: InitBookingRequestDTO): Response<List<InitBookingResponse>> {
+    suspend fun InitBooking (initBookingRequest: InitBookingRequest): Response<List<InitBookingResponse>> {
     return endPoint.InitBooking(initBookingRequest)
     }
     suspend fun GetBooking (key: String): Response<List<GetBookingResponse>> {

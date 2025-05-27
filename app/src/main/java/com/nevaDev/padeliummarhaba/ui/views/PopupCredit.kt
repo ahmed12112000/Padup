@@ -1,5 +1,6 @@
 package com.nevaDev.padeliummarhaba.ui.views
 
+import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
@@ -97,7 +98,9 @@ fun PopupCredit(
     selectedReservation: ReservationOption,
     saveBookingViewModel: SaveBookingViewModel = hiltViewModel(),
     bookingId: String?,
-    playerIds: List<Long>
+    playerIds: List<Long>,
+    sharedExtrass : List<Long>,
+    privateExtrass : List<Long>
 ) {
     if (!showPopup) return
     val confirmBookingViewModel: ConfirmBookingViewModel = hiltViewModel()
@@ -116,7 +119,7 @@ fun PopupCredit(
     val balanceData by balanceViewModel.dataResult.observeAsState(DataResult.Loading)
     val totalAmountSelected = adjustedAmount + totalExtrasCost
     onTotalAmountCalculated(totalAmountSelected, "DT")
-
+ Log.d("totalAmount","$totalAmountSelected")
     var elapsedTime by remember { mutableStateOf(0f) }
     val totalTime = 240f
     val timeLeft = (totalTime - elapsedTime).toInt()
@@ -295,7 +298,6 @@ fun PopupCredit(
                                     val selectedBooking = mappedBookings.firstOrNull()
 
                                     if (selectedBooking != null) {
-                                        val totalAmountSelected = adjustedAmount + totalExtrasCost
 
                                         if (totalAmountSelected <= 0) {
                                             isLoading = false
@@ -349,14 +351,14 @@ fun PopupCredit(
 
                                                                 val confirmBookingRequest =
                                                                     ConfirmBookingRequest(
-                                                                        amount = totalAmountBigDecimal,
+                                                                        amount = totalAmountSelected.toBigDecimal(),
                                                                         numberOfPart = currentSelectedParts,
                                                                         payFromAvoir = payFromAvoirResponse,
-                                                                        privateExtrasIds = mappedBookings.first().privateExtrasIds ?: emptyList(),
+                                                                        privateExtrasIds = privateExtrass,
                                                                         bookingIds = listOfNotNull(bookingId?.toLongOrNull()),
                                                                         buyerId = "",
                                                                         couponIds = emptyMap(),
-                                                                        sharedExtrasIds = mappedBookings.first().sharedExtrasIds ?: emptyList(),
+                                                                        sharedExtrasIds = sharedExtrass,
                                                                         status = true,
                                                                         token = "",
                                                                         transactionId = "",

@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -49,12 +50,12 @@ import com.nevaDev.padeliummarhaba.viewmodels.GetProfileViewModel
 import com.nevaDev.padeliummarhaba.viewmodels.ProfileViewModel
 import com.nevadev.padeliummarhaba.R
 import com.padelium.domain.dataresult.DataResult
+import com.padelium.domain.dataresult.DataResultBooking
 import com.padelium.domain.dto.GetProfileResponse
 import kotlinx.coroutines.delay
 import org.json.JSONObject
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
-
 
 @Composable
 fun ProfileScreen(
@@ -79,7 +80,7 @@ fun ProfileScreen(
     var showToast by remember { mutableStateOf(false) }
     var toastMessage by remember { mutableStateOf("") }
     var showDeleteDialog by remember { mutableStateOf(false) }
-
+    var isLoading by remember { mutableStateOf(true) }
 
     fun isFormValid(): Boolean {
         return firstName.isNotBlank() && lastName.isNotBlank() && phoneNumber.isNotBlank() && phoneNumber.length >= 8
@@ -92,56 +93,90 @@ fun ProfileScreen(
             showToast = false
         }
     }
+
     val bitmap = remember(image) {
         if (image.isNotEmpty()) {
-            val decodedString = Base64.decode(image, Base64.DEFAULT)
-            android.graphics.BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+            try {
+                val decodedString = Base64.decode(image, Base64.DEFAULT)
+                BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+            } catch (e: Exception) {
+                Log.e("ProfileScreen", "Error decoding image: ${e.message}")
+                null
+            }
         } else {
             null
         }
     }
-
 
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
         if (uri != null) {
             profileImageUri = uri
-        } else {
         }
     }
-    val profileData by viewModel.profileData.observeAsState(DataResult.Loading)
-    val sessionManager = remember { SessionManager(context) }
 
+    val profileData by viewModel.profileData.observeAsState()
 
-    when (val result = profileData) {
-        is DataResult.Success -> {
-            val profile = result.data as? GetProfileResponse
-            if (profile != null && !firstName.isNotEmpty()) {
-                firstName = profile.firstName
-                lastName = profile.lastName
-                phoneNumber = profile.phone
-                activated = profile.activated
-                authorities = profile.authorities
-                email = profile.email
-                langKey = profile.langKey
-                login = profile.login
-                image = profile.image
-                imageUrl = profile.imageUrl
+    // Fetch profile data when the composable is first created
+    LaunchedEffect(Unit) {
+        Log.d("ProfileScreen", "Launching profile fetch...")
+        viewModel.fetchProfileData()
+    }
 
-            } else {
-                Text(text = "")
+    // Handle profile data changes
+    LaunchedEffect(profileData) {
+        Log.d("ProfileScreen", "Profile data changed: $profileData")
+
+        when (val result = profileData) {
+            is DataResultBooking.Success -> {
+                Log.d("ProfileScreen", "Success state received")
+                try {
+                    val profile = result.data
+                    Log.d("ProfileScreen", "Profile data: $profile")
+
+                    if (profile != null) {
+                        firstName = profile.firstName ?: ""
+                        lastName = profile.lastName ?: ""
+                        phoneNumber = profile.phone ?: ""
+                        activated = profile.activated ?: false
+                        authorities = (profile.authorities ?: emptyList()).joinToString(", ")
+                        email = profile.email ?: ""
+                        langKey = profile.langKey ?: ""
+                        login = profile.login ?: ""
+                        image = profile.image ?: ""
+                        imageUrl = profile.imageUrl ?: ""
+
+                        Log.d("ProfileScreen", "Data populated - FirstName: $firstName, LastName: $lastName, Email: $email")
+                    } else {
+                        Log.e("ProfileScreen", "Profile is null")
+                        toastMessage = "Données de profil invalides"
+                        showToast = true
+                    }
+                } catch (e: Exception) {
+                    Log.e("ProfileScreen", "Error processing profile data: ${e.message}", e)
+                    toastMessage = "Erreur lors du traitement des données"
+                    showToast = true
+                }
+                isLoading = false
+            }
+            is DataResultBooking.Loading -> {
+                Log.d("ProfileScreen", "Loading state")
+                isLoading = true
+            }
+            is DataResultBooking.Failure -> {
+                Log.e("ProfileScreen", "Exception: ${result.exception?.message}")
+                isLoading = false
+                showToast = true
+            }
+            null -> {
+                Log.d("ProfileScreen", "Profile data is null")
+                isLoading = true
             }
         }
-
-        is DataResult.Loading -> {
-        }
-
-        is DataResult.Failure -> {
-        }
     }
-    val focusManager = LocalFocusManager.current
 
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
@@ -154,20 +189,31 @@ fun ProfileScreen(
                 })
             }
     ) {
-            Text(
-                text = "Mon Profil",
-                fontSize = 25.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color.Black,
-                modifier = Modifier.offset(x = 5.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "Mon Profil",
+            fontSize = 25.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.Black,
+            modifier = Modifier.offset(x = 5.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
 
-            HorizontalDivider(
-                modifier = Modifier.width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
-                color = Color.Gray, thickness = 1.dp
-            )
-            Spacer(modifier = Modifier.height(2.dp))
+        HorizontalDivider(
+            modifier = Modifier.width(900.dp).padding(horizontal = 10.dp).offset(y = -10.dp),
+            color = Color.Gray, thickness = 1.dp
+        )
+        Spacer(modifier = Modifier.height(2.dp))
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -175,7 +221,7 @@ fun ProfileScreen(
             ) {
                 Column {
                     Text(
-                        text = "${email}",
+                        text = if (email.isNotEmpty()) email else "Email non disponible",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
                         color = Color.Black
@@ -208,9 +254,7 @@ fun ProfileScreen(
                 value = phoneNumber,
                 onValueChange = {
                     if ((it.all { char -> char.isDigit() || char == '+' }) && it.length <= 8) {
-                        if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains(
-                                '+'
-                            ))) {
+                        if (it.count { char -> char == '+' } <= 1 && (it.indexOf('+') == 0 || !it.contains('+'))) {
                             phoneNumber = it
                         }
                     }
@@ -230,8 +274,7 @@ fun ProfileScreen(
             Spacer(modifier = Modifier.height(26.dp))
 
             Column(
-                modifier = Modifier
-                    .fillMaxSize(),
+                modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -245,7 +288,6 @@ fun ProfileScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-
                 Box(
                     modifier = Modifier
                         .size(90.dp)
@@ -258,9 +300,7 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(CircleShape)
-                                .clickable {
-                                    launcher.launch("image/*")
-                                },
+                                .clickable { launcher.launch("image/*") },
                             contentScale = ContentScale.Crop
                         )
                     } else if (bitmap != null) {
@@ -270,9 +310,7 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .clip(CircleShape)
-                                .clickable {
-                                    launcher.launch("image/*")
-                                },
+                                .clickable { launcher.launch("image/*") },
                             contentScale = ContentScale.Crop
                         )
                     } else {
@@ -282,9 +320,7 @@ fun ProfileScreen(
                             modifier = Modifier
                                 .size(90.dp)
                                 .clip(CircleShape)
-                                .clickable {
-                                    launcher.launch("image/*")
-                                }
+                                .clickable { launcher.launch("image/*") }
                                 .align(Alignment.Center),
                             contentScale = ContentScale.Crop
                         )
@@ -293,6 +329,7 @@ fun ProfileScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
+
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -304,8 +341,6 @@ fun ProfileScreen(
                         .align(Alignment.TopCenter),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-
-
                     Button(
                         onClick = {
                             if (!isFormValid()) {
@@ -336,8 +371,7 @@ fun ProfileScreen(
                             backgroundColor = Color(0xFF0066CC),
                             contentColor = Color.White
                         ),
-                        enabled = isFormValid(),
-
+                        enabled = isFormValid() && !isLoading,
                         modifier = Modifier
                             .fillMaxWidth(0.9f)
                             .padding(horizontal = 8.dp)
@@ -353,62 +387,40 @@ fun ProfileScreen(
                         )
                     }
 
-
-                    LaunchedEffect(Unit) {
-                        viewModel.fetchProfileData()
-                    }
-                     Spacer(modifier = Modifier.height(20.dp))
-
-
-                        Button(
-                            onClick = {
-                                sessionManager.logout()
-                                navController.navigate("main_screen") {
-                                    popUpTo("profile") { inclusive = true }
-                                }
-
-                            },
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, Color.Black, RoundedCornerShape(13.dp)),
-                            colors = ButtonDefaults.buttonColors(
-                                backgroundColor = Color.Transparent
-                            ),
-                            elevation = ButtonDefaults.elevation(0.dp)
-
-
-                        ) {
-                            Text(
-                                text = "Se déconnecter",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Normal,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Center,
-                                color = Color.Red
-                            )
-
-                    }
                     Spacer(modifier = Modifier.height(20.dp))
-
 
                     Button(
                         onClick = {
-                            showDeleteDialog = true
-
-
-
+                            sessionManager.logout()
+                            navController.navigate("main_screen") {
+                                popUpTo("profile") { inclusive = true }
+                            }
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                           ,
-                        colors = ButtonDefaults.buttonColors(
-                            backgroundColor = Color.Red
-                        ),
+                            .border(1.dp, Color.Black, RoundedCornerShape(13.dp)),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Transparent),
                         elevation = ButtonDefaults.elevation(0.dp)
+                    ) {
+                        Text(
+                            text = "Se déconnecter",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Normal,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.Center,
+                            color = Color.Red
+                        )
+                    }
 
+                    Spacer(modifier = Modifier.height(20.dp))
 
+                    Button(
+                        onClick = { showDeleteDialog = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red),
+                        elevation = ButtonDefaults.elevation(0.dp)
                     ) {
                         Text(
                             text = "Supprimer Compte",
@@ -419,14 +431,12 @@ fun ProfileScreen(
                             modifier = Modifier.fillMaxWidth(),
                             textAlign = TextAlign.Center,
                             color = Color.White
-
                         )
                     }
+
                     if (showDeleteDialog) {
                         AlertDialog(
-                            onDismissRequest = {
-                                showDeleteDialog = false
-                            },
+                            onDismissRequest = { showDeleteDialog = false },
                             title = {
                                 Text(text = "Suppression du Compte", fontWeight = FontWeight.Bold)
                             },
@@ -444,7 +454,6 @@ fun ProfileScreen(
                                         toastMessage = "Compte supprimé avec succès."
                                         showToast = true
                                         showDeleteDialog = false
-
                                     },
                                     colors = ButtonDefaults.buttonColors(backgroundColor = Color.Red)
                                 ) {
@@ -453,21 +462,18 @@ fun ProfileScreen(
                             },
                             dismissButton = {
                                 OutlinedButton(
-                                    onClick = {
-                                        showDeleteDialog = false
-                                    }
+                                    onClick = { showDeleteDialog = false }
                                 ) {
                                     Text("Annuler", color = Color.Black)
                                 }
                             }
                         )
                     }
-
                 }
             }
         }
     }
-
+}
 fun getBase64FromUri(context: Context, uri: Uri): String? {
     return try {
         val inputStream: InputStream? = context.contentResolver.openInputStream(uri)

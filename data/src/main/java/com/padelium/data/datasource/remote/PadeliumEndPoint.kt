@@ -26,6 +26,8 @@ import com.padelium.domain.dto.FetchKeyResponse
 import com.padelium.domain.dto.FindTermsResponse
 import com.padelium.domain.dto.GetBookingResponse
 import com.padelium.domain.dto.GetInitResponse
+import com.padelium.domain.dto.GetProfileResponse
+import com.padelium.domain.dto.InitBookingRequest
 import com.padelium.domain.dto.InitBookingResponse
 import com.padelium.domain.dto.PartnerPayResponse
 import com.padelium.domain.dto.PaymentResponse
@@ -81,7 +83,7 @@ interface PadeliumEndPoint {
 
     @Headers("Content-Type: application/json")
     @POST("api/establishments/search/init/booking")
-    suspend fun InitBooking(@Body request: InitBookingRequestDTO): Response<List<InitBookingResponse>>
+    suspend fun InitBooking(@Body request: InitBookingRequest): Response<List<InitBookingResponse>>
 
     @Headers("Content-Type: application/json")
     @POST("api/establishments/search/get/booking")
@@ -133,7 +135,7 @@ interface PadeliumEndPoint {
 
     @Headers("Accept: application/json")
     @GET("/api/account")
-    suspend fun GetProfile(): Response<GetProfileResponseDTO>
+    suspend fun GetProfile(): Response<GetProfileResponse>
 
     @Headers("Accept: application/json", "Content-Type: application/json")
     @GET("api/extras")
