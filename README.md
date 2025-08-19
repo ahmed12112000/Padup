@@ -1,93 +1,199 @@
-# padelium-marhaba-android-app
+# PadUp 🏓
+**Padel Court Reservation App for Tunisia**
 
+PadUp is a mobile application designed to streamline padel court reservations across Tunisia. Built with modern Android technologies, it provides players with an easy way to find, book, and manage padel court reservations.
 
+## 🌟 Features
 
-## Getting started
+### For Players
+- **Court Discovery**: Find padel courts near you across Tunisia
+- **Real-time Availability**: Check court availability in real-time
+- **Easy Booking**: Simple reservation process with instant confirmation
+- **Player Matching**: Connect with other players looking for partners
+- **Booking History**: Track your past and upcoming reservations
+- **Club Information**: Detailed information about courts, facilities, and amenities
+- **Multi-language Support**: Arabic, French, and English language options
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+### For Court Owners
+- **Court Management**: Manage multiple courts and their schedules
+- **Booking Management**: Accept, decline, or modify reservations
+- **Revenue Tracking**: Monitor bookings and revenue analytics
+- **Customer Communication**: Direct messaging with players
+- **Pricing Management**: Set flexible pricing for different time slots
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 🚀 Technology Stack
 
-## Add your files
+- **Platform**: Android (Kotlin/Java)
+- **Architecture**: MVVM (Model-View-ViewModel)
+- **Database**: Room Database with SQLite
+- **Networking**: Retrofit for API calls
+- **Authentication**: Firebase Authentication
+- **Maps**: Google Maps API for location services
+- **Payment**: Integrated payment gateway for secure transactions
+- **Push Notifications**: Firebase Cloud Messaging
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+## 📱 Screenshots
+
+*Coming soon - Add your app screenshots here*
+
+## 🛠️ Installation & Setup
+
+### Prerequisites
+- Android Studio Arctic Fox (2020.3.1) or later
+- Android SDK API level 21 or higher
+- Google Play Services
+- Firebase account for authentication and messaging
+
+### Clone the Repository
+```bash
+git clone https://github.com/ahmed12112000/PadeliumMarhaba.git
+cd PadeliumMarhaba
+```
+
+### Setup Firebase
+1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
+2. Add your Android app to the Firebase project
+3. Download `google-services.json` and place it in the `app/` directory
+4. Enable Authentication and Cloud Messaging in Firebase console
+
+### API Configuration
+1. Copy `config.example.properties` to `config.properties`
+2. Add your API endpoints and keys:
+```properties
+BASE_URL=https://your-api-endpoint.com/
+GOOGLE_MAPS_API_KEY=your_google_maps_key
+PAYMENT_API_KEY=your_payment_gateway_key
+```
+
+### Build and Run
+```bash
+./gradlew assembleDebug
+```
+
+## 🏗️ Project Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/nevadev/padelium-marhaba-android-app.git
-git branch -M main
-git push -uf origin main
+app/
+├── src/main/
+│   ├── java/com/padup/
+│   │   ├── ui/              # UI components and activities
+│   │   ├── data/            # Repository, database, and API
+│   │   ├── domain/          # Business logic, use cases, and domain models
+│   │   ├── model/           # Data models
+│   │   ├── utils/           # Utility classes
+│   │   └── di/              # Dependency injection
+│   ├── res/                 # Resources (layouts, strings, etc.)
+│   └── AndroidManifest.xml
+├── build.gradle
+└── proguard-rules.pro
 ```
 
-## Integrate with your tools
+## 🌍 Supported Regions
 
-- [ ] [Set up project integrations](https://gitlab.com/nevadev/padelium-marhaba-android-app/-/settings/integrations)
+Currently serving padel courts in:
+- **Tunis** - Greater Tunis area
+- **Sousse** - Sousse and surrounding areas  
+- **Sfax** - Sfax metropolitan area
+- **Monastir** - Monastir region
+- **Hammamet** - Hammamet and Nabeul
 
-## Collaborate with your team
+*Expanding to more cities across Tunisia*
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+## 🔧 Key Dependencies
 
-## Test and Deploy
+```gradle
+dependencies {
+    implementation 'androidx.navigation:navigation-fragment-ktx:2.7.5'
+    implementation 'com.google.android.material:material:1.10.0'
+    implementation 'androidx.room:room-runtime:2.6.1'
+    implementation 'com.squareup.retrofit2:retrofit:2.9.0'
+    implementation 'com.google.firebase:firebase-auth:22.3.0'
+    implementation 'com.google.android.gms:play-services-maps:18.2.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0'
+}
+```
 
-Use the built-in continuous integration in GitLab.
+## 🤝 Contributing
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+We welcome contributions to improve PadUp! Please follow these steps:
 
-***
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-# Editing this README
+### Code Style
+- Follow Android Kotlin style guidelines
+- Use meaningful variable and function names
+- Add comments for complex logic
+- Ensure all new features have appropriate tests
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## 📄 API Documentation
 
-## Suggestions for a good README
+The app connects to our REST API for data synchronization. Key endpoints:
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+```
+GET /api/courts              # Get available courts
+POST /api/bookings           # Create new booking
+GET /api/bookings/{userId}   # Get user bookings
+PUT /api/bookings/{id}       # Update booking
+DELETE /api/bookings/{id}    # Cancel booking
+```
 
-## Name
-Choose a self-explaining name for your project.
+## 🔐 Security & Privacy
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+- All user data is encrypted in transit and at rest
+- Payment information is processed through secure, PCI-compliant gateways
+- Location data is only used for court discovery and is not stored permanently
+- Users can delete their accounts and all associated data at any time
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+## 📋 Roadmap
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Version 2.0
+- [ ] Tournament organization features
+- [ ] Advanced player statistics
+- [ ] Social features and player communities
+- [ ] Integration with fitness tracking apps
+- [ ] Loyalty program for frequent players
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+### Version 2.1
+- [ ] AI-powered court recommendations
+- [ ] Weather integration for outdoor courts
+- [ ] Group booking features
+- [ ] Video coaching integration
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 🐛 Known Issues
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+- Occasional GPS accuracy issues in dense urban areas
+- Payment processing may take up to 24 hours for bank transfers
+- Push notifications require app to be running in background
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+## 📞 Support
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+- **Email**: support@padup.tn
+- **Website**: www.padup.tn
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+For technical issues, please create an issue in this repository.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## 📜 License
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## License
-For open source projects, say how it is licensed.
+## 👥 Team
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+- **Lead Developer**: Ahmed Mghaieth
+
+
+## 🙏 Acknowledgments
+
+- Thanks to the Tunisian Padel Federation for their support
+- Special thanks to all the padel clubs who partnered with us
+- Icons provided by [Icons8](https://icons8.com)
+- Maps powered by Google Maps Platform
+
+---
+
+**Made with ❤️ in Tunisia for the Padel community**
+
+*For business inquiries and partnerships: business@padup.tn*
