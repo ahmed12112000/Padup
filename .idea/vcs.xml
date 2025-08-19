@@ -3,5 +3,6 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/padelium-marhaba-android-app" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/padup-kotlin-mobile-app" vcs="Git" />
   </component>
 </project>
